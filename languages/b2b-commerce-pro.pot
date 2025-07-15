@@ -1,0 +1,6 @@
+# B2B Commerce Pro Translation Template
+msgid ""
+msgstr ""
+"Project-Id-Version: B2B Commerce Pro 1.0.0\n"
+"POT-Creation-Date: 2024-06-07\n"
+"Language: en_US\n" 

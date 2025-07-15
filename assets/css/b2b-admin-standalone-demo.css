@@ -1,0 +1,237 @@
+/* Standalone Modern Admin UI Demo CSS for B2B Plugin */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f4f6f8;
+  color: #222;
+}
+.b2b-admin-demo-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+.b2b-admin-sidebar {
+  width: 260px;
+  background: linear-gradient(135deg, #23272f 0%, #1a1d23 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 32px;
+}
+.b2b-admin-logo {
+  margin-bottom: 32px;
+  text-align: center;
+}
+.b2b-admin-logo img {
+  width: 120px;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.b2b-admin-logo h1 {
+  font-size: 1.5em;
+  color: #fff;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.b2b-admin-menu {
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.b2b-admin-menu li {
+  width: 100%;
+}
+.b2b-admin-menu a {
+  display: flex;
+  align-items: center;
+  padding: 16px 32px;
+  color: #b0b8c1;
+  text-decoration: none;
+  font-size: 1.1em;
+  transition: background 0.2s, color 0.2s;
+  border-left: 4px solid transparent;
+}
+.b2b-admin-menu a.active, .b2b-admin-menu a:hover {
+  background: #1e2530;
+  color: #fff;
+  border-left: 4px solid #2196f3;
+}
+.b2b-admin-menu .icon {
+  margin-right: 14px;
+  font-size: 1.3em;
+  width: 24px;
+  text-align: center;
+}
+.b2b-admin-content {
+  flex: 1;
+  padding: 48px 56px;
+  background: #f4f6f8;
+}
+.b2b-admin-header {
+  background: #fff;
+  padding: 32px 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+  border-left: 4px solid #2196f3;
+}
+.b2b-admin-header h1 {
+  font-size: 2em;
+  margin: 0 0 8px 0;
+  color: #23272f;
+  display: flex;
+  align-items: center;
+}
+.b2b-admin-header .icon {
+  margin-right: 12px;
+  color: #2196f3;
+}
+.b2b-admin-header p {
+  color: #666;
+  font-size: 1.1em;
+  margin: 0;
+}
+.b2b-admin-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e0e0e0;
+}
+.b2b-admin-card-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #23272f;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+}
+.b2b-admin-card-title .icon {
+  margin-right: 10px;
+  color: #2196f3;
+}
+.b2b-admin-form-group {
+  margin-bottom: 24px;
+}
+.b2b-admin-form-group label {
+  display: block;
+  font-weight: 600;
+  color: #23272f;
+  margin-bottom: 8px;
+  font-size: 1.1em;
+}
+.b2b-admin-form-group input[type="text"],
+.b2b-admin-form-group select,
+.b2b-admin-form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1em;
+  background: #fafbfc;
+  transition: border 0.2s;
+}
+.b2b-admin-form-group input:focus,
+.b2b-admin-form-group select:focus,
+.b2b-admin-form-group textarea:focus {
+  border-color: #2196f3;
+  outline: none;
+}
+.b2b-admin-toggle {
+  position: relative;
+  display: inline-block;
+  width: 56px;
+  height: 30px;
+}
+.b2b-admin-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.b2b-admin-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 30px;
+}
+.b2b-admin-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+.b2b-admin-toggle input:checked + .b2b-admin-toggle-slider {
+  background-color: #2196f3;
+}
+.b2b-admin-toggle input:checked + .b2b-admin-toggle-slider:before {
+  transform: translateX(26px);
+}
+.b2b-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2196f3 0%, #1769aa 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(33,150,243,0.15);
+  transition: background 0.2s, transform 0.2s;
+}
+.b2b-admin-btn:hover {
+  background: linear-gradient(135deg, #1769aa 0%, #2196f3 100%);
+  transform: translateY(-2px);
+}
+.b2b-admin-btn .icon {
+  margin-right: 8px;
+}
+.b2b-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.b2b-admin-table th {
+  background: #f8f9fa;
+  color: #23272f;
+  font-weight: 600;
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 2px solid #e0e0e0;
+  font-size: 1.1em;
+}
+.b2b-admin-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f1;
+  color: #333;
+}
+.b2b-admin-table tr:hover {
+  background: #f8f9fa;
+}
+.b2b-admin-table tr:last-child td {
+  border-bottom: none;
+}
+@media (max-width: 900px) {
+  .b2b-admin-content { padding: 20px; }
+  .b2b-admin-header { padding: 20px; }
+  .b2b-admin-card { padding: 16px; }
+  .b2b-admin-sidebar { width: 100px; padding-top: 16px; }
+  .b2b-admin-menu a { padding: 12px 10px; font-size: 1em; }
+  .b2b-admin-logo h1 { font-size: 1em; }
+} 
