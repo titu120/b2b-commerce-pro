@@ -75,62 +75,90 @@ class PricingManager {
 
     // Add admin menu for pricing rules
     public function add_pricing_menu() {
-        add_menu_page( 'B2B Pricing', 'B2B Pricing', 'manage_woocommerce', 'b2b-pricing', [ $this, 'pricing_rules_page' ], 'dashicons-tag', 56 );
+        add_submenu_page(
+            'b2b-dashboard', // Parent slug for B2B Commerce
+            'B2B Pricing',
+            'B2B Pricing',
+            'manage_woocommerce',
+            'b2b-pricing',
+            [ $this, 'pricing_rules_page' ]
+        );
     }
 
     // Admin UI for pricing rules
     public function pricing_rules_page() {
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
-        // Handle edit
         $edit_id = isset($_GET['edit']) ? intval($_GET['edit']) : 0;
         $edit_rule = $edit_id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $edit_id) ) : null;
-        // List rules
         $rules = $wpdb->get_results("SELECT * FROM $table ORDER BY id DESC");
-        echo '<div class="wrap"><h1>B2B Pricing Rules</h1>';
+        $content = '';
+        $content .= '<div class="b2b-admin-header">';
+        $content .= '<h1><span class="icon dashicons dashicons-tag"></span>B2B Pricing Rules</h1>';
+        $content .= '<p>Manage and create pricing rules for B2B customers.</p>';
+        $content .= '</div>';
         // Add/Edit form
-        echo '<h2>' . ($edit_rule ? 'Edit' : 'Add') . ' Pricing Rule</h2>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-        wp_nonce_field('b2b_save_pricing_rule', 'b2b_nonce');
-        if ($edit_rule) echo '<input type="hidden" name="id" value="' . esc_attr($edit_rule->id) . '">';
-        echo '<table class="form-table">';
-        echo '<tr><th>Product ID</th><td><input type="number" name="product_id" value="' . esc_attr($edit_rule->product_id ?? '') . '" required></td></tr>';
-        echo '<tr><th>Role</th><td><input type="text" name="role" value="' . esc_attr($edit_rule->role ?? '') . '"></td></tr>';
-        echo '<tr><th>User ID</th><td><input type="number" name="user_id" value="' . esc_attr($edit_rule->user_id ?? '') . '"></td></tr>';
-        echo '<tr><th>Group ID</th><td><input type="number" name="group_id" value="' . esc_attr($edit_rule->group_id ?? '') . '"></td></tr>';
-        echo '<tr><th>Geo Zone</th><td><input type="text" name="geo_zone" value="' . esc_attr($edit_rule->geo_zone ?? '') . '"></td></tr>';
-        echo '<tr><th>Start Date</th><td><input type="date" name="start_date" value="' . esc_attr($edit_rule->start_date ?? '') . '"></td></tr>';
-        echo '<tr><th>End Date</th><td><input type="date" name="end_date" value="' . esc_attr($edit_rule->end_date ?? '') . '"></td></tr>';
-        echo '<tr><th>Min Qty</th><td><input type="number" name="min_qty" value="' . esc_attr($edit_rule->min_qty ?? '') . '"></td></tr>';
-        echo '<tr><th>Max Qty</th><td><input type="number" name="max_qty" value="' . esc_attr($edit_rule->max_qty ?? '') . '"></td></tr>';
-        echo '<tr><th>Price</th><td><input type="text" name="price" value="' . esc_attr($edit_rule->price ?? '') . '" required></td></tr>';
-        echo '<tr><th>Type</th><td><input type="text" name="type" value="' . esc_attr($edit_rule->type ?? '') . '"></td></tr>';
-        echo '</table>';
-        echo '<p><input type="submit" class="button button-primary" value="' . ($edit_rule ? 'Update' : 'Add') . ' Rule"></p>';
-        echo '<input type="hidden" name="action" value="b2b_save_pricing_rule">';
-        echo '</form>';
-        // List table
-        echo '<h2>All Pricing Rules</h2>';
-        echo '<table class="widefat"><thead><tr><th>ID</th><th>Product</th><th>Role</th><th>User</th><th>Group</th><th>Geo</th><th>Start</th><th>End</th><th>Min</th><th>Max</th><th>Price</th><th>Type</th><th>Actions</th></tr></thead><tbody>';
-        foreach ($rules as $rule) {
-            echo '<tr>';
-            echo '<td>' . esc_html($rule->id) . '</td>';
-            echo '<td>' . esc_html($rule->product_id) . '</td>';
-            echo '<td>' . esc_html($rule->role) . '</td>';
-            echo '<td>' . esc_html($rule->user_id) . '</td>';
-            echo '<td>' . esc_html($rule->group_id) . '</td>';
-            echo '<td>' . esc_html($rule->geo_zone) . '</td>';
-            echo '<td>' . esc_html($rule->start_date) . '</td>';
-            echo '<td>' . esc_html($rule->end_date) . '</td>';
-            echo '<td>' . esc_html($rule->min_qty) . '</td>';
-            echo '<td>' . esc_html($rule->max_qty) . '</td>';
-            echo '<td>' . esc_html($rule->price) . '</td>';
-            echo '<td>' . esc_html($rule->type) . '</td>';
-            echo '<td><a href="' . esc_url(admin_url('admin.php?page=b2b-pricing&edit=' . $rule->id)) . '" class="button">Edit</a> ';
-            echo '<a href="' . esc_url(admin_url('admin-post.php?action=b2b_delete_pricing_rule&id=' . $rule->id . '&_wpnonce=' . wp_create_nonce('b2b_delete_pricing_rule'))) . '" class="button">Delete</a></td>';
-            echo '</tr>';
+        $content .= '<div class="b2b-admin-card">';
+        $content .= '<div class="b2b-admin-card-title"><span class="icon dashicons dashicons-plus"></span>' . ($edit_rule ? 'Edit' : 'Add') . ' Pricing Rule</div>';
+        $content .= '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="b2b-admin-form">';
+        $content .= wp_nonce_field('b2b_save_pricing_rule', 'b2b_nonce', true, false);
+        if ($edit_rule) $content .= '<input type="hidden" name="id" value="' . esc_attr($edit_rule->id) . '">';
+        $fields = [
+            ['Product ID', 'product_id', 'number', true],
+            ['Role', 'role', 'text', false],
+            ['User ID', 'user_id', 'number', false],
+            ['Group ID', 'group_id', 'number', false],
+            ['Geo Zone', 'geo_zone', 'text', false],
+            ['Start Date', 'start_date', 'date', false],
+            ['End Date', 'end_date', 'date', false],
+            ['Min Qty', 'min_qty', 'number', false],
+            ['Max Qty', 'max_qty', 'number', false],
+            ['Price', 'price', 'text', true],
+            ['Type', 'type', 'text', false],
+        ];
+        foreach ($fields as $f) {
+            $content .= '<div class="b2b-admin-form-group">';
+            $content .= '<label for="' . $f[1] . '">' . $f[0] . ($f[3] ? ' <span style="color:#e53935">*</span>' : '') . '</label>';
+            $content .= '<input type="' . $f[2] . '" name="' . $f[1] . '" id="' . $f[1] . '" value="' . esc_attr($edit_rule->{$f[1]} ?? '') . '"' . ($f[3] ? ' required' : '') . '>';
+            $content .= '</div>';
         }
-        echo '</tbody></table></div>';
+        $content .= '<input type="hidden" name="action" value="b2b_save_pricing_rule">';
+        $content .= '<button type="submit" class="b2b-admin-btn"><span class="icon dashicons dashicons-saved"></span>' . ($edit_rule ? 'Update' : 'Add') . ' Rule</button>';
+        $content .= '</form>';
+        $content .= '</div>';
+        // List table
+        $content .= '<div class="b2b-admin-card">';
+        $content .= '<div class="b2b-admin-card-title"><span class="icon dashicons dashicons-list-view"></span>All Pricing Rules</div>';
+        $content .= '<div style="overflow-x:auto">';
+        $content .= '<table class="b2b-admin-table">';
+        $content .= '<thead><tr><th>ID</th><th>Product</th><th>Role</th><th>User</th><th>Group</th><th>Geo</th><th>Start</th><th>End</th><th>Min</th><th>Max</th><th>Price</th><th>Type</th><th>Actions</th></tr></thead><tbody>';
+        foreach ($rules as $rule) {
+            $content .= '<tr>';
+            $content .= '<td>' . esc_html($rule->id) . '</td>';
+            $content .= '<td>' . esc_html($rule->product_id) . '</td>';
+            $content .= '<td>' . esc_html($rule->role) . '</td>';
+            $content .= '<td>' . esc_html($rule->user_id) . '</td>';
+            $content .= '<td>' . esc_html($rule->group_id) . '</td>';
+            $content .= '<td>' . esc_html($rule->geo_zone) . '</td>';
+            $content .= '<td>' . esc_html($rule->start_date) . '</td>';
+            $content .= '<td>' . esc_html($rule->end_date) . '</td>';
+            $content .= '<td>' . esc_html($rule->min_qty) . '</td>';
+            $content .= '<td>' . esc_html($rule->max_qty) . '</td>';
+            $content .= '<td>' . esc_html($rule->price) . '</td>';
+            $content .= '<td>' . esc_html($rule->type) . '</td>';
+            $content .= '<td><a href="' . esc_url(admin_url('admin.php?page=b2b-pricing&edit=' . $rule->id)) . '" class="b2b-admin-btn" style="padding: 6px 12px; font-size: 0.9em;"><span class="icon dashicons dashicons-edit"></span>Edit</a> ';
+            $content .= '<a href="' . esc_url(admin_url('admin-post.php?action=b2b_delete_pricing_rule&id=' . $rule->id . '&_wpnonce=' . wp_create_nonce('b2b_delete_pricing_rule'))) . '" class="b2b-admin-btn" style="padding: 6px 12px; font-size: 0.9em;"><span class="icon dashicons dashicons-trash"></span>Delete</a></td>';
+            $content .= '</tr>';
+        }
+        $content .= '</tbody></table>';
+        $content .= '</div></div>';
+        // Use the same wrapper as other admin pages
+        if (class_exists('B2B\\AdminPanel')) {
+            $panel = new \B2B\AdminPanel();
+            $panel->render_admin_wrapper('b2b-pricing', $content);
+        } else {
+            echo $content;
+        }
     }
 
     // Apply pricing rules to WooCommerce product price

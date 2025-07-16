@@ -20,13 +20,14 @@ class AdminPanel {
     }
 
     // Render the admin wrapper with custom sidebar and centered carded content
-    private function render_admin_wrapper($current_page, $content) {
+    public function render_admin_wrapper($current_page, $content) {
         $menu_items = [
             'b2b-dashboard' => ['Dashboard', 'dashicons-chart-area'],
             'b2b-users' => ['Users', 'dashicons-groups'],
             'b2b-orders' => ['Orders', 'dashicons-cart'],
             'b2b-emails' => ['Email Templates', 'dashicons-email'],
-            'b2b-settings' => ['Settings', 'dashicons-admin-generic']
+            'b2b-settings' => ['Settings', 'dashicons-admin-generic'],
+            'b2b-pricing' => ['B2B Pricing', 'dashicons-tag'], // Added B2B Pricing
         ];
         echo '<div class="b2b-admin-demo-wrapper">';
         // Sidebar
@@ -46,7 +47,7 @@ class AdminPanel {
         echo '</aside>';
         // Centered content area
         echo '<main class="b2b-admin-content">';
-        echo '<div style="max-width: 900px; margin: 0 auto;">';
+        echo '<div style="max-width: 1300px; margin: 0 auto;">';
         echo $content;
         echo '</div>';
         echo '</main>';
@@ -243,7 +244,7 @@ class AdminPanel {
 </div>
 <form method="post" action="options.php" class="b2b-admin-form">';
         $content .= settings_fields( 'b2b_settings' );
-        $content .= do_settings_sections( 'b2b-settings' );
+        // $content .= do_settings_sections( 'b2b-settings' ); // Commented out to remove duplicate unstyled field
         $content .= '
 <div class="b2b-admin-card">
     <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-admin-generic"></span>General Settings</div>
