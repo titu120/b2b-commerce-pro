@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// Define plugin constants
+// Define plugin constant
 define( 'B2B_COMMERCE_PRO_VERSION', '1.0.0' );
 define( 'B2B_COMMERCE_PRO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'B2B_COMMERCE_PRO_URL', plugin_dir_url( __FILE__ ) );
