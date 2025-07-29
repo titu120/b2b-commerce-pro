@@ -9,6 +9,7 @@ class PricingManager {
         register_activation_hook( B2B_COMMERCE_PRO_BASENAME, [ __CLASS__, 'create_pricing_table' ] );
         // Self-healing: check and create table if missing
         add_action( 'init', [ $this, 'maybe_create_pricing_table' ] );
+        add_action( 'init', [ $this, 'check_pricing_table' ] );
         add_action( 'admin_notices', [ $this, 'admin_notice_table_error' ] );
         add_action( 'admin_menu', [ $this, 'add_pricing_menu' ] );
         add_filter( 'woocommerce_product_get_price', [ $this, 'apply_pricing_rules' ], 10, 2 );
@@ -65,6 +66,22 @@ class PricingManager {
         } else {
             delete_option( 'b2b_pricing_table_error' );
         }
+    }
+
+    // Check if pricing table exists and has data
+    public function check_pricing_table() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
+        
+        if ($exists != $table) {
+            error_log("B2B Pricing: Table does not exist");
+            return false;
+        }
+        
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        error_log("B2B Pricing: Table exists with $count rules");
+        return true;
     }
 
     public function admin_notice_table_error() {
@@ -164,36 +181,78 @@ class PricingManager {
     // Apply pricing rules to WooCommerce product price
     public function apply_pricing_rules( $price, $product ) {
         if ( ! is_user_logged_in() ) return $price;
+        
         $user = wp_get_current_user();
         $user_id = $user->ID;
         $roles = $user->roles;
         $product_id = $product->get_id();
+        
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
-        // Query for best matching rule (role, user, group, geo, time, qty)
+        
+        // Query for rules for this product
         $rules = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE product_id = %d", $product_id ) );
+        
+        if (empty($rules)) {
+            return $price; // No rules found, return original price
+        }
+        
         $best_price = $price;
+        $matched_rule = null;
+        
         foreach ( $rules as $rule ) {
+            $rule_matches = true;
+            
             // Check role
-            if ( $rule->role && ! in_array( $rule->role, $roles ) ) continue;
+            if ( $rule->role && ! empty($rule->role) && ! in_array( $rule->role, $roles ) ) {
+                $rule_matches = false;
+            }
+            
             // Check user
-            if ( $rule->user_id && $rule->user_id != $user_id ) continue;
+            if ( $rule->user_id && $rule->user_id != $user_id ) {
+                $rule_matches = false;
+            }
+            
             // Check group
             if ( $rule->group_id ) {
                 $user_groups = wp_get_object_terms( $user_id, 'b2b_user_group', [ 'fields' => 'ids' ] );
-                if ( ! in_array( $rule->group_id, $user_groups ) ) continue;
+                if ( ! in_array( $rule->group_id, $user_groups ) ) {
+                    $rule_matches = false;
+                }
             }
-            // Check geo (placeholder)
+            
             // Check time
             $now = date( 'Y-m-d' );
-            if ( $rule->start_date && $now < $rule->start_date ) continue;
-            if ( $rule->end_date && $now > $rule->end_date ) continue;
-            // Check quantity (handled in cart)
-            // Use lowest price
-            if ( $rule->price < $best_price ) {
-                $best_price = $rule->price;
+            if ( $rule->start_date && $now < $rule->start_date ) {
+                $rule_matches = false;
+            }
+            if ( $rule->end_date && $now > $rule->end_date ) {
+                $rule_matches = false;
+            }
+            
+            // If rule matches, apply it
+            if ( $rule_matches ) {
+                $rule_price = floatval($rule->price);
+                
+                // Handle percentage discounts
+                if ($rule->type === 'percentage' && $rule_price < 0) {
+                    $discount_percentage = abs($rule_price);
+                    $rule_price = $price * (1 - ($discount_percentage / 100));
+                }
+                
+                // Use this rule if it's better than current best
+                if ( $rule_price < $best_price ) {
+                    $best_price = $rule_price;
+                    $matched_rule = $rule;
+                }
             }
         }
+        
+        // Debug logging
+        if ($matched_rule) {
+            error_log("B2B Pricing: Product $product_id, User $user_id, Original: $price, New: $best_price, Rule ID: " . $matched_rule->id);
+        }
+        
         return $best_price;
     }
 
@@ -314,12 +373,178 @@ class PricingManager {
         wp_send_json_success('Your quote request has been sent!');
     }
 
-    // Placeholder methods for all pricing features
-    public function tiered_pricing() {}
-    public function role_based_pricing() {}
-    public function customer_specific_pricing() {}
-    public function geographic_pricing() {}
-    public function time_based_pricing() {}
-    public function min_max_quantity() {}
-    public function price_request() {}
+    // Advanced pricing features implementation
+    public function tiered_pricing() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        $user_id = get_current_user_id();
+        $user_roles = wp_get_current_user()->roles;
+        
+        // Get tiered pricing rules for this product and user
+        $rules = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND (user_id = %d OR role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")) ORDER BY min_qty ASC",
+            array_merge([$product_id, $user_id], $user_roles)
+        ));
+        
+        if (empty($rules)) return '';
+        
+        $output = '<div class="b2b-tiered-pricing">';
+        $output .= '<h4>Tiered Pricing</h4>';
+        $output .= '<table class="tiered-pricing-table">';
+        $output .= '<thead><tr><th>Quantity</th><th>Price</th><th>Savings</th></tr></thead><tbody>';
+        
+        foreach ($rules as $rule) {
+            $original_price = get_post_meta($product_id, '_price', true);
+            $savings = $original_price - $rule->price;
+            $savings_percent = ($savings / $original_price) * 100;
+            
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($rule->min_qty) . '+' . '</td>';
+            $output .= '<td>' . wc_price($rule->price) . '</td>';
+            $output .= '<td>' . sprintf('%.1f%%', $savings_percent) . '</td>';
+            $output .= '</tr>';
+        }
+        
+        $output .= '</tbody></table></div>';
+        return $output;
+    }
+
+    public function role_based_pricing() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        $user_roles = wp_get_current_user()->roles;
+        
+        if (empty($user_roles)) return '';
+        
+        $rules = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")",
+            array_merge([$product_id], $user_roles)
+        ));
+        
+        if (empty($rules)) return '';
+        
+        $output = '<div class="b2b-role-pricing">';
+        $output .= '<h4>Your Pricing</h4>';
+        $output .= '<ul>';
+        
+        foreach ($rules as $rule) {
+            $output .= '<li>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . ': ' . wc_price($rule->price) . '</li>';
+        }
+        
+        $output .= '</ul></div>';
+        return $output;
+    }
+
+    public function customer_specific_pricing() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        $user_id = get_current_user_id();
+        
+        if (!$user_id) return '';
+        
+        $rule = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND user_id = %d LIMIT 1",
+            $product_id, $user_id
+        ));
+        
+        if (!$rule) return '';
+        
+        $output = '<div class="b2b-customer-pricing">';
+        $output .= '<h4>Your Special Price</h4>';
+        $output .= '<p class="special-price">' . wc_price($rule->price) . '</p>';
+        $output .= '</div>';
+        
+        return $output;
+    }
+
+    public function geographic_pricing() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        
+        // Get user's location (simplified - in production, use geolocation)
+        $user_country = WC()->customer ? WC()->customer->get_billing_country() : '';
+        if (!$user_country) return '';
+        
+        $rule = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND geo_zone = %s LIMIT 1",
+            $product_id, $user_country
+        ));
+        
+        if (!$rule) return '';
+        
+        $output = '<div class="b2b-geo-pricing">';
+        $output .= '<h4>Regional Pricing</h4>';
+        $output .= '<p>Price for ' . esc_html($user_country) . ': ' . wc_price($rule->price) . '</p>';
+        $output .= '</div>';
+        
+        return $output;
+    }
+
+    public function time_based_pricing() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        $current_date = current_time('Y-m-d');
+        
+        $rule = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND start_date <= %s AND end_date >= %s LIMIT 1",
+            $product_id, $current_date, $current_date
+        ));
+        
+        if (!$rule) return '';
+        
+        $output = '<div class="b2b-time-pricing">';
+        $output .= '<h4>Limited Time Offer</h4>';
+        $output .= '<p>Special price: ' . wc_price($rule->price) . '</p>';
+        $output .= '<p>Valid until: ' . esc_html($rule->end_date) . '</p>';
+        $output .= '</div>';
+        
+        return $output;
+    }
+
+    public function min_max_quantity() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $product_id = get_the_ID();
+        $user_id = get_current_user_id();
+        $user_roles = wp_get_current_user()->roles;
+        
+        $rule = $wpdb->get_row($wpdb->prepare(
+            "SELECT min_qty, max_qty FROM $table WHERE product_id = %d AND (user_id = %d OR role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")) ORDER BY min_qty ASC LIMIT 1",
+            array_merge([$product_id, $user_id], $user_roles)
+        ));
+        
+        if (!$rule) return '';
+        
+        $output = '<div class="b2b-quantity-limits">';
+        if ($rule->min_qty > 1) {
+            $output .= '<p><strong>Minimum Order:</strong> ' . esc_html($rule->min_qty) . ' units</p>';
+        }
+        if ($rule->max_qty > 0) {
+            $output .= '<p><strong>Maximum Order:</strong> ' . esc_html($rule->max_qty) . ' units</p>';
+        }
+        $output .= '</div>';
+        
+        return $output;
+    }
+
+    public function price_request() {
+        if (!is_user_logged_in()) return '';
+        
+        $output = '<div class="b2b-price-request">';
+        $output .= '<h4>Need a Quote?</h4>';
+        $output .= '<form class="b2b-quote-form" method="post">';
+        $output .= wp_nonce_field('b2b_price_request', 'b2b_nonce', true, false);
+        $output .= '<input type="hidden" name="product_id" value="' . get_the_ID() . '">';
+        $output .= '<p><label>Quantity: <input type="number" name="quantity" min="1" value="1" required></label></p>';
+        $output .= '<p><label>Special Requirements: <textarea name="requirements" rows="3"></textarea></label></p>';
+        $output .= '<button type="submit" class="button">Request Quote</button>';
+        $output .= '</form></div>';
+        
+        return $output;
+    }
 } 

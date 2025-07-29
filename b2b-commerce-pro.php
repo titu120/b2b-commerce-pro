@@ -48,6 +48,64 @@ add_action( 'plugins_loaded', function() {
     }
 } );
 
+// Register activation and deactivation hooks
+register_activation_hook( __FILE__, function() {
+    // Create pricing table
+    if ( class_exists( 'B2B\\PricingManager' ) ) {
+        B2B\PricingManager::create_pricing_table();
+    }
+    // Add roles
+    if ( class_exists( 'B2B\\UserManager' ) ) {
+        B2B\UserManager::add_roles();
+    }
+} );
+
+register_deactivation_hook( __FILE__, function() {
+    if ( class_exists( 'B2B\\UserManager' ) ) {
+        B2B\UserManager::remove_roles();
+    }
+} );
+
+// Ensure pricing table exists on every load
+add_action( 'init', function() {
+    if ( class_exists( 'B2B\\PricingManager' ) ) {
+        B2B\PricingManager::create_pricing_table();
+    }
+} );
+
+// Add test function for debugging
+add_action( 'wp_ajax_b2b_test_plugin', function() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Unauthorized' );
+    }
+    
+    $results = [];
+    
+    // Test 1: Check if pricing table exists
+    global $wpdb;
+    $table = $wpdb->prefix . 'b2b_pricing_rules';
+    $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
+    $results['pricing_table'] = $exists === $table ? 'OK' : 'FAILED';
+    
+    // Test 2: Check if roles exist
+    $roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+    $results['roles'] = [];
+    foreach ($roles as $role) {
+        $role_obj = get_role($role);
+        $results['roles'][$role] = $role_obj ? 'OK' : 'FAILED';
+    }
+    
+    // Test 3: Check if taxonomy exists
+    $taxonomy = get_taxonomy('b2b_user_group');
+    $results['taxonomy'] = $taxonomy ? 'OK' : 'FAILED';
+    
+    // Test 4: Check if pricing rules exist
+    $rules_count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+    $results['pricing_rules'] = $rules_count . ' rules found';
+    
+    wp_send_json($results);
+} );
+
 // Enqueue modern admin CSS for all B2B Commerce Pro admin pages
 add_action('admin_enqueue_scripts', function($hook) {
     if (isset($_GET['page']) && strpos($_GET['page'], 'b2b-') === 0) {

@@ -309,7 +309,317 @@ class ProductManager {
         }
     }
 
-    // Bulk order and CSV import placeholders
-    public function bulk_order() {}
-    public function csv_import() {}
+    // Advanced product management features
+    public function bulk_order() {
+        if (!is_user_logged_in()) return '';
+        
+        $output = '<div class="b2b-bulk-order">';
+        $output .= '<h3>Bulk Order System</h3>';
+        $output .= '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        $output .= '<input type="hidden" name="action" value="b2b_process_bulk_order">';
+        $output .= wp_nonce_field('b2b_bulk_order', 'b2b_bulk_nonce', true, false);
+        
+        $output .= '<div class="bulk-order-container">';
+        $output .= '<div class="bulk-order-header">';
+        $output .= '<h4>Add Products to Order</h4>';
+        $output .= '<button type="button" id="b2b-add-row" class="button">Add Product</button>';
+        $output .= '</div>';
+        
+        $output .= '<table class="bulk-order-table">';
+        $output .= '<thead><tr><th>Product</th><th>SKU</th><th>Quantity</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>';
+        $output .= '<tbody id="b2b-order-rows">';
+        $output .= '<tr class="order-row">';
+        $output .= '<td><input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off"></td>';
+        $output .= '<td><input type="text" name="product_sku[]" readonly></td>';
+        $output .= '<td><input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity"></td>';
+        $output .= '<td><input type="text" name="product_price[]" readonly></td>';
+        $output .= '<td><input type="text" name="product_total[]" readonly></td>';
+        $output .= '<td><button type="button" class="button remove-row">Remove</button></td>';
+        $output .= '</tr>';
+        $output .= '</tbody>';
+        $output .= '</table>';
+        
+        $output .= '<div class="bulk-order-summary">';
+        $output .= '<h4>Order Summary</h4>';
+        $output .= '<p><strong>Total Items:</strong> <span id="total-items">0</span></p>';
+        $output .= '<p><strong>Total Amount:</strong> <span id="total-amount">$0.00</span></p>';
+        $output .= '</div>';
+        
+        $output .= '<div class="bulk-order-actions">';
+        $output .= '<button type="submit" class="button button-primary">Add to Cart</button>';
+        $output .= '<button type="button" class="button" onclick="window.print()">Print Order</button>';
+        $output .= '</div>';
+        
+        $output .= '</div></form></div>';
+        
+        return $output;
+    }
+
+    public function csv_import() {
+        if (!current_user_can('manage_options')) return '';
+        
+        $action = $_GET['action'] ?? 'import';
+        
+        if ($action === 'process' && isset($_POST['b2b_csv_nonce'])) {
+            $this->handle_csv_import();
+        } else {
+            $this->render_csv_import_interface();
+        }
+    }
+
+    private function render_csv_import_interface() {
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>CSV Product Import</h2>';
+        
+        echo '<h3>Import Products</h3>';
+        echo '<p>Import products from CSV file. <a href="#" onclick="downloadProductTemplate()">Download template</a></p>';
+        echo '<form method="post" enctype="multipart/form-data">';
+        echo wp_nonce_field('b2b_csv_import', 'b2b_csv_nonce', true, false);
+        echo '<input type="hidden" name="action" value="process">';
+        echo '<p><input type="file" name="csv_file" accept=".csv" required></p>';
+        echo '<p><label><input type="checkbox" name="update_existing" value="1"> Update existing products</label></p>';
+        echo '<p><label><input type="checkbox" name="publish_products" value="1"> Publish products immediately</label></p>';
+        echo '<p><button type="submit" class="button button-primary">Import Products</button></p>';
+        echo '</form>';
+        
+        echo '<h3>Export Products</h3>';
+        echo '<p>Export all products to CSV format.</p>';
+        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        echo '<input type="hidden" name="action" value="b2b_export_products">';
+        echo wp_nonce_field('b2b_export_products', 'b2b_export_nonce', true, false);
+        echo '<p><button type="submit" class="button">Export Products</button></p>';
+        echo '</form></div>';
+        
+        echo '<script>
+        function downloadProductTemplate() {
+            var template = "name,sku,description,short_description,regular_price,sale_price,categories,tags,stock_quantity,weight,length,width,height,image_url,visible_roles,wholesale_only\\n";
+            template += "Sample Product,SKU001,Product description,Short description,100.00,80.00,Electronics,Sample,50,1.5,10,5,2,https://example.com/image.jpg,b2b_customer,no\\n";
+            var blob = new Blob([template], {type: "text/csv"});
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "products_template.csv";
+            a.click();
+        }
+        </script>';
+    }
+
+    private function handle_csv_import() {
+        if (!wp_verify_nonce($_POST['b2b_csv_nonce'], 'b2b_csv_import')) {
+            wp_die('Security check failed');
+        }
+        
+        if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_die('File upload failed');
+        }
+        
+        $file = $_FILES['csv_file']['tmp_name'];
+        $handle = fopen($file, 'r');
+        
+        if (!$handle) {
+            wp_die('Cannot open file');
+        }
+        
+        $headers = fgetcsv($handle);
+        $imported = 0;
+        $updated = 0;
+        $errors = [];
+        
+        while (($data = fgetcsv($handle)) !== false) {
+            $product_data = array_combine($headers, $data);
+            
+            try {
+                $result = $this->create_product_from_import($product_data);
+                if ($result['action'] === 'created') {
+                    $imported++;
+                } elseif ($result['action'] === 'updated') {
+                    $updated++;
+                }
+            } catch (Exception $e) {
+                $errors[] = 'Row ' . ($imported + $updated + 1) . ': ' . $e->getMessage();
+            }
+        }
+        
+        fclose($handle);
+        
+        $message = "Imported $imported new products and updated $updated existing products.";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-products&imported=' . $imported . '&updated=' . $updated . '&errors=' . count($errors)));
+        exit;
+    }
+
+    private function create_product_from_import($product_data) {
+        $sku = sanitize_text_field($product_data['sku']);
+        $name = sanitize_text_field($product_data['name']);
+        
+        // Check if product exists
+        $existing_product_id = wc_get_product_id_by_sku($sku);
+        
+        if ($existing_product_id && !isset($_POST['update_existing'])) {
+            throw new Exception("Product with SKU $sku already exists");
+        }
+        
+        $product_args = [
+            'name' => $name,
+            'type' => 'simple',
+            'status' => isset($_POST['publish_products']) ? 'publish' : 'draft',
+            'catalog_visibility' => 'visible',
+            'description' => sanitize_textarea_field($product_data['description']),
+            'short_description' => sanitize_textarea_field($product_data['short_description']),
+            'sku' => $sku,
+            'regular_price' => sanitize_text_field($product_data['regular_price']),
+            'sale_price' => sanitize_text_field($product_data['sale_price']),
+            'manage_stock' => true,
+            'stock_quantity' => intval($product_data['stock_quantity']),
+            'weight' => floatval($product_data['weight']),
+            'dimensions' => [
+                'length' => floatval($product_data['length']),
+                'width' => floatval($product_data['width']),
+                'height' => floatval($product_data['height'])
+            ]
+        ];
+        
+        if ($existing_product_id) {
+            // Update existing product
+            $product = wc_get_product($existing_product_id);
+            $product->set_props($product_args);
+            $product->save();
+            $product_id = $existing_product_id;
+            $action = 'updated';
+        } else {
+            // Create new product
+            $product = new WC_Product_Simple();
+            $product->set_props($product_args);
+            $product_id = $product->save();
+            $action = 'created';
+        }
+        
+        // Set categories
+        if (!empty($product_data['categories'])) {
+            $categories = array_map('trim', explode(',', $product_data['categories']));
+            wp_set_object_terms($product_id, $categories, 'product_cat');
+        }
+        
+        // Set tags
+        if (!empty($product_data['tags'])) {
+            $tags = array_map('trim', explode(',', $product_data['tags']));
+            wp_set_object_terms($product_id, $tags, 'product_tag');
+        }
+        
+        // Set B2B specific fields
+        if (!empty($product_data['visible_roles'])) {
+            update_post_meta($product_id, '_b2b_visible_roles', sanitize_text_field($product_data['visible_roles']));
+        }
+        
+        if (!empty($product_data['wholesale_only'])) {
+            update_post_meta($product_id, '_b2b_wholesale_only', $product_data['wholesale_only'] === 'yes' ? 'yes' : 'no');
+        }
+        
+        // Set featured image
+        if (!empty($product_data['image_url'])) {
+            $this->set_product_image($product_id, $product_data['image_url']);
+        }
+        
+        return ['product_id' => $product_id, 'action' => $action];
+    }
+
+    private function set_product_image($product_id, $image_url) {
+        $upload = media_sideload_image($image_url, $product_id, '', 'id');
+        
+        if (!is_wp_error($upload)) {
+            set_post_thumbnail($product_id, $upload);
+        }
+    }
+
+    // Enhanced bulk order functionality
+    public function process_bulk_order() {
+        if (!wp_verify_nonce($_POST['b2b_bulk_nonce'], 'b2b_bulk_order')) {
+            wp_die('Security check failed');
+        }
+        
+        $product_searches = $_POST['product_search'] ?? [];
+        $product_skus = $_POST['product_sku'] ?? [];
+        $product_qtys = $_POST['product_qty'] ?? [];
+        
+        $added_to_cart = 0;
+        $errors = [];
+        
+        foreach ($product_searches as $index => $search) {
+            if (empty($search)) continue;
+            
+            $sku = $product_skus[$index] ?? '';
+            $qty = intval($product_qtys[$index] ?? 1);
+            
+            if (empty($sku)) {
+                $errors[] = "Product not found: $search";
+                continue;
+            }
+            
+            $product_id = wc_get_product_id_by_sku($sku);
+            if (!$product_id) {
+                $errors[] = "Product with SKU $sku not found";
+                continue;
+            }
+            
+            $product = wc_get_product($product_id);
+            if (!$product) {
+                $errors[] = "Cannot load product: $sku";
+                continue;
+            }
+            
+            // Check if user can see this product
+            if (!$this->can_user_see_product($product_id)) {
+                $errors[] = "You don't have permission to order: " . $product->get_name();
+                continue;
+            }
+            
+            // Add to cart
+            $cart_item_key = WC()->cart->add_to_cart($product_id, $qty);
+            if ($cart_item_key) {
+                $added_to_cart++;
+            } else {
+                $errors[] = "Failed to add to cart: " . $product->get_name();
+            }
+        }
+        
+        if ($added_to_cart > 0) {
+            wc_add_notice("Added $added_to_cart products to cart successfully.", 'success');
+        }
+        
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                wc_add_notice($error, 'error');
+            }
+        }
+        
+        wp_redirect(wc_get_cart_url());
+        exit;
+    }
+
+    private function can_user_see_product($product_id) {
+        $user = wp_get_current_user();
+        $roles = $user->roles;
+        $groups = wp_get_object_terms($user->ID, 'b2b_user_group', ['fields' => 'ids']);
+        
+        $allowed_roles = array_map('trim', explode(',', get_post_meta($product_id, '_b2b_visible_roles', true)));
+        $allowed_groups = array_map('intval', explode(',', get_post_meta($product_id, '_b2b_visible_groups', true)));
+        $wholesale_only = get_post_meta($product_id, '_b2b_wholesale_only', true) === 'yes';
+        
+        if ($wholesale_only && !in_array('wholesale_customer', $roles)) {
+            return false;
+        }
+        
+        if ($allowed_roles && $allowed_roles[0] && !array_intersect($roles, $allowed_roles)) {
+            return false;
+        }
+        
+        if ($allowed_groups && $allowed_groups[0] && !array_intersect($groups, $allowed_groups)) {
+            return false;
+        }
+        
+        return true;
+    }
 } 

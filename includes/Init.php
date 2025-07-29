@@ -38,6 +38,7 @@ class Init {
         require_once B2B_COMMERCE_PRO_PATH . 'includes/ProductManager.php';
         require_once B2B_COMMERCE_PRO_PATH . 'includes/Frontend.php';
         require_once B2B_COMMERCE_PRO_PATH . 'includes/AdvancedFeatures.php';
+        require_once B2B_COMMERCE_PRO_PATH . 'includes/Reporting.php';
     }
 
     private function init_hooks() {
@@ -51,5 +52,6 @@ class Init {
         $this->product_manager = new ProductManager();
         $this->frontend = new Frontend();
         $this->advanced_features = new AdvancedFeatures();
+        $this->reporting = new Reporting();
     }
 } 

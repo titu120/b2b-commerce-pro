@@ -5,34 +5,81 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class UserManager {
     public function __construct() {
-        // Register hooks
-        register_activation_hook( B2B_COMMERCE_PRO_BASENAME, [ __CLASS__, 'add_roles' ] );
-        register_deactivation_hook( B2B_COMMERCE_PRO_BASENAME, [ __CLASS__, 'remove_roles' ] );
-
+        // Register roles and taxonomies
         add_action( 'init', [ $this, 'register_roles' ] );
         add_action( 'init', [ $this, 'register_group_taxonomy' ] );
+        add_action( 'admin_menu', [ $this, 'add_group_menu' ] );
+        add_action( 'admin_menu', [ $this, 'add_approval_menu' ] );
+        add_action( 'admin_menu', [ $this, 'add_import_export_menu' ] );
+        // Registration form hooks
         add_action( 'register_form', [ $this, 'registration_form' ] );
         add_action( 'user_register', [ $this, 'save_registration_fields' ] );
-        add_action( 'admin_menu', [ $this, 'add_approval_menu' ] );
-        add_action( 'admin_menu', [ $this, 'add_group_menu' ] );
-        add_action( 'admin_menu', [ $this, 'add_import_export_menu' ] );
-        add_action( 'admin_post_b2b_approve_user', [ $this, 'approve_user' ] );
-        add_action( 'admin_post_b2b_reject_user', [ $this, 'reject_user' ] );
+        // User profile fields
         add_action( 'show_user_profile', [ $this, 'user_group_field' ] );
         add_action( 'edit_user_profile', [ $this, 'user_group_field' ] );
         add_action( 'personal_options_update', [ $this, 'save_user_group_field' ] );
         add_action( 'edit_user_profile_update', [ $this, 'save_user_group_field' ] );
+        add_action( 'admin_post_b2b_save_group', [ $this, 'save_group' ] );
+        
+        // Disable problematic WordPress terms list table for our taxonomy
+        add_action('admin_init', [$this, 'disable_terms_list_table']);
+        
+        // User approval actions
+        add_action( 'admin_post_b2b_approve_user', [ $this, 'approve_user' ] );
+        add_action( 'admin_post_b2b_reject_user', [ $this, 'reject_user' ] );
     }
 
-    // Register custom roles
+    // Disable WordPress terms list table for our custom taxonomy
+    public function disable_terms_list_table() {
+        global $pagenow;
+        
+        // Redirect any attempts to access edit-tags.php for our taxonomy
+        if ($pagenow === 'edit-tags.php' && isset($_GET['taxonomy']) && $_GET['taxonomy'] === 'b2b_user_group') {
+            wp_redirect(admin_url('admin.php?page=b2b-customer-groups'));
+            exit;
+        }
+        
+        // Also redirect edit-tag-form.php for our taxonomy
+        if ($pagenow === 'edit-tag-form.php' && isset($_GET['taxonomy']) && $_GET['taxonomy'] === 'b2b_user_group') {
+            wp_redirect(admin_url('admin.php?page=b2b-customer-groups'));
+            exit;
+        }
+    }
+
+    // Register activation and deactivation hooks
+    public static function activate() {
+        self::add_roles();
+    }
+
+    public static function deactivate() {
+        self::remove_roles();
+    }
+
+    // Add B2B user roles
     public static function add_roles() {
-        add_role( 'b2b_customer', 'B2B Customer', [ 'read' => true ] );
-        add_role( 'wholesale_customer', 'Wholesale Customer', [ 'read' => true ] );
-        add_role( 'distributor', 'Distributor', [ 'read' => true ] );
-        add_role( 'retailer', 'Retailer', [ 'read' => true ] );
+        add_role( 'b2b_customer', 'B2B Customer', [
+            'read' => true,
+            'edit_posts' => false,
+            'delete_posts' => false,
+        ] );
+        add_role( 'wholesale_customer', 'Wholesale Customer', [
+            'read' => true,
+            'edit_posts' => false,
+            'delete_posts' => false,
+        ] );
+        add_role( 'distributor', 'Distributor', [
+            'read' => true,
+            'edit_posts' => false,
+            'delete_posts' => false,
+        ] );
+        add_role( 'retailer', 'Retailer', [
+            'read' => true,
+            'edit_posts' => false,
+            'delete_posts' => false,
+        ] );
     }
 
-    // Remove custom roles
+    // Remove B2B user roles
     public static function remove_roles() {
         remove_role( 'b2b_customer' );
         remove_role( 'wholesale_customer' );
@@ -54,12 +101,18 @@ class UserManager {
                 'public' => false,
                 'show_ui' => true,
                 'show_in_menu' => false,
+                'show_in_nav_menus' => false,
+                'show_tagcloud' => false,
+                'show_in_rest' => false,
+                'hierarchical' => false,
                 'labels' => [
                     'name' => 'Customer Groups',
                     'singular_name' => 'Customer Group',
                     'add_new_item' => 'Add New Group',
                     'edit_item' => 'Edit Group',
                     'search_items' => 'Search Groups',
+                    'not_found' => 'No groups found',
+                    'not_found_in_trash' => 'No groups found in trash',
                 ],
                 'rewrite' => false,
                 'capabilities' => [
@@ -74,7 +127,69 @@ class UserManager {
 
     // Add group management to admin menu
     public function add_group_menu() {
-        add_users_page( 'Customer Groups', 'Customer Groups', 'manage_options', 'edit-tags.php?taxonomy=b2b_user_group&post_type=user' );
+        add_users_page( 'Customer Groups', 'Customer Groups', 'manage_options', 'b2b-customer-groups', [ $this, 'customer_groups_page' ] );
+    }
+
+    // Custom customer groups page to avoid WordPress terms table issues
+    public function customer_groups_page() {
+        // Display success messages
+        if (isset($_GET['saved'])) {
+            echo '<div class="notice notice-success"><p>Group saved successfully!</p></div>';
+        }
+        if (isset($_GET['deleted'])) {
+            echo '<div class="notice notice-success"><p>Group deleted successfully!</p></div>';
+        }
+        
+        if (isset($_GET['action'])) {
+            switch ($_GET['action']) {
+                case 'add':
+                    $this->render_group_form();
+                    break;
+                case 'edit':
+                    $group_id = intval($_GET['group_id'] ?? 0);
+                    $this->render_group_form($group_id);
+                    break;
+                case 'delete':
+                    $group_id = intval($_GET['group_id'] ?? 0);
+                    $this->delete_group($group_id);
+                    break;
+                default:
+                    $this->list_groups();
+            }
+        } else {
+            $this->list_groups();
+        }
+    }
+
+    // Handle saving groups
+    public function save_group() {
+        if (!wp_verify_nonce($_POST['b2b_group_nonce'] ?? '', 'b2b_save_group')) {
+            wp_die('Security check failed');
+        }
+        
+        $group_id = intval($_POST['group_id'] ?? 0);
+        $name = sanitize_text_field($_POST['group_name'] ?? '');
+        $description = sanitize_textarea_field($_POST['group_description'] ?? '');
+        
+        if (empty($name)) {
+            wp_die('Group name is required');
+        }
+        
+        if ($group_id) {
+            // Update existing group
+            wp_update_term($group_id, 'b2b_user_group', [
+                'name' => $name,
+                'description' => $description
+            ]);
+        } else {
+            // Create new group
+            wp_insert_term($name, 'b2b_user_group', [
+                'description' => $description
+            ]);
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-customer-groups&saved=1'));
+        exit;
     }
 
     // Add advanced registration fields
@@ -294,10 +409,353 @@ class UserManager {
         echo '<div class="notice notice-success"><p>Users imported successfully.</p></div>';
     }
 
-    // Placeholder for group management
-    public function group_management() {}
-    // Placeholder for bulk import/export
-    public function bulk_import_export() {}
-    // Placeholder for email notifications
-    public function email_notifications() {}
+    // Advanced user management features
+    public function group_management() {
+        if (!current_user_can('manage_options')) return;
+        
+        $action = $_GET['action'] ?? 'list';
+        $group_id = intval($_GET['group_id'] ?? 0);
+        
+        switch ($action) {
+            case 'add':
+            case 'edit':
+                $this->render_group_form($group_id);
+                break;
+            case 'delete':
+                $this->delete_group($group_id);
+                break;
+            default:
+                $this->list_groups();
+                break;
+        }
+    }
+
+    private function render_group_form($group_id = 0) {
+        $group = $group_id ? get_term($group_id, 'b2b_user_group') : null;
+        $name = $group ? $group->name : '';
+        $description = $group ? $group->description : '';
+        
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>' . ($group_id ? 'Edit Group' : 'Add New Group') . '</h2>';
+        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        echo '<input type="hidden" name="action" value="b2b_save_group">';
+        echo wp_nonce_field('b2b_save_group', 'b2b_group_nonce', true, false);
+        echo '<input type="hidden" name="group_id" value="' . $group_id . '">';
+        echo '<table class="form-table">';
+        echo '<tr><th>Group Name</th><td><input type="text" name="group_name" value="' . esc_attr($name) . '" required></td></tr>';
+        echo '<tr><th>Description</th><td><textarea name="group_description" rows="3">' . esc_textarea($description) . '</textarea></td></tr>';
+        echo '</table>';
+        echo '<p><button type="submit" class="button button-primary">Save Group</button></p>';
+        echo '</form></div>';
+    }
+
+    private function list_groups() {
+        $groups = get_terms(['taxonomy' => 'b2b_user_group', 'hide_empty' => false]);
+        
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>Customer Groups</h2>';
+        echo '<p><a href="' . admin_url('admin.php?page=b2b-customer-groups&action=add') . '" class="button">Add New Group</a></p>';
+        echo '<table class="wp-list-table widefat fixed striped">';
+        echo '<thead><tr><th>Group Name</th><th>Description</th><th>Members</th><th>Actions</th></tr></thead><tbody>';
+        
+        foreach ($groups as $group) {
+            $member_count = $group->count;
+            echo '<tr>';
+            echo '<td>' . esc_html($group->name) . '</td>';
+            echo '<td>' . esc_html($group->description) . '</td>';
+            echo '<td>' . $member_count . ' members</td>';
+            echo '<td>';
+            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=edit&group_id=' . $group->term_id) . '" class="button">Edit</a> ';
+            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=delete&group_id=' . $group->term_id) . '" class="button" onclick="return confirm(\'Delete this group?\')">Delete</a>';
+            echo '</td></tr>';
+        }
+        
+        echo '</tbody></table></div>';
+    }
+
+    private function delete_group($group_id) {
+        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'delete_group_' . $group_id)) {
+            wp_die('Security check failed');
+        }
+        
+        wp_delete_term($group_id, 'b2b_user_group');
+        wp_redirect(admin_url('admin.php?page=b2b-customer-groups&deleted=1'));
+        exit;
+    }
+
+    public function bulk_import_export() {
+        if (!current_user_can('manage_options')) return;
+        
+        $action = $_GET['action'] ?? 'export';
+        
+        if ($action === 'import' && isset($_POST['b2b_import_nonce'])) {
+            $this->handle_bulk_import();
+        } else {
+            $this->render_import_export_interface();
+        }
+    }
+
+    private function render_import_export_interface() {
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>Bulk Import/Export Users</h2>';
+        
+        // Export Section
+        echo '<h3>Export Users</h3>';
+        echo '<p>Export all B2B users to CSV format.</p>';
+        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        echo '<input type="hidden" name="action" value="b2b_export_users">';
+        echo wp_nonce_field('b2b_export_users', 'b2b_export_nonce', true, false);
+        echo '<p><button type="submit" class="button">Export Users</button></p>';
+        echo '</form>';
+        
+        // Import Section
+        echo '<h3>Import Users</h3>';
+        echo '<p>Import users from CSV file. <a href="#" onclick="showImportTemplate()">Download template</a></p>';
+        echo '<form method="post" enctype="multipart/form-data">';
+        echo wp_nonce_field('b2b_import_users', 'b2b_import_nonce', true, false);
+        echo '<p><input type="file" name="csv_file" accept=".csv" required></p>';
+        echo '<p><label><input type="checkbox" name="send_welcome_email" value="1"> Send welcome email to new users</label></p>';
+        echo '<p><button type="submit" class="button button-primary">Import Users</button></p>';
+        echo '</form></div>';
+        
+        echo '<script>
+        function showImportTemplate() {
+            var template = "username,email,first_name,last_name,company_name,business_type,tax_id,role,groups\\n";
+            template += "john_doe,john@company.com,John,Doe,ABC Company,Retail,123456789,b2b_customer,wholesale\\n";
+            var blob = new Blob([template], {type: "text/csv"});
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "b2b_users_template.csv";
+            a.click();
+        }
+        </script>';
+    }
+
+    private function handle_bulk_import() {
+        if (!wp_verify_nonce($_POST['b2b_import_nonce'], 'b2b_import_users')) {
+            wp_die('Security check failed');
+        }
+        
+        if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_die('File upload failed');
+        }
+        
+        $file = $_FILES['csv_file']['tmp_name'];
+        $handle = fopen($file, 'r');
+        
+        if (!$handle) {
+            wp_die('Cannot open file');
+        }
+        
+        $headers = fgetcsv($handle);
+        $imported = 0;
+        $errors = [];
+        
+        while (($data = fgetcsv($handle)) !== false) {
+            $user_data = array_combine($headers, $data);
+            
+            try {
+                $user_id = $this->create_user_from_import($user_data);
+                if ($user_id) {
+                    $imported++;
+                    
+                    if (isset($_POST['send_welcome_email']) && $_POST['send_welcome_email']) {
+                        $this->send_welcome_email($user_id);
+                    }
+                }
+            } catch (Exception $e) {
+                $errors[] = 'Row ' . ($imported + 1) . ': ' . $e->getMessage();
+            }
+        }
+        
+        fclose($handle);
+        
+        $message = "Imported $imported users successfully.";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-import-export&imported=' . $imported . '&errors=' . count($errors)));
+        exit;
+    }
+
+    private function create_user_from_import($user_data) {
+        $username = sanitize_user($user_data['username']);
+        $email = sanitize_email($user_data['email']);
+        
+        if (username_exists($username) || email_exists($email)) {
+            throw new Exception("User already exists: $username");
+        }
+        
+        $user_id = wp_create_user($username, wp_generate_password(), $email);
+        
+        if (is_wp_error($user_id)) {
+            throw new Exception($user_id->get_error_message());
+        }
+        
+        // Set user data
+        wp_update_user([
+            'ID' => $user_id,
+            'first_name' => sanitize_text_field($user_data['first_name']),
+            'last_name' => sanitize_text_field($user_data['last_name']),
+            'display_name' => sanitize_text_field($user_data['first_name'] . ' ' . $user_data['last_name'])
+        ]);
+        
+        // Set role
+        $role = sanitize_text_field($user_data['role']);
+        if (in_array($role, ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'])) {
+            $user = new WP_User($user_id);
+            $user->set_role($role);
+        }
+        
+        // Set meta fields
+        update_user_meta($user_id, 'company_name', sanitize_text_field($user_data['company_name']));
+        update_user_meta($user_id, 'business_type', sanitize_text_field($user_data['business_type']));
+        update_user_meta($user_id, 'tax_id', sanitize_text_field($user_data['tax_id']));
+        
+        // Set groups
+        if (!empty($user_data['groups'])) {
+            $groups = array_map('trim', explode(',', $user_data['groups']));
+            wp_set_object_terms($user_id, $groups, 'b2b_user_group');
+        }
+        
+        return $user_id;
+    }
+
+    public function email_notifications() {
+        if (!current_user_can('manage_options')) return;
+        
+        $action = $_GET['action'] ?? 'list';
+        
+        switch ($action) {
+            case 'add':
+            case 'edit':
+                $this->render_email_template_form();
+                break;
+            case 'test':
+                $this->test_email_template();
+                break;
+            default:
+                $this->list_email_templates();
+                break;
+        }
+    }
+
+    private function render_email_template_form() {
+        $template_id = intval($_GET['template_id'] ?? 0);
+        $template = $template_id ? get_option("b2b_email_template_$template_id") : null;
+        
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>' . ($template_id ? 'Edit Email Template' : 'Add Email Template') . '</h2>';
+        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        echo '<input type="hidden" name="action" value="b2b_save_email_template">';
+        echo wp_nonce_field('b2b_save_email_template', 'b2b_email_nonce', true, false);
+        echo '<input type="hidden" name="template_id" value="' . $template_id . '">';
+        
+        echo '<table class="form-table">';
+        echo '<tr><th>Template Name</th><td><input type="text" name="template_name" value="' . esc_attr($template['name'] ?? '') . '" required></td></tr>';
+        echo '<tr><th>Subject</th><td><input type="text" name="subject" value="' . esc_attr($template['subject'] ?? '') . '" required></td></tr>';
+        echo '<tr><th>Message</th><td><textarea name="message" rows="10" cols="50">' . esc_textarea($template['message'] ?? '') . '</textarea></td></tr>';
+        echo '<tr><th>Trigger</th><td><select name="trigger">';
+        echo '<option value="user_approved"' . selected($template['trigger'] ?? '', 'user_approved', false) . '>User Approved</option>';
+        echo '<option value="user_rejected"' . selected($template['trigger'] ?? '', 'user_rejected', false) . '>User Rejected</option>';
+        echo '<option value="welcome_email"' . selected($template['trigger'] ?? '', 'welcome_email', false) . '>Welcome Email</option>';
+        echo '<option value="order_confirmation"' . selected($template['trigger'] ?? '', 'order_confirmation', false) . '>Order Confirmation</option>';
+        echo '</select></td></tr>';
+        echo '</table>';
+        
+        echo '<p><button type="submit" class="button button-primary">Save Template</button></p>';
+        echo '</form></div>';
+    }
+
+    private function list_email_templates() {
+        $templates = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $template = get_option("b2b_email_template_$i");
+            if ($template) {
+                $templates[$i] = $template;
+            }
+        }
+        
+        echo '<div class="b2b-admin-card">';
+        echo '<h2>Email Templates</h2>';
+        echo '<p><a href="' . admin_url('admin.php?page=b2b-emails&action=add') . '" class="button">Add New Template</a></p>';
+        
+        if (empty($templates)) {
+            echo '<p>No email templates found.</p>';
+        } else {
+            echo '<table class="wp-list-table widefat fixed striped">';
+            echo '<thead><tr><th>Template Name</th><th>Trigger</th><th>Subject</th><th>Actions</th></tr></thead><tbody>';
+            
+            foreach ($templates as $id => $template) {
+                echo '<tr>';
+                echo '<td>' . esc_html($template['name']) . '</td>';
+                echo '<td>' . esc_html($template['trigger']) . '</td>';
+                echo '<td>' . esc_html($template['subject']) . '</td>';
+                echo '<td>';
+                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=edit&template_id=' . $id) . '" class="button">Edit</a> ';
+                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=test&template_id=' . $id) . '" class="button">Test</a>';
+                echo '</td></tr>';
+            }
+            
+            echo '</tbody></table>';
+        }
+        
+        echo '</div>';
+    }
+
+    private function test_email_template() {
+        $template_id = intval($_GET['template_id'] ?? 0);
+        $template = get_option("b2b_email_template_$template_id");
+        
+        if (!$template) {
+            wp_die('Template not found');
+        }
+        
+        $current_user = wp_get_current_user();
+        $test_message = $this->parse_email_template($template['message'], $current_user);
+        
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $sent = wp_mail($current_user->user_email, $template['subject'], $test_message, $headers);
+        
+        if ($sent) {
+            wp_redirect(admin_url('admin.php?page=b2b-emails&test_sent=1'));
+        } else {
+            wp_redirect(admin_url('admin.php?page=b2b-emails&test_failed=1'));
+        }
+        exit;
+    }
+
+    private function parse_email_template($message, $user) {
+        $replacements = [
+            '{user_name}' => $user->display_name,
+            '{user_email}' => $user->user_email,
+            '{company_name}' => get_user_meta($user->ID, 'company_name', true),
+            '{site_name}' => get_bloginfo('name'),
+            '{site_url}' => get_bloginfo('url'),
+            '{admin_email}' => get_option('admin_email')
+        ];
+        
+        return str_replace(array_keys($replacements), array_values($replacements), $message);
+    }
+
+    private function send_welcome_email($user_id) {
+        $user = get_user_by('id', $user_id);
+        $template = get_option('b2b_email_template_welcome');
+        
+        if (!$template) {
+            // Default welcome email
+            $subject = 'Welcome to ' . get_bloginfo('name');
+            $message = "Hello {user_name},\n\nWelcome to our B2B platform! Your account has been created successfully.\n\nBest regards,\n" . get_bloginfo('name');
+        } else {
+            $subject = $template['subject'];
+            $message = $template['message'];
+        }
+        
+        $parsed_message = $this->parse_email_template($message, $user);
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        
+        return wp_mail($user->user_email, $subject, $parsed_message, $headers);
+    }
 } 
