@@ -39,6 +39,18 @@ A comprehensive B2B and wholesale e-commerce solution for WordPress and WooComme
 - **B2B Dashboard**: `[b2b_dashboard]` shortcode
 - **Order History**: `[b2b_order_history]` shortcode
 - **Account Management**: `[b2b_account]` shortcode
+- **Bulk Order System**: `[b2b_bulk_order]` shortcode
+- **Wishlist Integration**: `[b2b_wishlist]` shortcode
+
+### ✅ **Premium Features**
+- **Quote Request System**: Customers can request custom quotes
+- **Bulk Pricing Calculator**: Real-time bulk pricing calculations
+- **Advanced Reports**: Quote requests and detailed analytics
+- **Credit Limit Management**: Set and enforce credit limits
+- **Payment Terms**: Configure payment terms per customer
+- **Tax Exemption**: Handle tax-exempt customers
+- **Multi-currency Support**: Integration with currency plugins
+- **REST API Endpoints**: Custom API for integrations
 
 ## 📋 Installation
 
@@ -99,17 +111,29 @@ Displays the B2B account registration form.
 ```
 Shows the B2B customer dashboard with order history and account management.
 
+### **Bulk Order System**
+```
+[b2b_bulk_order]
+```
+Displays the bulk order interface for B2B customers.
+
 ### **Order History**
 ```
 [b2b_order_history]
 ```
-Displays order history for logged-in B2B users.
+Shows the customer's order history.
 
 ### **Account Management**
 ```
 [b2b_account]
 ```
-Shows account management form for B2B users.
+Displays account management interface for B2B customers.
+
+### **Wishlist Integration**
+```
+[b2b_wishlist]
+```
+Shows the customer's wishlist (requires YITH WooCommerce Wishlist or similar).
 
 ## 🎨 Customization
 

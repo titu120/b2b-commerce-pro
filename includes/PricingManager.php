@@ -18,10 +18,8 @@ class PricingManager {
         add_action( 'woocommerce_before_calculate_totals', [ $this, 'enforce_min_max_quantity' ] );
         add_action( 'admin_post_b2b_save_pricing_rule', [ $this, 'save_pricing_rule' ] );
         add_action( 'admin_post_b2b_delete_pricing_rule', [ $this, 'delete_pricing_rule' ] );
-        // Quote request system
+        // Quote request system - handled by AdvancedFeatures.php
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_quote_scripts' ] );
-        add_action( 'wp_ajax_b2b_quote_request', [ $this, 'handle_quote_request' ] );
-        add_action( 'wp_ajax_nopriv_b2b_quote_request', [ $this, 'handle_quote_request' ] );
         // Price request system placeholder
         add_action( 'woocommerce_single_product_summary', [ $this, 'price_request_button' ], 35 );
     }

@@ -368,6 +368,8 @@ add_action('wp_ajax_nopriv_b2b_bulk_product_search', function() {
     wp_send_json_error('Login required');
 });
 
+// Note: Quote request and bulk pricing AJAX handlers are handled in AdvancedFeatures.php
+
 // Enqueue modern admin CSS and JS for all B2B Commerce Pro admin pages
 add_action('admin_enqueue_scripts', function($hook) {
     if (isset($_GET['page']) && strpos($_GET['page'], 'b2b-') === 0) {

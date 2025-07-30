@@ -14,6 +14,8 @@
             this.initTooltips();
             this.initDataTables();
             this.initAjaxForms();
+            this.initQuoteRequests();
+            this.initBulkPricing();
         },
 
         bindEvents: function() {
@@ -272,6 +274,81 @@
                 } else {
                     alert('Export failed: ' + response.data);
                 }
+            });
+        },
+
+        // Quote request functionality
+        initQuoteRequests: function() {
+            $('.b2b-quote-btn').on('click', function() {
+                var form = $(this).siblings('.b2b-quote-form');
+                form.toggle();
+            });
+
+            $('.submit-quote').on('click', function() {
+                var form = $(this).closest('.b2b-quote-form');
+                var productId = form.closest('.b2b-quote-request').find('.b2b-quote-btn').data('product-id');
+                var quantity = form.find('input[name="quote_qty"]').val();
+                var message = form.find('textarea[name="quote_message"]').val();
+
+                if (!quantity || quantity < 1) {
+                    alert('Please enter a valid quantity');
+                    return;
+                }
+
+                var data = {
+                    action: 'b2b_quote_request',
+                    product_id: productId,
+                    quantity: quantity,
+                    message: message,
+                    nonce: b2b_ajax.nonce
+                };
+
+                $.post(b2b_ajax.ajaxurl, data, function(response) {
+                    if (response.success) {
+                        alert('Quote request submitted successfully!');
+                        form.hide();
+                        form.find('input, textarea').val('');
+                    } else {
+                        alert('Error: ' + response.data);
+                    }
+                });
+            });
+
+            $('.cancel-quote').on('click', function() {
+                $(this).closest('.b2b-quote-form').hide();
+            });
+        },
+
+        // Bulk pricing calculator functionality
+        initBulkPricing: function() {
+            $('.calculate-bulk-price').on('click', function() {
+                var calculator = $(this).closest('.b2b-bulk-calculator');
+                var quantity = calculator.find('.bulk-qty-input').val();
+                var productId = calculator.closest('.product').find('.add_to_cart').data('product_id');
+
+                if (!quantity || quantity < 1) {
+                    alert('Please enter a valid quantity');
+                    return;
+                }
+
+                var data = {
+                    action: 'b2b_calculate_bulk_price',
+                    product_id: productId,
+                    quantity: quantity,
+                    nonce: b2b_ajax.nonce
+                };
+
+                $.post(b2b_ajax.ajaxurl, data, function(response) {
+                    if (response.success) {
+                        calculator.find('.bulk-price-display').html(
+                            'Unit Price: ' + response.data.unit_price + '<br>' +
+                            'Total Price: ' + response.data.total_price + '<br>' +
+                            'Discount: ' + response.data.discount
+                        );
+                    } else {
+                        alert('Error: ' + response.data);
+                    }
+                });
             });
         }
     };

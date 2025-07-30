@@ -22,10 +22,9 @@ class ProductManager {
         add_action( 'wp_ajax_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
         add_action( 'wp_ajax_nopriv_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
         // Bulk order and CSV import placeholders
-        add_shortcode( 'b2b_bulk_order', [ $this, 'bulk_order_shortcode' ] );
+        // Note: b2b_bulk_order shortcode is handled by Frontend.php
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_bulk_order_scripts' ] );
-        add_action( 'wp_ajax_b2b_bulk_product_search', [ $this, 'ajax_product_search' ] );
-        add_action( 'wp_ajax_nopriv_b2b_bulk_product_search', [ $this, 'ajax_product_search' ] );
+        // Note: b2b_bulk_product_search AJAX handlers are in main plugin file
         add_action( 'wp_loaded', [ $this, 'handle_bulk_order_form' ] );
     }
 

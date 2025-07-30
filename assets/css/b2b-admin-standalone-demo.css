@@ -242,6 +242,7 @@
 
 .b2b-admin-btn .icon {
     font-size: 1em;
+    height: unset;
 }
 
 .b2b-admin-btn-success {

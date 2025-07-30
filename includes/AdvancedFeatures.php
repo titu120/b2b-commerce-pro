@@ -20,6 +20,16 @@ class AdvancedFeatures {
         add_filter( 'woocommerce_currency', [ $this, 'handle_multi_currency' ] );
         // REST API endpoints
         add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
+        // Quote request system
+        add_action( 'woocommerce_single_product_summary', [ $this, 'quote_request_button' ], 35 );
+        add_action( 'wp_ajax_b2b_quote_request', [ $this, 'handle_quote_request' ] );
+        add_action( 'wp_ajax_nopriv_b2b_quote_request', [ $this, 'handle_quote_request' ] );
+        // Bulk pricing calculator
+        add_action( 'woocommerce_single_product_summary', [ $this, 'bulk_pricing_calculator' ], 30 );
+        add_action( 'wp_ajax_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
+        add_action( 'wp_ajax_nopriv_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
+        // Advanced reporting
+        add_action( 'admin_menu', [ $this, 'add_advanced_reports_menu' ] );
         // Plugin integration hooks (placeholder)
     }
 
@@ -403,5 +413,207 @@ class AdvancedFeatures {
             'orderby' => 'date',
             'order' => 'DESC'
         ]);
+    }
+    
+    // Quote request button
+    public function quote_request_button() {
+        if (!is_user_logged_in()) return;
+        
+        $user = wp_get_current_user();
+        $user_roles = $user->roles;
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        if (!array_intersect($user_roles, $b2b_roles)) return;
+        
+        global $product;
+        if (!$product) return;
+        
+        echo '<div class="b2b-quote-request">';
+        echo '<button type="button" class="button b2b-quote-btn" data-product-id="' . $product->get_id() . '">';
+        echo '<span class="dashicons dashicons-email-alt"></span> Request Quote';
+        echo '</button>';
+        echo '<div class="b2b-quote-form" style="display: none;">';
+        echo '<h4>Request Quote</h4>';
+        echo '<p><label>Quantity: <input type="number" name="quote_qty" min="1" value="1"></label></p>';
+        echo '<p><label>Message: <textarea name="quote_message" placeholder="Additional requirements..."></textarea></label></p>';
+        echo '<button type="button" class="button button-primary submit-quote">Submit Quote Request</button>';
+        echo '<button type="button" class="button cancel-quote">Cancel</button>';
+        echo '</div>';
+        echo '</div>';
+    }
+    
+    // Handle quote request
+    public function handle_quote_request() {
+        if (!is_user_logged_in()) {
+            wp_send_json_error('Please log in to request quotes');
+            return;
+        }
+        
+        $product_id = intval($_POST['product_id']);
+        $quantity = intval($_POST['quantity']);
+        $message = sanitize_textarea_field($_POST['message']);
+        $user_id = get_current_user_id();
+        
+        if (!$product_id || !$quantity) {
+            wp_send_json_error('Invalid request data');
+            return;
+        }
+        
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            wp_send_json_error('Product not found');
+            return;
+        }
+        
+        // Save quote request
+        $quote_data = [
+            'product_id' => $product_id,
+            'quantity' => $quantity,
+            'message' => $message,
+            'user_id' => $user_id,
+            'status' => 'pending',
+            'date' => current_time('mysql')
+        ];
+        
+        $quotes = get_option('b2b_quote_requests', []);
+        $quotes[] = $quote_data;
+        update_option('b2b_quote_requests', $quotes);
+        
+        // Send email notification to admin
+        $admin_email = get_option('admin_email');
+        $subject = 'New B2B Quote Request';
+        $message_body = sprintf(
+            'New quote request received for %s (Qty: %d) from user ID: %d',
+            $product->get_name(),
+            $quantity,
+            $user_id
+        );
+        
+        wp_mail($admin_email, $subject, $message_body);
+        
+        wp_send_json_success('Quote request submitted successfully');
+    }
+    
+    // Bulk pricing calculator
+    public function bulk_pricing_calculator() {
+        if (!is_user_logged_in()) return;
+        
+        $user = wp_get_current_user();
+        $user_roles = $user->roles;
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        if (!array_intersect($user_roles, $b2b_roles)) return;
+        
+        global $product;
+        if (!$product) return;
+        
+        echo '<div class="b2b-bulk-calculator">';
+        echo '<h4>Bulk Pricing Calculator</h4>';
+        echo '<p><label>Quantity: <input type="number" name="bulk_qty" min="1" value="1" class="bulk-qty-input"></label></p>';
+        echo '<p><strong>Price: <span class="bulk-price-display">' . $product->get_price_html() . '</span></strong></p>';
+        echo '<button type="button" class="button calculate-bulk-price">Calculate Bulk Price</button>';
+        echo '</div>';
+    }
+    
+    // Calculate bulk price
+    public function calculate_bulk_price() {
+        if (!is_user_logged_in()) {
+            wp_send_json_error('Please log in to calculate bulk prices');
+            return;
+        }
+        
+        $product_id = intval($_POST['product_id']);
+        $quantity = intval($_POST['quantity']);
+        $user_id = get_current_user_id();
+        
+        if (!$product_id || !$quantity) {
+            wp_send_json_error('Invalid request data');
+            return;
+        }
+        
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            wp_send_json_error('Product not found');
+            return;
+        }
+        
+        // Get user role for pricing
+        $user = get_userdata($user_id);
+        $user_role = $user->roles[0] ?? '';
+        
+        // Get pricing rules
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        $rules = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table WHERE product_id = %d AND role = %s AND min_qty <= %d ORDER BY min_qty DESC LIMIT 1",
+            $product_id,
+            $user_role,
+            $quantity
+        ));
+        
+        $price = $product->get_price();
+        $discount = 0;
+        
+        if (!empty($rules)) {
+            $rule = $rules[0];
+            if ($rule->type === 'percentage') {
+                $discount = ($price * $rule->price) / 100;
+            } else {
+                $discount = $rule->price;
+            }
+            $price = max(0, $price - $discount);
+        }
+        
+        $total_price = $price * $quantity;
+        
+        wp_send_json_success([
+            'unit_price' => wc_price($price),
+            'total_price' => wc_price($total_price),
+            'discount' => $discount > 0 ? wc_price($discount) : 'No discount'
+        ]);
+    }
+    
+    // Add advanced reports menu
+    public function add_advanced_reports_menu() {
+        add_submenu_page(
+            'b2b-dashboard',
+            'Advanced Reports',
+            'Advanced Reports',
+            'manage_options',
+            'b2b-advanced-reports',
+            [$this, 'advanced_reports_page']
+        );
+    }
+    
+    // Advanced reports page
+    public function advanced_reports_page() {
+        echo '<div class="wrap">';
+        echo '<h1>B2B Advanced Reports</h1>';
+        echo '<div class="b2b-admin-card">';
+        echo '<h3>Quote Requests</h3>';
+        
+        $quotes = get_option('b2b_quote_requests', []);
+        if (empty($quotes)) {
+            echo '<p>No quote requests found.</p>';
+        } else {
+            echo '<table class="wp-list-table widefat fixed striped">';
+            echo '<thead><tr><th>Product</th><th>Quantity</th><th>User</th><th>Status</th><th>Date</th></tr></thead>';
+            echo '<tbody>';
+            foreach ($quotes as $quote) {
+                $product = wc_get_product($quote['product_id']);
+                $user = get_userdata($quote['user_id']);
+                echo '<tr>';
+                echo '<td>' . ($product ? $product->get_name() : 'Product not found') . '</td>';
+                echo '<td>' . $quote['quantity'] . '</td>';
+                echo '<td>' . ($user ? $user->display_name : 'User not found') . '</td>';
+                echo '<td>' . ucfirst($quote['status']) . '</td>';
+                echo '<td>' . $quote['date'] . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+        
+        echo '</div>';
+        echo '</div>';
     }
 } 
