@@ -1,252 +1,423 @@
-/* Standalone Modern Admin UI Demo CSS for B2B Plugin */
-body {
-  margin: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+/* B2B Commerce Pro - WordPress Admin Integration CSS */
+
+/* Main wrapper for B2B admin pages */
+.b2b-admin-wrapper {
+    margin: 20px 0;
+    display: flex;
+    min-height: calc(100vh - 100px);
 }
-.b2b-admin-demo-wrapper {
-  display: flex;
-  min-height: 100vh;
+
+/* Unified Navigation */
+.b2b-unified-nav {
+    width: 280px;
+    background: #23272f;
+    color: white;
+    padding: 0;
+    border-radius: 8px 0 0 8px;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
-.b2b-admin-sidebar {
-  width: 260px;
-  background: linear-gradient(135deg, #23272f 0%, #1a1d23 100%);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 32px;
+
+.b2b-nav-header {
+    padding: 25px 20px;
+    border-bottom: 1px solid #3a3f4a;
 }
-a.b2b-admin-btn:hover {
-  color: #fff;
+
+.b2b-nav-brand {
+    display: flex;
+    align-items: center;
 }
-.b2b-admin-logo {
-  margin-bottom: 32px;
-  text-align: center;
+
+.b2b-nav-brand h2 {
+    color: white !important;
+    margin: 0 !important;
 }
-.b2b-admin-logo img {
-  width: 120px;
-  height: auto;
-  border-radius: 8px;
-  margin-bottom: 8px;
+
+.b2b-nav-brand small {
+    color: #b0b3b8 !important;
 }
-.b2b-admin-logo h1 {
-  font-size: 1.5em;
-  color: #fff;
-  margin: 0;
-  font-weight: 700;
-  letter-spacing: 1px;
+
+.b2b-nav-menu {
+    padding: 15px 0;
 }
-.b2b-admin-menu {
-  width: 100%;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+
+.b2b-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #b0b3b8;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
 }
-.b2b-admin-menu li {
-  width: 100%;
+
+.b2b-nav-item:hover {
+    background: #3a3f4a;
+    color: white;
+    border-left-color: #2196f3;
 }
-.b2b-admin-menu a {
-  display: flex;
-  align-items: center;
-  padding: 16px 32px;
-  color: #b0b8c1;
-  text-decoration: none;
-  font-size: 1.1em;
-  transition: background 0.2s, color 0.2s;
-  border-left: 4px solid transparent;
+
+.b2b-nav-item.active {
+    background: #2196f3;
+    color: white;
+    border-left-color: #2196f3;
 }
-.b2b-admin-menu a.active, .b2b-admin-menu a:hover {
-  background: #1e2530;
-  color: #fff;
-  border-left: 4px solid #2196f3;
+
+.b2b-nav-item .dashicons {
+    margin-right: 12px;
+    font-size: 1.1em;
+    width: auto;
+    height: auto;
 }
-.b2b-admin-menu .icon {
-  margin-right: 14px;
-  font-size: 1.3em;
-  width: 24px;
-  text-align: center;
+
+.b2b-nav-item span:last-child {
+    font-weight: 500;
 }
+
+/* Main content area */
 .b2b-admin-content {
-  flex: 1;
-  padding: 48px 56px;
-  background: #f4f6f8;
+    background: #fff;
+    border-radius: 0 8px 8px 0;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    flex: 1;
+    overflow-y: auto;
 }
+
+/* Header styles */
 .b2b-admin-header {
-  background: #fff;
-  padding: 32px 40px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  margin-bottom: 32px;
-  border-left: 4px solid #2196f3;
+    margin-bottom: 30px;
 }
+
 .b2b-admin-header h1 {
-  font-size: 2em;
-  margin: 0 0 8px 0;
-  color: #23272f;
-  display: flex;
-  align-items: center;
+    font-size: 1.8em;
+    margin: 0 0 8px 0;
+    color: #23272f;
+    display: flex;
+    align-items: center;
 }
+
 .b2b-admin-header .icon {
-  margin-right: 12px;
-  color: #2196f3;
+    margin-right: 12px;
+    color: #2196f3;
+    font-size: 1.2em;
 }
+
 .b2b-admin-header p {
-  color: #666;
-  font-size: 1.1em;
-  margin: 0;
+    color: #666;
+    font-size: 1em;
+    margin: 0;
 }
+
+/* Card styles */
 .b2b-admin-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 32px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  border: 1px solid #e0e0e0;
+    background: #fff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
+
 .b2b-admin-card-title {
-  font-size: 1.3em;
-  font-weight: 600;
-  color: #23272f;
-  margin-bottom: 24px;
-  display: flex;
-  align-items: center;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #23272f;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
 }
+
 .b2b-admin-card-title .icon {
-  margin-right: 10px;
-  color: #2196f3;
+    margin-right: 8px;
+    color: #2196f3;
 }
+
+/* Form styles */
 .b2b-admin-form-group {
-  margin-bottom: 24px;
+    margin-bottom: 20px;
 }
+
 .b2b-admin-form-group label {
-  display: block;
-  font-weight: 600;
-  color: #23272f;
-  margin-bottom: 8px;
-  font-size: 1.1em;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #23272f;
 }
+
 .b2b-admin-form-group input[type="text"],
+.b2b-admin-form-group input[type="email"],
+.b2b-admin-form-group input[type="password"],
 .b2b-admin-form-group select,
 .b2b-admin-form-group textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1em;
-  background: #fafbfc;
-  transition: border 0.2s;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
 }
+
 .b2b-admin-form-group input:focus,
 .b2b-admin-form-group select:focus,
 .b2b-admin-form-group textarea:focus {
-  border-color: #2196f3;
-  outline: none;
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
+
+/* Toggle switch */
 .b2b-admin-toggle {
-  position: relative;
-  display: inline-block;
-  width: 56px;
-  height: 30px;
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
 }
+
 .b2b-admin-toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
+
 .b2b-admin-toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 30px;
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
 }
+
 .b2b-admin-toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 22px;
-  width: 22px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
 }
+
 .b2b-admin-toggle input:checked + .b2b-admin-toggle-slider {
-  background-color: #2196f3;
+    background-color: #2196f3;
 }
+
 .b2b-admin-toggle input:checked + .b2b-admin-toggle-slider:before {
-  transform: translateX(26px);
+    transform: translateX(26px);
 }
+
+/* Button styles */
 .b2b-admin-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  background: linear-gradient(135deg, #2196f3 0%, #1769aa 100%);
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(33,150,243,0.15);
-  transition: background 0.2s, transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background: #2196f3;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-align: center;
+    justify-content: center;
+    gap: 8px;
 }
+
 .b2b-admin-btn:hover {
-  background: linear-gradient(135deg, #1769aa 0%, #2196f3 100%);
-  transform: translateY(-2px);
+    background: #1976d2;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
 }
+
 .b2b-admin-btn .icon {
-  margin-right: 8px;
+    font-size: 1em;
 }
+
+.b2b-admin-btn-success {
+    background: #4caf50;
+}
+
+.b2b-admin-btn-success:hover {
+    background: #388e3c;
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.b2b-admin-btn-danger {
+    background: #f44336;
+}
+
+.b2b-admin-btn-danger:hover {
+    background: #d32f2f;
+    box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+}
+
+/* Badge styles */
+.b2b-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 0.8em;
+    font-weight: 500;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.b2b-badge-success {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.b2b-badge-warning {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.b2b-badge-danger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* Table styles */
 .b2b-admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
 }
+
 .b2b-admin-table th {
-  background: #f8f9fa;
-  color: #23272f;
-  font-weight: 600;
-  padding: 16px 20px;
-  text-align: left;
-  border-bottom: 2px solid #e0e0e0;
-  font-size: 1.1em;
+    background: #f8f9fa;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #23272f;
+    border-bottom: 2px solid #e1e5e9;
 }
+
 .b2b-admin-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f1;
-  color: #333;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e1e5e9;
+    vertical-align: middle;
 }
+
 .b2b-admin-table tr:hover {
-  background: #f8f9fa;
+    background: #f8f9fa;
 }
+
 .b2b-admin-table tr:last-child td {
-  border-bottom: none;
-
-
+    border-bottom: none;
 }
-
-
 
 .b2b-admin-table tbody tr td:last-child {
-  display: flex;
-  gap: 10px;
+    text-align: right;
 }
 
+/* Responsive design */
+@media (max-width: 768px) {
+    .b2b-admin-wrapper {
+        flex-direction: column;
+    }
+    
+    .b2b-unified-nav {
+        width: 100%;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .b2b-admin-content {
+        border-radius: 0 0 8px 8px;
+    }
+    
+    .b2b-admin-header h1 {
+        font-size: 1.5em;
+    }
+    
+    .b2b-admin-card {
+        padding: 15px;
+    }
+    
+    .b2b-admin-btn {
+        padding: 8px 16px;
+        font-size: 0.8em;
+    }
+}
 
+/* WordPress admin integration */
+.wp-admin .b2b-admin-wrapper {
+    margin: 20px 0;
+}
 
-@media (max-width: 900px) {
-  .b2b-admin-content { padding: 20px; }
-  .b2b-admin-header { padding: 20px; }
-  .b2b-admin-card { padding: 16px; }
-  .b2b-admin-sidebar { width: 100px; padding-top: 16px; }
-  .b2b-admin-menu a { padding: 12px 10px; font-size: 1em; }
-  .b2b-admin-logo h1 { font-size: 1em; }
+.wp-admin .b2b-admin-content {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.b2b-admin-wrapper .wrap {
+    margin: 0;
+    padding: 0;
+}
+
+/* Statistics grid */
+.b2b-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.b2b-stat-card {
+    background: #fff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.b2b-stat-card .stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.b2b-stat-card .stat-label {
+    color: #666;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.b2b-stat-card .stat-icon {
+    font-size: 2.5em;
+    color: #2196f3;
+    margin-bottom: 10px;
+}
+
+/* Quick actions */
+.b2b-quick-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Empty state */
+.b2b-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.b2b-empty-state .dashicons {
+    font-size: 3em;
+    color: #ddd;
+    margin-bottom: 15px;
 } 

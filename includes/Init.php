@@ -11,6 +11,7 @@ class Init {
     private $product_manager;
     private $frontend;
     private $advanced_features;
+    private $reporting;
 
     public static function instance() {
         if ( self::$instance === null ) {
@@ -21,7 +22,6 @@ class Init {
 
     private function __construct() {
         $this->define_constants();
-        $this->includes();
         $this->init_hooks();
         $this->load_modules();
     }
@@ -30,28 +30,57 @@ class Init {
         // Additional constants can be defined here
     }
 
-    private function includes() {
-        // Load core classes
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/AdminPanel.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/UserManager.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/PricingManager.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/ProductManager.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/Frontend.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/AdvancedFeatures.php';
-        require_once B2B_COMMERCE_PRO_PATH . 'includes/Reporting.php';
-    }
-
     private function init_hooks() {
         // Register hooks, actions, filters
+        add_action('init', [$this, 'check_dependencies']);
+    }
+
+    public function check_dependencies() {
+        // Check if WooCommerce is active
+        if (!class_exists('WooCommerce')) {
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> WooCommerce is required for this plugin to work properly. Please install and activate WooCommerce.</p></div>';
+            });
+            return;
+        }
     }
 
     private function load_modules() {
-        $this->admin_panel = new AdminPanel();
-        $this->user_manager = new UserManager();
-        $this->pricing_manager = new PricingManager();
-        $this->product_manager = new ProductManager();
-        $this->frontend = new Frontend();
-        $this->advanced_features = new AdvancedFeatures();
-        $this->reporting = new Reporting();
+        try {
+            // Load modules with proper error handling
+            if (class_exists('B2B\\AdminPanel')) {
+                $this->admin_panel = new AdminPanel();
+            }
+            
+            if (class_exists('B2B\\UserManager')) {
+                $this->user_manager = new UserManager();
+            }
+            
+            if (class_exists('B2B\\PricingManager')) {
+                $this->pricing_manager = new PricingManager();
+            }
+            
+            if (class_exists('B2B\\ProductManager')) {
+                $this->product_manager = new ProductManager();
+            }
+            
+            if (class_exists('B2B\\Frontend')) {
+                $this->frontend = new Frontend();
+            }
+            
+            if (class_exists('B2B\\AdvancedFeatures')) {
+                $this->advanced_features = new AdvancedFeatures();
+            }
+            
+            if (class_exists('B2B\\Reporting')) {
+                $this->reporting = new Reporting();
+            }
+            
+        } catch (Exception $e) {
+            error_log('B2B Commerce Pro Error: ' . $e->getMessage());
+            add_action('admin_notices', function() use ($e) {
+                echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro Error:</strong> ' . esc_html($e->getMessage()) . '</p></div>';
+            });
+        }
     }
 } 

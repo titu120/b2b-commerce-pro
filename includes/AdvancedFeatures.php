@@ -392,4 +392,16 @@ class AdvancedFeatures {
         
         return $content;
     }
+
+    public function bulk_order_management() {
+        if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
+            return '<p>WooCommerce is required for bulk order management.</p>';
+        }
+        
+        $orders = wc_get_orders([
+            'limit' => 50,
+            'orderby' => 'date',
+            'order' => 'DESC'
+        ]);
+    }
 } 

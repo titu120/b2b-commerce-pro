@@ -8,9 +8,10 @@ class UserManager {
         // Register roles and taxonomies
         add_action( 'init', [ $this, 'register_roles' ] );
         add_action( 'init', [ $this, 'register_group_taxonomy' ] );
-        add_action( 'admin_menu', [ $this, 'add_group_menu' ] );
-        add_action( 'admin_menu', [ $this, 'add_approval_menu' ] );
-        add_action( 'admin_menu', [ $this, 'add_import_export_menu' ] );
+        // COMMENTED OUT - Admin menus are now handled by AdminPanel.php to avoid conflicts
+        // add_action( 'admin_menu', [ $this, 'add_group_menu' ] );
+        // add_action( 'admin_menu', [ $this, 'add_approval_menu' ] );
+        // add_action( 'admin_menu', [ $this, 'add_import_export_menu' ] );
         // Registration form hooks
         add_action( 'register_form', [ $this, 'registration_form' ] );
         add_action( 'user_register', [ $this, 'save_registration_fields' ] );
@@ -276,11 +277,18 @@ class UserManager {
         if ( ! current_user_can( 'manage_options' ) || empty( $_GET['user_id'] ) ) {
             wp_die( 'Unauthorized' );
         }
+        
         $user_id = intval( $_GET['user_id'] );
+        
+        // Verify nonce for security
+        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'b2b_approve_user_' . $user_id ) ) {
+            wp_die( 'Security check failed' );
+        }
+        
         update_user_meta( $user_id, 'b2b_approval_status', 'approved' );
         // Send approval email
         wp_mail( get_userdata( $user_id )->user_email, 'Your B2B Account Approved', 'Congratulations! Your account has been approved.' );
-        wp_redirect( admin_url( 'users.php?page=b2b-approvals' ) );
+        wp_redirect( admin_url( 'admin.php?page=b2b-users&approved=1' ) );
         exit;
     }
 
@@ -289,11 +297,18 @@ class UserManager {
         if ( ! current_user_can( 'manage_options' ) || empty( $_GET['user_id'] ) ) {
             wp_die( 'Unauthorized' );
         }
+        
         $user_id = intval( $_GET['user_id'] );
+        
+        // Verify nonce for security
+        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'b2b_reject_user_' . $user_id ) ) {
+            wp_die( 'Security check failed' );
+        }
+        
         update_user_meta( $user_id, 'b2b_approval_status', 'rejected' );
         // Send rejection email
         wp_mail( get_userdata( $user_id )->user_email, 'Your B2B Account Rejected', 'Sorry, your account has been rejected.' );
-        wp_redirect( admin_url( 'users.php?page=b2b-approvals' ) );
+        wp_redirect( admin_url( 'admin.php?page=b2b-users&rejected=1' ) );
         exit;
     }
 

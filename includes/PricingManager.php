@@ -11,7 +11,8 @@ class PricingManager {
         add_action( 'init', [ $this, 'maybe_create_pricing_table' ] );
         add_action( 'init', [ $this, 'check_pricing_table' ] );
         add_action( 'admin_notices', [ $this, 'admin_notice_table_error' ] );
-        add_action( 'admin_menu', [ $this, 'add_pricing_menu' ] );
+        // Commented out to avoid duplicate menu - using AdminPanel.php instead
+        // add_action( 'admin_menu', [ $this, 'add_pricing_menu' ] );
         add_filter( 'woocommerce_product_get_price', [ $this, 'apply_pricing_rules' ], 10, 2 );
         add_filter( 'woocommerce_product_get_sale_price', [ $this, 'apply_pricing_rules' ], 10, 2 );
         add_action( 'woocommerce_before_calculate_totals', [ $this, 'enforce_min_max_quantity' ] );
@@ -91,6 +92,8 @@ class PricingManager {
     }
 
     // Add admin menu for pricing rules
+    // COMMENTED OUT - Pricing menu is now handled by AdminPanel.php to avoid duplicate menus
+    /*
     public function add_pricing_menu() {
         add_submenu_page(
             'b2b-dashboard', // Parent slug for B2B Commerce
@@ -101,8 +104,10 @@ class PricingManager {
             [ $this, 'pricing_rules_page' ]
         );
     }
+    */
 
-    // Admin UI for pricing rules
+    // COMMENTED OUT - Admin UI for pricing rules is now handled by AdminPanel.php
+    /*
     public function pricing_rules_page() {
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
@@ -177,6 +182,7 @@ class PricingManager {
             echo $content;
         }
     }
+    */
 
     // Apply pricing rules to WooCommerce product price
     public function apply_pricing_rules( $price, $product ) {

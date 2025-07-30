@@ -295,8 +295,12 @@ class Reporting {
 
     // Helper methods for analytics
     private function get_total_revenue() {
+        if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
+            return 0;
+        }
+        
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing'],
+            'status' => 'completed',
             'limit' => -1
         ]);
         
@@ -309,8 +313,12 @@ class Reporting {
     }
 
     private function get_total_orders() {
+        if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
+            return 0;
+        }
+        
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing'],
+            'status' => 'completed',
             'limit' => -1
         ]);
         
