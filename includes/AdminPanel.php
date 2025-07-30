@@ -183,24 +183,29 @@ class AdminPanel {
         $monthly_revenue = 0;
         
         if (class_exists('WooCommerce') && function_exists('wc_get_orders')) {
-            $recent_orders = wc_get_orders(['limit' => 10, 'orderby' => 'date', 'order' => 'DESC']);
-            $all_orders = wc_get_orders(['limit' => -1, 'status' => 'completed']);
-            $total_orders = count($all_orders);
-            
-            foreach ($all_orders as $order) {
-                $total_revenue += $order->get_total();
-            }
-            
-            // Get monthly revenue
-            $current_month = date('Y-m');
-            $monthly_orders = wc_get_orders([
-                'limit' => -1, 
-                'status' => 'completed',
-                'date_created' => '>=' . $current_month . '-01'
-            ]);
-            
-            foreach ($monthly_orders as $order) {
-                $monthly_revenue += $order->get_total();
+            try {
+                $recent_orders = wc_get_orders(['limit' => 10, 'orderby' => 'date', 'order' => 'DESC']);
+                $all_orders = wc_get_orders(['limit' => -1, 'status' => 'completed']);
+                $total_orders = count($all_orders);
+                
+                foreach ($all_orders as $order) {
+                    $total_revenue += $order->get_total();
+                }
+                
+                // Get monthly revenue
+                $current_month = date('Y-m');
+                $monthly_orders = wc_get_orders([
+                    'limit' => -1, 
+                    'status' => 'completed',
+                    'date_created' => '>=' . $current_month . '-01'
+                ]);
+                
+                foreach ($monthly_orders as $order) {
+                    $monthly_revenue += $order->get_total();
+                }
+            } catch (Exception $e) {
+                // Log error but don't break the dashboard
+                error_log('B2B Commerce Pro WooCommerce Error: ' . $e->getMessage());
             }
         }
         
@@ -839,110 +844,120 @@ class AdminPanel {
     
     // Save pricing rule with comprehensive error handling
     private function save_pricing_rule() {
-        // Check if WooCommerce is active
-        if (!class_exists('WooCommerce')) {
-            echo '<div class="notice notice-error"><p>WooCommerce is required for pricing rules.</p></div>';
-            return;
-        }
-
-        // Verify nonce and permissions
-        if (!isset($_POST['b2b_pricing_nonce']) || !wp_verify_nonce($_POST['b2b_pricing_nonce'], 'b2b_pricing_action')) {
-            echo '<div class="notice notice-error"><p>Security check failed.</p></div>';
-            return;
-        }
-
-        if (!current_user_can('manage_options')) {
-            echo '<div class="notice notice-error"><p>You do not have permission to perform this action.</p></div>';
-            return;
-        }
-
-        // Validate required fields
-        $required_fields = ['role', 'type', 'price', 'min_qty'];
-        $errors = [];
-        
-        foreach ($required_fields as $field) {
-            if (!isset($_POST[$field]) || empty($_POST[$field])) {
-                $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required.';
+        try {
+            // Check if WooCommerce is active
+            if (!class_exists('WooCommerce')) {
+                echo '<div class="notice notice-error"><p>WooCommerce is required for pricing rules.</p></div>';
+                return;
             }
-        }
 
-        if (!empty($errors)) {
-            echo '<div class="notice notice-error"><p>' . implode('<br>', $errors) . '</p></div>';
-            return;
-        }
+            // Verify nonce and permissions
+            if (!isset($_POST['b2b_pricing_nonce']) || !wp_verify_nonce($_POST['b2b_pricing_nonce'], 'b2b_pricing_action')) {
+                echo '<div class="notice notice-error"><p>Security check failed.</p></div>';
+                return;
+            }
 
-        // Sanitize and validate data
-        $role = sanitize_text_field($_POST['role']);
-        $type = sanitize_text_field($_POST['type']);
-        $price = floatval($_POST['price']);
-        $min_qty = intval($_POST['min_qty']);
+            if (!current_user_can('manage_options')) {
+                echo '<div class="notice notice-error"><p>You do not have permission to perform this action.</p></div>';
+                return;
+            }
 
-        // Validate price
-        if ($price == 0 && $type === 'percentage') {
-            echo '<div class="notice notice-error"><p>Price cannot be zero for percentage discounts.</p></div>';
-            return;
-        }
+            // Validate required fields
+            $required_fields = ['role', 'type', 'price', 'min_qty'];
+            $errors = [];
+            
+            foreach ($required_fields as $field) {
+                if (!isset($_POST[$field]) || empty($_POST[$field])) {
+                    $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required.';
+                }
+            }
 
-        // Validate minimum quantity
-        if ($min_qty < 1) {
-            echo '<div class="notice notice-error"><p>Minimum quantity must be at least 1.</p></div>';
-            return;
-        }
+            if (!empty($errors)) {
+                echo '<div class="notice notice-error"><p>' . implode('<br>', $errors) . '</p></div>';
+                return;
+            }
 
-        // Insert into database with error handling
-        global $wpdb;
-        $table = $wpdb->prefix . 'b2b_pricing_rules';
-        
-        // Ensure table exists
-        if (!$this->ensure_pricing_table_exists()) {
-            echo '<div class="notice notice-error"><p>Database table could not be created. Please check your database permissions.</p></div>';
-            return;
-        }
+            // Sanitize and validate data
+            $role = sanitize_text_field($_POST['role']);
+            $type = sanitize_text_field($_POST['type']);
+            $price = floatval($_POST['price']);
+            $min_qty = intval($_POST['min_qty']);
 
-        $data = array(
-            'product_id' => 0,
-            'role' => $role,
-            'user_id' => 0,
-            'group_id' => 0,
-            'geo_zone' => '',
-            'start_date' => '',
-            'end_date' => '',
-            'min_qty' => $min_qty,
-            'max_qty' => 0,
-            'price' => $price,
-            'type' => $type
-        );
+            // Validate price
+            if ($price == 0 && $type === 'percentage') {
+                echo '<div class="notice notice-error"><p>Price cannot be zero for percentage discounts.</p></div>';
+                return;
+            }
 
-        $result = $wpdb->insert($table, $data);
+            // Validate minimum quantity
+            if ($min_qty < 1) {
+                echo '<div class="notice notice-error"><p>Minimum quantity must be at least 1.</p></div>';
+                return;
+            }
 
-        if ($result === false) {
-            echo '<div class="notice notice-error"><p>Failed to save pricing rule. Database error: ' . esc_html($wpdb->last_error) . '</p></div>';
-        } else {
-            echo '<div class="notice notice-success"><p>Pricing rule saved successfully!</p></div>';
+            // Insert into database with error handling
+            global $wpdb;
+            $table = $wpdb->prefix . 'b2b_pricing_rules';
+            
+            // Ensure table exists
+            if (!$this->ensure_pricing_table_exists()) {
+                echo '<div class="notice notice-error"><p>Database table could not be created. Please check your database permissions.</p></div>';
+                return;
+            }
+
+            $data = array(
+                'product_id' => 0,
+                'role' => $role,
+                'user_id' => 0,
+                'group_id' => 0,
+                'geo_zone' => '',
+                'start_date' => '',
+                'end_date' => '',
+                'min_qty' => $min_qty,
+                'max_qty' => 0,
+                'price' => $price,
+                'type' => $type
+            );
+
+            $result = $wpdb->insert($table, $data);
+
+            if ($result === false) {
+                echo '<div class="notice notice-error"><p>Failed to save pricing rule. Database error: ' . esc_html($wpdb->last_error) . '</p></div>';
+            } else {
+                echo '<div class="notice notice-success"><p>Pricing rule saved successfully!</p></div>';
+            }
+            
+        } catch (Exception $e) {
+            echo '<div class="notice notice-error"><p>Error saving pricing rule: ' . esc_html($e->getMessage()) . '</p></div>';
         }
     }
 
     // Ensure pricing table exists
     private function ensure_pricing_table_exists() {
-        global $wpdb;
-        $table = $wpdb->prefix . 'b2b_pricing_rules';
-        
-        // Check if table exists
-        $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
-        
-        if ($exists !== $table) {
-            // Try to create table
-            if (class_exists('B2B\\PricingManager')) {
-                B2B\PricingManager::create_pricing_table();
-                
-                // Check again
-                $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
-                return $exists === $table;
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'b2b_pricing_rules';
+            
+            // Check if table exists
+            $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+            
+            if ($exists !== $table) {
+                // Try to create table
+                if (class_exists('B2B\\PricingManager')) {
+                    B2B\PricingManager::create_pricing_table();
+                    
+                    // Check again
+                    $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+                    return $exists === $table;
+                }
+                return false;
             }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log('B2B Commerce Pro Table Check Error: ' . $e->getMessage());
             return false;
         }
-        
-        return true;
     }
 
     // Email template customization page

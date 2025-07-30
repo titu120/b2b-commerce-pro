@@ -10,6 +10,7 @@ class Frontend {
         add_shortcode( 'b2b_account', [ $this, 'account_management_shortcode' ] );
         add_shortcode( 'b2b_wishlist', [ $this, 'wishlist_shortcode' ] );
         add_shortcode( 'b2b_registration', [ $this, 'registration_form_shortcode' ] );
+        add_shortcode( 'b2b_bulk_order', [ $this, 'bulk_order_shortcode' ] );
         add_action( 'init', [ $this, 'handle_invoice_download' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_scripts' ] );
     }
@@ -29,8 +30,6 @@ class Frontend {
         echo '<li><a href="#b2b-quick-order">Quick Order</a></li>';
         echo '<li><a href="#b2b-wishlist">Wishlist</a></li>';
         echo '</ul>';
-        echo '<hr><h3 id="b2b-quick-order">Quick Order Pad</h3>';
-        echo do_shortcode('[b2b_bulk_order]');
         echo '<hr><h3>Order History</h3>';
         echo do_shortcode('[b2b_order_history]');
         echo '<hr><h3>Account Management</h3>';
@@ -457,6 +456,66 @@ class Frontend {
         } catch (Exception $e) {
             return '<div class="b2b-message notice-error"><p>❌ Registration failed: ' . esc_html($e->getMessage()) . '</p></div>';
         }
+    }
+
+    // Bulk order shortcode
+    public function bulk_order_shortcode() {
+        if (!is_user_logged_in()) {
+            return '<p>Please log in to access bulk ordering.</p>';
+        }
+        
+        ob_start();
+        ?>
+        <div class="b2b-bulk-order">
+            <h3>Bulk Order</h3>
+            <form id="b2b-bulk-order-form" method="post" enctype="multipart/form-data">
+                <?php wp_nonce_field('b2b_bulk_order', 'b2b_bulk_order_nonce'); ?>
+                <div id="b2b-bulk-products">
+                    <div class="b2b-bulk-row">
+                        <input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off">
+                        <input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity">
+                    </div>
+                </div>
+                <button type="button" id="b2b-add-row" class="button">Add Another Product</button>
+                <hr>
+                <h4>Or Import from CSV</h4>
+                <input type="file" name="b2b_bulk_csv" accept=".csv">
+                <hr>
+                <button type="submit" class="button button-primary">Add to Cart</button>
+                <div class="b2b-bulk-order-response"></div>
+            </form>
+        </div>
+        <script>
+        jQuery(function($){
+            $('#b2b-add-row').on('click', function(){
+                $('#b2b-bulk-products').append('<div class="b2b-bulk-row"><input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off"><input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity"></div>');
+            });
+            $(document).on('input', '.b2b-product-search', function(){
+                var input = $(this);
+                $.get(b2b_ajax.ajaxurl, {action:'b2b_bulk_product_search', term:input.val()}, function(res){
+                    if(res.success && res.data.length){
+                        var list = $('<ul class="b2b-search-list"></ul>');
+                        $.each(res.data, function(i, p){
+                            list.append('<li data-id="'+p.id+'">'+p.text+'</li>');
+                        });
+                        input.nextAll('.b2b-search-list').remove();
+                        input.after(list);
+                    }
+                });
+            });
+            $(document).on('click', '.b2b-search-list li', function(){
+                var id = $(this).data('id');
+                var text = $(this).text();
+                var input = $(this).closest('.b2b-bulk-row').find('.b2b-product-search');
+                input.val(text);
+                input.data('product-id', id);
+                $(this).parent().remove();
+                $('<input type="hidden" name="product_id[]" value="'+id+'">').insertAfter(input);
+            });
+        });
+        </script>
+        <?php
+        return ob_get_clean();
     }
 
     // Enqueue frontend scripts

@@ -43,33 +43,59 @@ function autoload_b2b_commerce_pro() {
 
 // Bootstrap the plugin
 add_action( 'plugins_loaded', function() {
+    // Check if required classes exist before initializing
     if ( class_exists( 'B2B\\Init' ) ) {
-        B2B\Init::instance();
+        try {
+            B2B\Init::instance();
+        } catch ( Exception $e ) {
+            // Log error but don't break the site
+            error_log( 'B2B Commerce Pro Error: ' . $e->getMessage() );
+        }
+    } else {
+        // Show admin notice if Init class is missing
+        add_action( 'admin_notices', function() {
+            echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> Required classes not found. Please reinstall the plugin.</p></div>';
+        });
     }
 } );
 
 // Register activation and deactivation hooks
 register_activation_hook( __FILE__, function() {
-    // Create pricing table
-    if ( class_exists( 'B2B\\PricingManager' ) ) {
-        B2B\PricingManager::create_pricing_table();
-    }
-    // Add roles
-    if ( class_exists( 'B2B\\UserManager' ) ) {
-        B2B\UserManager::add_roles();
+    try {
+        // Create pricing table
+        if ( class_exists( 'B2B\\PricingManager' ) ) {
+            B2B\PricingManager::create_pricing_table();
+        }
+        // Add roles
+        if ( class_exists( 'B2B\\UserManager' ) ) {
+            B2B\UserManager::add_roles();
+        }
+    } catch ( Exception $e ) {
+        // Log activation error
+        error_log( 'B2B Commerce Pro Activation Error: ' . $e->getMessage() );
     }
 } );
 
 register_deactivation_hook( __FILE__, function() {
-    if ( class_exists( 'B2B\\UserManager' ) ) {
-        B2B\UserManager::remove_roles();
+    try {
+        if ( class_exists( 'B2B\\UserManager' ) ) {
+            B2B\UserManager::remove_roles();
+        }
+    } catch ( Exception $e ) {
+        // Log deactivation error
+        error_log( 'B2B Commerce Pro Deactivation Error: ' . $e->getMessage() );
     }
 } );
 
 // Ensure pricing table exists on every load
 add_action( 'init', function() {
-    if ( class_exists( 'B2B\\PricingManager' ) ) {
-        B2B\PricingManager::create_pricing_table();
+    try {
+        if ( class_exists( 'B2B\\PricingManager' ) ) {
+            B2B\PricingManager::create_pricing_table();
+        }
+    } catch ( Exception $e ) {
+        // Log error but don't break the site
+        error_log( 'B2B Commerce Pro Table Creation Error: ' . $e->getMessage() );
     }
 } );
 
@@ -302,294 +328,45 @@ add_action('wp_ajax_b2b_export_data', function() {
     wp_send_json_success($csv_data);
 });
 
-// Add test function for debugging
-add_action( 'wp_ajax_b2b_test_plugin', function() {
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Unauthorized' );
+// AJAX handler for bulk product search
+add_action('wp_ajax_b2b_bulk_product_search', function() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('User not logged in');
+        return;
     }
     
+    $term = sanitize_text_field($_GET['term'] ?? '');
+    if (empty($term)) {
+        wp_send_json_success([]);
+        return;
+    }
+    
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => 10,
+        's' => $term,
+        'post_status' => 'publish'
+    ];
+    
+    $query = new WP_Query($args);
     $results = [];
     
-    // Test 1: Check if pricing table exists
-    global $wpdb;
-    $table = $wpdb->prefix . 'b2b_pricing_rules';
-    $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
-    $results['pricing_table'] = $exists === $table ? 'OK' : 'FAILED';
-    
-    // Test 2: Check if roles exist
-    $roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
-    $results['roles'] = [];
-    foreach ($roles as $role) {
-        $role_obj = get_role($role);
-        $results['roles'][$role] = $role_obj ? 'OK' : 'FAILED';
+    foreach ($query->posts as $post) {
+        $product = wc_get_product($post->ID);
+        if ($product) {
+            $results[] = [
+                'id' => $post->ID,
+                'text' => $product->get_name() . ' (SKU: ' . $product->get_sku() . ')'
+            ];
+        }
     }
     
-    // Test 3: Check if taxonomy exists
-    $taxonomy = get_taxonomy('b2b_user_group');
-    $results['taxonomy'] = $taxonomy ? 'OK' : 'FAILED';
-    
-    // Test 4: Check if pricing rules exist
-    $rules_count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
-    $results['pricing_rules'] = $rules_count . ' rules found';
-    
-    wp_send_json($results);
-} );
+    wp_send_json_success($results);
+});
 
-// Comprehensive plugin test function
-add_action( 'wp_ajax_b2b_comprehensive_test', function() {
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Unauthorized' );
-    }
-    
-    $results = [];
-    
-    try {
-        // Test 1: Check if pricing table exists
-        global $wpdb;
-        $table = $wpdb->prefix . 'b2b_pricing_rules';
-        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
-        $results['pricing_table'] = $exists === $table ? 'OK' : 'FAILED';
-        
-        // Test 2: Check if roles exist
-        $roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
-        $results['roles'] = [];
-        foreach ($roles as $role) {
-            $role_obj = get_role($role);
-            $results['roles'][$role] = $role_obj ? 'OK' : 'FAILED';
-        }
-        
-        // Test 3: Check if taxonomy exists
-        $taxonomy = get_taxonomy('b2b_user_group');
-        $results['taxonomy'] = $taxonomy ? 'OK' : 'FAILED';
-        
-        // Test 4: Check if pricing rules exist
-        $rules_count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
-        $results['pricing_rules'] = $rules_count . ' rules found';
-        
-        // Test 5: Check if classes are loaded
-        $classes = ['B2B\\Init', 'B2B\\AdminPanel', 'B2B\\UserManager', 'B2B\\PricingManager', 'B2B\\Frontend'];
-        $results['classes'] = [];
-        foreach ($classes as $class) {
-            $results['classes'][$class] = class_exists($class) ? 'OK' : 'FAILED';
-        }
-        
-        // Test 6: Check if WooCommerce is active
-        $results['woocommerce'] = class_exists('WooCommerce') ? 'OK' : 'NOT ACTIVE';
-        
-        // Test 7: Check if CSS and JS files exist
-        $css_file = B2B_COMMERCE_PRO_PATH . 'assets/css/b2b-admin-standalone-demo.css';
-        $js_file = B2B_COMMERCE_PRO_PATH . 'assets/js/b2b-commerce-pro.js';
-        $results['assets'] = [
-            'css' => file_exists($css_file) ? 'OK' : 'MISSING',
-            'js' => file_exists($js_file) ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 8: Check database permissions
-        $test_insert = $wpdb->insert($table, [
-            'product_id' => 999999,
-            'role' => 'test_role',
-            'user_id' => 0,
-            'group_id' => 0,
-            'geo_zone' => '',
-            'start_date' => '',
-            'end_date' => '',
-            'min_qty' => 1,
-            'max_qty' => 0,
-            'price' => 0,
-            'type' => 'test'
-        ]);
-        
-        if ($test_insert !== false) {
-            $wpdb->delete($table, ['product_id' => 999999]);
-            $results['database_permissions'] = 'OK';
-        } else {
-            $results['database_permissions'] = 'FAILED: ' . $wpdb->last_error;
-        }
-        
-        // Test 9: Check if AJAX endpoints are working
-        $results['ajax_endpoints'] = [
-            'b2b_approve_user' => has_action('wp_ajax_b2b_approve_user') ? 'OK' : 'MISSING',
-            'b2b_reject_user' => has_action('wp_ajax_b2b_reject_user') ? 'OK' : 'MISSING',
-            'b2b_save_pricing_rule' => has_action('wp_ajax_b2b_save_pricing_rule') ? 'OK' : 'MISSING',
-            'b2b_delete_pricing_rule' => has_action('wp_ajax_b2b_delete_pricing_rule') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 10: Check if shortcodes are registered
-        $results['shortcodes'] = [
-            'b2b_registration' => shortcode_exists('b2b_registration') ? 'OK' : 'MISSING',
-            'b2b_dashboard' => shortcode_exists('b2b_dashboard') ? 'OK' : 'MISSING',
-            'b2b_order_history' => shortcode_exists('b2b_order_history') ? 'OK' : 'MISSING',
-            'b2b_account' => shortcode_exists('b2b_account') ? 'OK' : 'MISSING'
-        ];
-        
-        $results['overall_status'] = 'COMPREHENSIVE TEST COMPLETED';
-        
-    } catch (Exception $e) {
-        $results['error'] = $e->getMessage();
-        $results['overall_status'] = 'TEST FAILED';
-    }
-    
-    wp_send_json($results);
-} );
-
-// Comprehensive verification function - tests ALL functionalities
-add_action( 'wp_ajax_b2b_verify_all_functionalities', function() {
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Unauthorized' );
-    }
-    
-    $results = [];
-    
-    try {
-        // Test 1: Database Table Creation
-        global $wpdb;
-        $table = $wpdb->prefix . 'b2b_pricing_rules';
-        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
-        $results['database_table'] = $exists === $table ? 'OK' : 'FAILED';
-        
-        // Test 2: User Roles
-        $roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
-        $results['user_roles'] = [];
-        foreach ($roles as $role) {
-            $role_obj = get_role($role);
-            $results['user_roles'][$role] = $role_obj ? 'OK' : 'FAILED';
-        }
-        
-        // Test 3: Taxonomy
-        $taxonomy = get_taxonomy('b2b_user_group');
-        $results['taxonomy'] = $taxonomy ? 'OK' : 'FAILED';
-        
-        // Test 4: Class Loading
-        $classes = ['B2B\\Init', 'B2B\\AdminPanel', 'B2B\\UserManager', 'B2B\\PricingManager', 'B2B\\Frontend'];
-        $results['classes'] = [];
-        foreach ($classes as $class) {
-            $results['classes'][$class] = class_exists($class) ? 'OK' : 'FAILED';
-        }
-        
-        // Test 5: WooCommerce Integration
-        $results['woocommerce'] = class_exists('WooCommerce') ? 'OK' : 'NOT ACTIVE';
-        
-        // Test 6: Asset Files
-        $css_file = B2B_COMMERCE_PRO_PATH . 'assets/css/b2b-admin-standalone-demo.css';
-        $js_file = B2B_COMMERCE_PRO_PATH . 'assets/js/b2b-commerce-pro.js';
-        $results['assets'] = [
-            'css' => file_exists($css_file) ? 'OK' : 'MISSING',
-            'js' => file_exists($js_file) ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 7: Database Permissions
-        $test_insert = $wpdb->insert($table, [
-            'product_id' => 999999,
-            'role' => 'test_role',
-            'user_id' => 0,
-            'group_id' => 0,
-            'geo_zone' => '',
-            'start_date' => '',
-            'end_date' => '',
-            'min_qty' => 1,
-            'max_qty' => 0,
-            'price' => 0,
-            'type' => 'test'
-        ]);
-        
-        if ($test_insert !== false) {
-            $wpdb->delete($table, ['product_id' => 999999]);
-            $results['database_permissions'] = 'OK';
-        } else {
-            $results['database_permissions'] = 'FAILED: ' . $wpdb->last_error;
-        }
-        
-        // Test 8: AJAX Endpoints
-        $results['ajax_endpoints'] = [
-            'b2b_approve_user' => has_action('wp_ajax_b2b_approve_user') ? 'OK' : 'MISSING',
-            'b2b_reject_user' => has_action('wp_ajax_b2b_reject_user') ? 'OK' : 'MISSING',
-            'b2b_save_pricing_rule' => has_action('wp_ajax_b2b_save_pricing_rule') ? 'OK' : 'MISSING',
-            'b2b_delete_pricing_rule' => has_action('wp_ajax_b2b_delete_pricing_rule') ? 'OK' : 'MISSING',
-            'b2b_export_data' => has_action('wp_ajax_b2b_export_data') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 9: Shortcodes
-        $results['shortcodes'] = [
-            'b2b_registration' => shortcode_exists('b2b_registration') ? 'OK' : 'MISSING',
-            'b2b_dashboard' => shortcode_exists('b2b_dashboard') ? 'OK' : 'MISSING',
-            'b2b_order_history' => shortcode_exists('b2b_order_history') ? 'OK' : 'MISSING',
-            'b2b_account' => shortcode_exists('b2b_account') ? 'OK' : 'MISSING',
-            'b2b_wishlist' => shortcode_exists('b2b_wishlist') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 10: Admin Menu
-        $results['admin_menu'] = [
-            'b2b-dashboard' => has_action('admin_menu') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 11: CSS/JS Enqueue
-        $results['enqueue'] = [
-            'admin_css' => has_action('admin_enqueue_scripts') ? 'OK' : 'MISSING',
-            'frontend_css' => has_action('wp_enqueue_scripts') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 12: Pricing Rules Count
-        $rules_count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
-        $results['pricing_rules_count'] = $rules_count . ' rules found';
-        
-        // Test 13: User Registration Functions
-        $results['registration_functions'] = [
-            'wp_create_user' => function_exists('wp_create_user') ? 'OK' : 'MISSING',
-            'wp_update_user' => function_exists('wp_update_user') ? 'OK' : 'MISSING',
-            'update_user_meta' => function_exists('update_user_meta') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 14: Security Functions
-        $results['security_functions'] = [
-            'wp_verify_nonce' => function_exists('wp_verify_nonce') ? 'OK' : 'MISSING',
-            'wp_create_nonce' => function_exists('wp_create_nonce') ? 'OK' : 'MISSING',
-            'current_user_can' => function_exists('current_user_can') ? 'OK' : 'MISSING'
-        ];
-        
-        // Test 15: Validation Functions
-        $results['validation_functions'] = [
-            'sanitize_text_field' => function_exists('sanitize_text_field') ? 'OK' : 'MISSING',
-            'sanitize_email' => function_exists('sanitize_email') ? 'OK' : 'MISSING',
-            'sanitize_user' => function_exists('sanitize_user') ? 'OK' : 'MISSING',
-            'is_email' => function_exists('is_email') ? 'OK' : 'MISSING',
-            'validate_username' => function_exists('validate_username') ? 'OK' : 'MISSING'
-        ];
-        
-        // Overall Status
-        $all_tests = [];
-        foreach ($results as $category => $tests) {
-            if (is_array($tests)) {
-                foreach ($tests as $test => $status) {
-                    if ($status === 'OK') {
-                        $all_tests[] = true;
-                    } else {
-                        $all_tests[] = false;
-                    }
-                }
-            }
-        }
-        
-        $passed_tests = array_sum($all_tests);
-        $total_tests = count($all_tests);
-        $success_rate = ($total_tests > 0) ? round(($passed_tests / $total_tests) * 100, 2) : 0;
-        
-        $results['overall_status'] = [
-            'passed_tests' => $passed_tests,
-            'total_tests' => $total_tests,
-            'success_rate' => $success_rate . '%',
-            'status' => $success_rate >= 95 ? 'EXCELLENT' : ($success_rate >= 80 ? 'GOOD' : 'NEEDS ATTENTION')
-        ];
-        
-    } catch (Exception $e) {
-        $results['error'] = $e->getMessage();
-        $results['overall_status'] = [
-            'status' => 'TEST FAILED',
-            'error' => $e->getMessage()
-        ];
-    }
-    
-    wp_send_json($results);
-} );
+add_action('wp_ajax_nopriv_b2b_bulk_product_search', function() {
+    wp_send_json_error('Login required');
+});
 
 // Enqueue modern admin CSS and JS for all B2B Commerce Pro admin pages
 add_action('admin_enqueue_scripts', function($hook) {
@@ -626,15 +403,4 @@ add_action('wp_enqueue_scripts', function() {
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('b2b_ajax_nonce')
     ));
-});
-// Commented out old CSS enqueue
-// add_action('admin_enqueue_scripts', function($hook) {
-//     if (isset($_GET['page']) && strpos($_GET['page'], 'b2b-commerce-pro') !== false) {
-//         wp_enqueue_style(
-//             'b2b-commerce-pro-admin',
-//             B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css',
-//             [],
-//             B2B_COMMERCE_PRO_VERSION
-//         );
-//     }
-// }); 
+}); 
