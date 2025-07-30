@@ -20,14 +20,8 @@ class AdminPanel {
             30
         );
         
-        add_submenu_page(
-            'b2b-dashboard',
-            'Dashboard',
-            'Dashboard',
-            'manage_options',
-            'b2b-dashboard',
-            [ $this, 'dashboard_page' ]
-        );
+        // Dashboard is the main page, so we don't need a duplicate submenu
+        // The main menu page will show the dashboard content
         
         add_submenu_page(
             'b2b-dashboard',
@@ -64,6 +58,9 @@ class AdminPanel {
             'b2b-orders',
             [ $this, 'order_management_page' ]
         );
+         
+
+
         
         add_submenu_page(
             'b2b-dashboard',
@@ -90,6 +87,15 @@ class AdminPanel {
             'manage_options',
             'b2b-analytics',
             [ $this, 'analytics_page' ]
+        );
+        
+        add_submenu_page(
+            'b2b-dashboard',
+            'Import/Export',
+            'Import/Export',
+            'manage_options',
+            'b2b-import-export',
+            [ $this, 'import_export_page' ]
         );
         
         // System Test - Essential for CodeCanyon support
@@ -132,6 +138,7 @@ class AdminPanel {
             'b2b-settings' => ['Settings', 'dashicons-admin-generic'],
             'b2b-emails' => ['Email Templates', 'dashicons-email'],
             'b2b-analytics' => ['Analytics', 'dashicons-chart-line'],
+            'b2b-import-export' => ['Import/Export', 'dashicons-upload'],
             'b2b-test' => ['System Test', 'dashicons-admin-tools']
         ];
         
@@ -1141,10 +1148,31 @@ class AdminPanel {
             </p>
         </div>
         <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
-            <h4 style="margin: 0 0 5px 0; color: #23272f;">Database Table</h4>
+            <h4 style="margin: 0 0 5px 0; color: #23272f;">Database</h4>
             <p style="margin: 0; color: ' . ($tests['database']['status'] === 'OK' ? '#4caf50' : '#f44336') . ';">
                 <span class="dashicons dashicons-' . ($tests['database']['status'] === 'OK' ? 'yes-alt' : 'no-alt') . '"></span>
                 ' . $tests['database']['message'] . '
+            </p>
+        </div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+            <h4 style="margin: 0 0 5px 0; color: #23272f;">Database Tables</h4>
+            <p style="margin: 0; color: ' . ($tests['tables']['status'] === 'OK' ? '#4caf50' : '#f44336') . ';">
+                <span class="dashicons dashicons-' . ($tests['tables']['status'] === 'OK' ? 'yes-alt' : 'no-alt') . '"></span>
+                ' . $tests['tables']['message'] . '
+            </p>
+        </div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+            <h4 style="margin: 0 0 5px 0; color: #23272f;">Email</h4>
+            <p style="margin: 0; color: ' . ($tests['email']['status'] === 'OK' ? '#4caf50' : '#f44336') . ';">
+                <span class="dashicons dashicons-' . ($tests['email']['status'] === 'OK' ? 'yes-alt' : 'no-alt') . '"></span>
+                ' . $tests['email']['message'] . '
+            </p>
+        </div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+            <h4 style="margin: 0 0 5px 0; color: #23272f;">Permissions</h4>
+            <p style="margin: 0; color: ' . ($tests['permissions']['status'] === 'OK' ? '#4caf50' : '#f44336') . ';">
+                <span class="dashicons dashicons-' . ($tests['permissions']['status'] === 'OK' ? 'yes-alt' : 'no-alt') . '"></span>
+                ' . $tests['permissions']['message'] . '
             </p>
         </div>
         <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
@@ -1235,20 +1263,44 @@ class AdminPanel {
     private function run_system_tests() {
         $tests = [];
         
-        // Test WooCommerce
-        $tests['woocommerce'] = [
-            'status' => class_exists('WooCommerce') ? 'OK' : 'FAILED',
-            'message' => class_exists('WooCommerce') ? 'Active' : 'Not Active'
-        ];
-        
-        // Test Database
-        $db_ready = $this->ensure_pricing_table_exists();
+        // Database connectivity test
+        global $wpdb;
+        $db_connected = $wpdb->check_connection();
         $tests['database'] = [
-            'status' => $db_ready ? 'OK' : 'FAILED',
-            'message' => $db_ready ? 'Ready' : 'Not Ready'
+            'status' => $db_connected ? 'OK' : 'FAILED',
+            'message' => $db_connected ? 'Connected' : 'Connection Failed'
         ];
         
-        // Test User Roles
+        // WooCommerce integration test
+        $wc_active = class_exists('WooCommerce');
+        $tests['woocommerce'] = [
+            'status' => $wc_active ? 'OK' : 'FAILED',
+            'message' => $wc_active ? 'Active' : 'Not Active'
+        ];
+        
+        // Email functionality test
+        $email_working = wp_mail('test@example.com', 'Test', 'Test message') !== false;
+        $tests['email'] = [
+            'status' => $email_working ? 'OK' : 'FAILED',
+            'message' => $email_working ? 'Working' : 'Not Working'
+        ];
+        
+        // File permissions test
+        $permissions_ok = is_writable(WP_CONTENT_DIR);
+        $tests['permissions'] = [
+            'status' => $permissions_ok ? 'OK' : 'FAILED',
+            'message' => $permissions_ok ? 'Writable' : 'Not Writable'
+        ];
+        
+        // Plugin tables test
+        $pricing_table = $wpdb->prefix . 'b2b_pricing_rules';
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$pricing_table'") === $pricing_table;
+        $tests['tables'] = [
+            'status' => $table_exists ? 'OK' : 'FAILED',
+            'message' => $table_exists ? 'Exists' : 'Missing'
+        ];
+        
+        // User roles test
         $roles_exist = true;
         $required_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
         foreach ($required_roles as $role) {
@@ -1291,5 +1343,87 @@ class AdminPanel {
         ];
         
         return $tests;
+    }
+    
+    // Import/Export page
+    public function import_export_page() {
+        $this->render_admin_wrapper('b2b-import-export', $this->get_import_export_content());
+    }
+    
+    private function get_import_export_content() {
+        ob_start();
+        ?>
+        <div class="b2b-import-export-container">
+            <h2>Bulk Import/Export</h2>
+            <p style="color: #666; margin-bottom: 20px;">Export your B2B data to CSV format for backup or external processing.</p>
+            
+            <div class="b2b-import-export-section">
+                <h3>Export Data</h3>
+                <p style="color: #666; margin-bottom: 15px;">Click any button below to export the corresponding data:</p>
+                <div class="b2b-export-options">
+                    <button class="button button-primary" onclick="exportB2BData('users')">Export Users</button>
+                    <span style="margin-left: 10px; color: #666; font-size: 0.9em;">Exports all B2B users with their details</span><br><br>
+                    <button class="button button-primary" onclick="exportB2BData('pricing')">Export Pricing Rules</button>
+                    <span style="margin-left: 10px; color: #666; font-size: 0.9em;">Exports all B2B pricing rules</span><br><br>
+                    <button class="button button-primary" onclick="exportB2BData('orders')">Export Orders</button>
+                    <span style="margin-left: 10px; color: #666; font-size: 0.9em;">Exports all WooCommerce orders (if any exist)</span>
+                </div>
+                <p style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-left: 4px solid #2196f3; color: #666;">
+                    <strong>Note:</strong> If no data exists for a particular export type, the CSV will contain a message indicating "No data found".
+                </p>
+            </div>
+            
+            <div class="b2b-import-export-section">
+                <h3>Import Data</h3>
+                <form method="post" enctype="multipart/form-data">
+                    <?php wp_nonce_field('b2b_import_export', 'b2b_import_nonce'); ?>
+                    <p>
+                        <label>Select File Type:</label>
+                        <select name="import_type">
+                            <option value="users">Users</option>
+                            <option value="pricing">Pricing Rules</option>
+                        </select>
+                    </p>
+                    <p>
+                        <label>CSV File:</label>
+                        <input type="file" name="import_file" accept=".csv" required>
+                    </p>
+                    <p>
+                        <input type="submit" name="b2b_import" value="Import Data" class="button button-primary">
+                    </p>
+                </form>
+            </div>
+            
+            <div class="b2b-import-export-section">
+                <h3>Template Downloads</h3>
+                <p>Download CSV templates for importing data:</p>
+                <a href="<?php echo admin_url('admin-ajax.php?action=b2b_download_template&type=users&nonce=' . wp_create_nonce('b2b_template_nonce')); ?>" class="button">Users Template</a>
+                <a href="<?php echo admin_url('admin-ajax.php?action=b2b_download_template&type=pricing&nonce=' . wp_create_nonce('b2b_template_nonce')); ?>" class="button">Pricing Template</a>
+            </div>
+        </div>
+        
+        <script>
+        function exportB2BData(type) {
+            jQuery.post(ajaxurl, {
+                action: 'b2b_export_data',
+                type: type,
+                nonce: '<?php echo wp_create_nonce("b2b_ajax_nonce"); ?>'
+            }, function(response) {
+                if (response.success) {
+                    // Create and download CSV file
+                    var blob = new Blob([response.data], {type: 'text/csv'});
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'b2b_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv';
+                    a.click();
+                } else {
+                    alert('Export failed: ' + response.data);
+                }
+            });
+        }
+        </script>
+        <?php
+        return ob_get_clean();
     }
 } 

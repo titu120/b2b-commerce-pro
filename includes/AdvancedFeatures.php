@@ -28,8 +28,8 @@ class AdvancedFeatures {
         add_action( 'woocommerce_single_product_summary', [ $this, 'bulk_pricing_calculator' ], 30 );
         add_action( 'wp_ajax_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
         add_action( 'wp_ajax_nopriv_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
-        // Advanced reporting
-        add_action( 'admin_menu', [ $this, 'add_advanced_reports_menu' ] );
+        // Advanced reporting - REMOVED: Duplicate menu registration
+        // add_action( 'admin_menu', [ $this, 'add_advanced_reports_menu' ] ); // REMOVED: Duplicate menu registration
         // Plugin integration hooks (placeholder)
     }
 
@@ -573,17 +573,17 @@ class AdvancedFeatures {
         ]);
     }
     
-    // Add advanced reports menu
-    public function add_advanced_reports_menu() {
-        add_submenu_page(
-            'b2b-dashboard',
-            'Advanced Reports',
-            'Advanced Reports',
-            'manage_options',
-            'b2b-advanced-reports',
-            [$this, 'advanced_reports_page']
-        );
-    }
+    // Add advanced reports menu - REMOVED: Duplicate menu registration
+    // public function add_advanced_reports_menu() {
+    //     add_submenu_page(
+    //         'b2b-dashboard',
+    //         'Advanced Reports',
+    //         'Advanced Reports',
+    //         'manage_options',
+    //         'b2b-advanced-reports',
+    //         [$this, 'advanced_reports_page']
+    //     );
+    // }
     
     // Advanced reports page
     public function advanced_reports_page() {

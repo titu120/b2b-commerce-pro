@@ -51,6 +51,11 @@ A comprehensive B2B and wholesale e-commerce solution for WordPress and WooComme
 - **Tax Exemption**: Handle tax-exempt customers
 - **Multi-currency Support**: Integration with currency plugins
 - **REST API Endpoints**: Custom API for integrations
+- **Bulk Import/Export**: Import/export users and pricing rules via CSV
+- **Mobile Responsive**: Fully responsive design for all devices
+- **Advanced Analytics**: Comprehensive reporting and insights
+- **Email Automation**: Automated email notifications and templates
+- **System Health Monitoring**: Built-in system test and diagnostics
 
 ## 📋 Installation
 

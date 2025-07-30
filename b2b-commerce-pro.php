@@ -293,15 +293,20 @@ add_action('wp_ajax_b2b_export_data', function() {
         case 'users':
             $users = get_users(['role__in' => ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer']]);
             $csv_data = "User,Email,Role,Company,Approval Status\n";
-            foreach ($users as $user) {
-                $csv_data .= sprintf(
-                    "%s,%s,%s,%s,%s\n",
-                    $user->user_login,
-                    $user->user_email,
-                    implode(',', $user->roles),
-                    get_user_meta($user->ID, 'company_name', true),
-                    get_user_meta($user->ID, 'b2b_approval_status', true) ?: 'pending'
-                );
+            
+            if (empty($users)) {
+                $csv_data .= "No B2B users found\n";
+            } else {
+                foreach ($users as $user) {
+                    $csv_data .= sprintf(
+                        "%s,%s,%s,%s,%s\n",
+                        $user->user_login,
+                        $user->user_email,
+                        implode(',', $user->roles),
+                        get_user_meta($user->ID, 'company_name', true),
+                        get_user_meta($user->ID, 'b2b_approval_status', true) ?: 'pending'
+                    );
+                }
             }
             break;
             
@@ -310,14 +315,48 @@ add_action('wp_ajax_b2b_export_data', function() {
             $table = $wpdb->prefix . 'b2b_pricing_rules';
             $rules = $wpdb->get_results("SELECT * FROM $table");
             $csv_data = "Customer Type,Pricing Type,Value,Min Quantity\n";
-            foreach ($rules as $rule) {
-                $csv_data .= sprintf(
-                    "%s,%s,%s,%s\n",
-                    $rule->role,
-                    $rule->type,
-                    $rule->price,
-                    $rule->min_qty
-                );
+            
+            if (empty($rules)) {
+                $csv_data .= "No pricing rules found\n";
+            } else {
+                foreach ($rules as $rule) {
+                    $csv_data .= sprintf(
+                        "%s,%s,%s,%s\n",
+                        $rule->role,
+                        $rule->type,
+                        $rule->price,
+                        $rule->min_qty
+                    );
+                }
+            }
+            break;
+            
+        case 'orders':
+            if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
+                wp_send_json_error('WooCommerce is required for order export');
+                return;
+            }
+            
+            $orders = wc_get_orders(['limit' => -1]);
+            $csv_data = "Order ID,Date,Status,Customer,Total,Payment Method\n";
+            
+            if (empty($orders)) {
+                $csv_data .= "No orders found\n";
+            } else {
+                foreach ($orders as $order) {
+                    $customer = $order->get_customer_id() ? get_userdata($order->get_customer_id()) : null;
+                    $customer_name = $customer ? $customer->display_name : 'Guest';
+                    
+                    $csv_data .= sprintf(
+                        "%s,%s,%s,%s,%s,%s\n",
+                        $order->get_id(),
+                        $order->get_date_created()->date('Y-m-d H:i:s'),
+                        $order->get_status(),
+                        $customer_name,
+                        $order->get_total(),
+                        $order->get_payment_method_title()
+                    );
+                }
             }
             break;
             
@@ -366,6 +405,41 @@ add_action('wp_ajax_b2b_bulk_product_search', function() {
 
 add_action('wp_ajax_nopriv_b2b_bulk_product_search', function() {
     wp_send_json_error('Login required');
+});
+
+// Import/Export AJAX handlers
+add_action('wp_ajax_b2b_download_template', function() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Unauthorized');
+    }
+    
+    $type = sanitize_text_field($_GET['type']);
+    $nonce = $_GET['nonce'];
+    
+    if (!wp_verify_nonce($nonce, 'b2b_template_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    switch ($type) {
+        case 'users':
+            $csv_data = "Username,Email,First Name,Last Name,Company Name,Business Type,Phone,Role,Approval Status\n";
+            $csv_data .= "john_doe,john@example.com,John,Doe,ABC Company,Retail,555-0123,wholesale_customer,approved\n";
+            break;
+            
+        case 'pricing':
+            $csv_data = "Role,Type,Price,Min Quantity,Max Quantity,Product ID\n";
+            $csv_data .= "wholesale_customer,percentage,10,10,0,0\n";
+            $csv_data .= "distributor,fixed,5,50,0,0\n";
+            break;
+            
+        default:
+            wp_die('Invalid template type');
+    }
+    
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="b2b_' . $type . '_template.csv"');
+    echo $csv_data;
+    exit;
 });
 
 // Note: Quote request and bulk pricing AJAX handlers are handled in AdvancedFeatures.php

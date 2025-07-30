@@ -521,10 +521,45 @@ class Frontend {
     // Enqueue frontend scripts
     public function enqueue_frontend_scripts() {
         wp_enqueue_style(
-            'b2b-frontend',
+            'b2b-commerce-pro-frontend',
             B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css',
             [],
             B2B_COMMERCE_PRO_VERSION
         );
+        
+        wp_enqueue_script(
+            'b2b-commerce-pro-frontend',
+            B2B_COMMERCE_PRO_URL . 'assets/js/b2b-commerce-pro.js',
+            ['jquery'],
+            B2B_COMMERCE_PRO_VERSION,
+            true
+        );
+        
+        // Add mobile-responsive features
+        wp_add_inline_script('b2b-commerce-pro-frontend', '
+            jQuery(document).ready(function($) {
+                // Mobile-responsive table
+                $(".b2b-order-history").each(function() {
+                    if ($(window).width() < 768) {
+                        $(this).addClass("mobile-table");
+                    }
+                });
+                
+                // Mobile menu toggle for B2B dashboard
+                $(".b2b-dashboard-links").prepend("<button class=\'b2b-mobile-toggle\'>☰ Menu</button>");
+                $(".b2b-mobile-toggle").click(function() {
+                    $(this).siblings("li").toggle();
+                });
+                
+                // Responsive form handling
+                $(".b2b-registration-form input, .b2b-registration-form select").on("focus", function() {
+                    $(this).parent().addClass("focused");
+                }).on("blur", function() {
+                    if (!$(this).val()) {
+                        $(this).parent().removeClass("focused");
+                    }
+                });
+            });
+        ');
     }
 } 
