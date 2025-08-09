@@ -606,7 +606,8 @@ add_action('admin_enqueue_scripts', function($hook) {
             'nonce' => wp_create_nonce('b2b_ajax_nonce'),
             'approve_nonce' => wp_create_nonce('b2b_approve_user_nonce'),
             'reject_nonce' => wp_create_nonce('b2b_reject_user_nonce'),
-            'pricing_nonce' => wp_create_nonce('b2b_pricing_nonce')
+            'pricing_nonce' => wp_create_nonce('b2b_pricing_nonce'),
+            'bulk_user_nonce' => wp_create_nonce('b2b_bulk_user_action')
         ));
     }
 });
@@ -618,3 +619,41 @@ add_action('wp_enqueue_scripts', function() {
         'nonce' => wp_create_nonce('b2b_ajax_nonce')
     ));
 }); 
+
+// Bulk user actions (approve / reject / delete)
+add_action('wp_ajax_b2b_bulk_user_action', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+    }
+    $nonce = $_POST['nonce'] ?? '';
+    if (!$nonce || !wp_verify_nonce($nonce, 'b2b_bulk_user_action')) {
+        wp_send_json_error('Security check failed');
+    }
+
+    $operation = isset($_POST['operation']) ? sanitize_text_field($_POST['operation']) : '';
+    $user_ids = isset($_POST['user_ids']) && is_array($_POST['user_ids']) ? array_map('intval', $_POST['user_ids']) : [];
+    if (!$operation || empty($user_ids)) {
+        wp_send_json_error('Missing data');
+    }
+
+    $affected = 0;
+    foreach ($user_ids as $uid) {
+        if ($uid <= 0) { continue; }
+        if ($operation === 'approve') {
+            update_user_meta($uid, 'b2b_approval_status', 'approved');
+            $affected++;
+        } elseif ($operation === 'reject') {
+            update_user_meta($uid, 'b2b_approval_status', 'rejected');
+            $affected++;
+        } elseif ($operation === 'delete') {
+            if (current_user_can('delete_users') && get_current_user_id() !== $uid) {
+                if (function_exists('wp_delete_user')) {
+                    $deleted = wp_delete_user($uid);
+                    if ($deleted) { $affected++; }
+                }
+            }
+        }
+    }
+
+    wp_send_json_success(array('affected' => $affected));
+});

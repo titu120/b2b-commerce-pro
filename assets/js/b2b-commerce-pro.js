@@ -72,6 +72,35 @@
                 }
             });
 
+            $(document).on('click', '.bulk-action-btn', function(e) {
+                e.preventDefault();
+                if ($(this).hasClass('disabled')) return;
+                var operation = $('#bulk-action-selector').val();
+                var ids = $('.user-checkbox:checked').map(function(){ return $(this).val(); }).get();
+                if (!operation || ids.length === 0) return;
+                if (!confirm('Are you sure you want to ' + operation + ' ' + ids.length + ' users?')) return;
+                $.ajax({
+                    url: b2b_ajax.ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'b2b_bulk_user_action',
+                        operation: operation,
+                        user_ids: ids,
+                        nonce: (typeof b2b_ajax !== 'undefined' ? b2b_ajax.bulk_user_nonce : '')
+                    },
+                    success: function(res){
+                        if (res && res.success) {
+                            location.reload();
+                        } else {
+                            alert('Bulk action failed: ' + (res && res.data ? res.data : 'Unknown error'));
+                        }
+                    },
+                    error: function(){
+                        alert('Request failed.');
+                    }
+                });
+            });
+
             // Select all users
             $(document).on('change', '#select-all-users', function() {
                 $('.user-checkbox').prop('checked', $(this).is(':checked'));
