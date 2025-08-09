@@ -9,6 +9,10 @@ class ProductManager {
         add_action( 'woocommerce_product_options_general_product_data', [ $this, 'add_product_visibility_fields' ] );
         add_action( 'woocommerce_process_product_meta', [ $this, 'save_product_visibility_fields' ] );
         add_filter( 'woocommerce_product_is_visible', [ $this, 'filter_product_visibility' ], 10, 2 );
+        add_filter( 'woocommerce_is_purchasable', [ $this, 'filter_is_purchasable' ], 10, 2 );
+        add_action( 'template_redirect', [ $this, 'maybe_block_product_page' ] );
+        // Admin assets for nicer UI (Select2/SelectWoo if available)
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_filter( 'woocommerce_product_query_meta_query', [ $this, 'filter_product_query_visibility' ] );
         // Category restrictions
         add_action( 'product_cat_add_form_fields', [ $this, 'add_category_restriction_fields' ] );
@@ -32,48 +36,145 @@ class ProductManager {
     public function add_product_visibility_fields() {
         global $post;
         echo '<div class="options_group">';
-        // User roles
-        woocommerce_wp_text_input([
-            'id' => '_b2b_visible_roles',
-            'label' => 'Visible to Roles (comma separated)',
-            'desc_tip' => true,
-            'description' => 'Enter user roles allowed to see this product.'
-        ]);
-        // User groups
-        woocommerce_wp_text_input([
-            'id' => '_b2b_visible_groups',
-            'label' => 'Visible to Groups (comma separated IDs)',
-            'desc_tip' => true,
-            'description' => 'Enter group IDs allowed to see this product.'
-        ]);
+
+        $saved_roles = array_filter( array_map( 'trim', explode( ',', (string) get_post_meta( $post->ID, '_b2b_visible_roles', true ) ) ) );
+        $saved_groups = array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $post->ID, '_b2b_visible_groups', true ) ) ) );
+        $wholesale_only = get_post_meta( $post->ID, '_b2b_wholesale_only', true ) === 'yes';
+        $has_restrictions = ! empty( $saved_roles ) || ! empty( $saved_groups ) || $wholesale_only;
+
+        // Toggle
+        echo '<style>#b2b_visibility_fields .form-field{margin:12px 0}#b2b_visibility_box{border:1px solid #e2e8f0;padding:12px 14px;border-radius:6px;background:#fafbfc}#b2b_visibility_fields select{min-width:280px;min-height:120px;width:100%}#b2b_visibility_summary{margin-left:8px;color:#666}</style>';
+        echo '<p class="form-field"><label for="_b2b_restrict_visibility">Restrict visibility</label>';
+        echo '<input type="checkbox" id="_b2b_restrict_visibility" name="_b2b_restrict_visibility" value="yes" ' . checked( $has_restrictions, true, false ) . ' />';
+        echo ' <span class="description">Enable to limit who can see/purchase this product.</span><span id="b2b_visibility_summary"></span></p>';
+
+        echo '<div id="b2b_visibility_box"><div id="b2b_visibility_fields">';
+
+        // User roles (multi-select)
+        $all_roles = function_exists('wp_roles') ? array_keys( wp_roles()->roles ) : [];
+        echo '<p class="form-field"><label for="_b2b_visible_roles">Visible to Roles</label>';
+        echo '<select id="_b2b_visible_roles" name="_b2b_visible_roles[]" multiple>'; 
+        foreach ( $all_roles as $role_key ) {
+            $selected = in_array( $role_key, $saved_roles, true ) ? 'selected' : '';
+            echo '<option value="' . esc_attr( $role_key ) . '" ' . $selected . '>' . esc_html( $role_key ) . '</option>';
+        }
+        echo '</select><span class="description"> Choose roles allowed to see this product.</span></p>';
+
+        // User groups (multi-select of taxonomy terms if present)
+        echo '<p class="form-field"><label for="_b2b_visible_groups">Visible to Groups</label>';
+        echo '<select id="_b2b_visible_groups" name="_b2b_visible_groups[]" multiple>';
+        if ( taxonomy_exists( 'b2b_user_group' ) ) {
+            $terms = get_terms( [ 'taxonomy' => 'b2b_user_group', 'hide_empty' => false ] );
+            if ( ! is_wp_error( $terms ) ) {
+                foreach ( $terms as $term ) {
+                    $selected = in_array( (int) $term->term_id, $saved_groups, true ) ? 'selected' : '';
+                    echo '<option value="' . esc_attr( $term->term_id ) . '" ' . $selected . '>' . esc_html( $term->name ) . ' (#' . (int) $term->term_id . ')</option>';
+                }
+            }
+        }
+        echo '</select><span class="description"> Choose groups (taxonomy: b2b_user_group).</span></p>';
+
         // Wholesale-only
         woocommerce_wp_checkbox([
             'id' => '_b2b_wholesale_only',
             'label' => 'Wholesale Only',
             'description' => 'Only visible to wholesale users.'
         ]);
+
+        echo '</div></div>';
+
+        // JS to toggle
+        echo '<script>jQuery(function($){
+            var $box=$("#b2b_visibility_box"), $summary=$("#b2b_visibility_summary");
+            function toggleBox(){var on=$("#_b2b_restrict_visibility").is(":checked");$box.toggle(on);$summary.toggle(!on);} 
+            function initSelect($el, placeholder){
+                if ($.fn.selectWoo) { $el.selectWoo({placeholder: placeholder, width:"100%", allowClear:true}); }
+                else if ($.fn.select2) { $el.select2({placeholder: placeholder, width:"100%", allowClear:true}); }
+            }
+            initSelect($("#_b2b_visible_roles"), "Choose roles...");
+            initSelect($("#_b2b_visible_groups"), "Choose groups...");
+            function updateSummary(){
+                var roles = $("#_b2b_visible_roles option:selected").map(function(){return $(this).text();}).get();
+                var groupsCount = $("#_b2b_visible_groups option:selected").length; 
+                var text = roles.length ? ("Roles: " + roles.join(", ")) : ""; 
+                if (groupsCount>0) text += (text?" | ":"") + ("Groups: " + groupsCount); 
+                $summary.text(text || "No restrictions");
+            }
+            updateSummary();
+            $("#_b2b_visible_roles, #_b2b_visible_groups").on("change", updateSummary);
+            toggleBox();
+            $("#_b2b_restrict_visibility").on("change", toggleBox);
+        });</script>';
         echo '</div>';
     }
 
     // Save product visibility fields
     public function save_product_visibility_fields( $post_id ) {
-        update_post_meta( $post_id, '_b2b_visible_roles', sanitize_text_field( $_POST['_b2b_visible_roles'] ?? '' ) );
-        update_post_meta( $post_id, '_b2b_visible_groups', sanitize_text_field( $_POST['_b2b_visible_groups'] ?? '' ) );
-        update_post_meta( $post_id, '_b2b_wholesale_only', isset( $_POST['_b2b_wholesale_only'] ) ? 'yes' : 'no' );
+        $restrict = isset( $_POST['_b2b_restrict_visibility'] );
+        if ( $restrict ) {
+            // Roles can come as array from multi-select
+            $roles_post = isset( $_POST['_b2b_visible_roles'] ) ? (array) $_POST['_b2b_visible_roles'] : [];
+            $roles_clean = array_filter( array_map( 'sanitize_text_field', $roles_post ) );
+            update_post_meta( $post_id, '_b2b_visible_roles', implode( ',', $roles_clean ) );
+
+            // Groups can come as array from multi-select
+            $groups_post = isset( $_POST['_b2b_visible_groups'] ) ? (array) $_POST['_b2b_visible_groups'] : [];
+            $groups_clean = array_filter( array_map( 'intval', $groups_post ) );
+            update_post_meta( $post_id, '_b2b_visible_groups', implode( ',', $groups_clean ) );
+            update_post_meta( $post_id, '_b2b_wholesale_only', isset( $_POST['_b2b_wholesale_only'] ) ? 'yes' : 'no' );
+        } else {
+            // Clear restrictions when toggle is off
+            update_post_meta( $post_id, '_b2b_visible_roles', '' );
+            update_post_meta( $post_id, '_b2b_visible_groups', '' );
+            update_post_meta( $post_id, '_b2b_wholesale_only', 'no' );
+        }
     }
 
     // Filter product visibility on frontend
     public function filter_product_visibility( $visible, $product_id ) {
         if ( is_admin() ) return $visible;
+        return $this->is_user_allowed_for_product( $product_id ) ? $visible : false;
+    }
+
+    // Prevent purchase if not allowed
+    public function filter_is_purchasable( $purchasable, $product ) {
+        if ( is_admin() ) return $purchasable;
+        $product_id = is_object( $product ) ? $product->get_id() : (int) $product;
+        return $this->is_user_allowed_for_product( $product_id ) ? $purchasable : false;
+    }
+
+    // Block direct access to single product page when not allowed
+    public function maybe_block_product_page() {
+        if ( ! function_exists( 'is_product' ) || ! is_product() ) return;
+        global $post;
+        if ( ! $post ) return;
+        if ( ! $this->is_user_allowed_for_product( $post->ID ) ) {
+            status_header( 404 );
+            nocache_headers();
+            include get_404_template();
+            exit;
+        }
+    }
+
+    private function is_user_allowed_for_product( $product_id ) {
         $roles = (array) ( wp_get_current_user()->roles ?? [] );
         $groups = wp_get_object_terms( get_current_user_id(), 'b2b_user_group', [ 'fields' => 'ids' ] );
-        $allowed_roles = array_map( 'trim', explode( ',', get_post_meta( $product_id, '_b2b_visible_roles', true ) ) );
-        $allowed_groups = array_map( 'intval', explode( ',', get_post_meta( $product_id, '_b2b_visible_groups', true ) ) );
+        $allowed_roles = array_filter( array_map( 'trim', explode( ',', (string) get_post_meta( $product_id, '_b2b_visible_roles', true ) ) ) );
+        $allowed_groups = array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $product_id, '_b2b_visible_groups', true ) ) ) );
         $wholesale_only = get_post_meta( $product_id, '_b2b_wholesale_only', true ) === 'yes';
-        if ( $wholesale_only && ! in_array( 'wholesale_customer', $roles ) ) return false;
-        if ( $allowed_roles && $allowed_roles[0] && ! array_intersect( $roles, $allowed_roles ) ) return false;
-        if ( $allowed_groups && $allowed_groups[0] && ! array_intersect( $groups, $allowed_groups ) ) return false;
-        return $visible;
+
+        if ( $wholesale_only && ! in_array( 'wholesale_customer', $roles, true ) ) return false;
+        if ( $allowed_roles && ! array_intersect( $roles, $allowed_roles ) ) return false;
+        if ( $allowed_groups && ! array_intersect( $groups, $allowed_groups ) ) return false;
+        return true;
+    }
+
+    public function enqueue_admin_assets( $hook ) {
+        // Only on product edit screens
+        if ( ! isset( $_GET['post'] ) ) return;
+        // Try to enqueue selectWoo/select2 if available (no harm if already loaded)
+        wp_enqueue_script( 'select2' );
+        wp_enqueue_style( 'select2' );
     }
 
     // Filter product queries for visibility

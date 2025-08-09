@@ -260,6 +260,7 @@ select[name="role"],
 select[name="approval"],
 select[name="bulk-action-selector"] {
     width: 100%;
+    max-width:100%;
     padding: 12px 15px;
     border: 2px solid #dee2e6 !important;
     border-radius: 8px;
