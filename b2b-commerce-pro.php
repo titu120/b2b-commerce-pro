@@ -113,9 +113,10 @@ add_action('wp_ajax_b2b_approve_user', function() {
         }
         
         $user_id = intval($_POST['user_id']);
-        $nonce = $_POST['nonce'];
+        $nonce = $_POST['nonce'] ?? '';
         
-        if (!wp_verify_nonce($nonce, 'b2b_approve_user_' . $user_id)) {
+        // Accept either per-user nonce or a generic approve nonce for flexibility
+        if (!wp_verify_nonce($nonce, 'b2b_approve_user_' . $user_id) && !wp_verify_nonce($nonce, 'b2b_approve_user_nonce')) {
             wp_send_json_error('Security check failed');
             return;
         }
@@ -128,13 +129,22 @@ add_action('wp_ajax_b2b_approve_user', function() {
         
         update_user_meta($user_id, 'b2b_approval_status', 'approved');
         
-        // Send email notification
-        $to = $user->user_email;
-        $subject = 'Your B2B Account Approved';
-        $message = 'Congratulations! Your B2B account has been approved. You can now log in and access wholesale pricing.';
+        // Send email notification using custom template
+        $user = get_userdata($user_id);
+        $templates = get_option('b2b_email_templates', []);
+        
+        $subject = $templates['user_approval_subject'] ?? 'Your B2B Account Approved';
+        $message = $templates['user_approval_message'] ?? 'Congratulations! Your B2B account has been approved. You can now log in and access wholesale pricing.';
+        
+        // Replace variables
+        $subject = str_replace(['{user_name}', '{login_url}', '{site_name}'], 
+            [$user->display_name, wp_login_url(), get_bloginfo('name')], $subject);
+        $message = str_replace(['{user_name}', '{login_url}', '{site_name}'], 
+            [$user->display_name, wp_login_url(), get_bloginfo('name')], $message);
+        
         $headers = array('Content-Type: text/html; charset=UTF-8');
         
-        wp_mail($to, $subject, $message, $headers);
+        wp_mail($user->user_email, $subject, $message, $headers);
         
         wp_send_json_success('User approved successfully');
         
@@ -156,9 +166,9 @@ add_action('wp_ajax_b2b_reject_user', function() {
         }
         
         $user_id = intval($_POST['user_id']);
-        $nonce = $_POST['nonce'];
+        $nonce = $_POST['nonce'] ?? '';
         
-        if (!wp_verify_nonce($nonce, 'b2b_reject_user_' . $user_id)) {
+        if (!wp_verify_nonce($nonce, 'b2b_reject_user_' . $user_id) && !wp_verify_nonce($nonce, 'b2b_reject_user_nonce')) {
             wp_send_json_error('Security check failed');
             return;
         }
@@ -171,13 +181,22 @@ add_action('wp_ajax_b2b_reject_user', function() {
         
         update_user_meta($user_id, 'b2b_approval_status', 'rejected');
         
-        // Send email notification
-        $to = $user->user_email;
-        $subject = 'Your B2B Account Rejected';
-        $message = 'We regret to inform you that your B2B account application has been rejected. Please contact us for more information.';
+        // Send email notification using custom template
+        $user = get_userdata($user_id);
+        $templates = get_option('b2b_email_templates', []);
+        
+        $subject = $templates['user_rejection_subject'] ?? 'B2B Account Application Status';
+        $message = $templates['user_rejection_message'] ?? 'We regret to inform you that your B2B account application has been rejected. Please contact us for more information.';
+        
+        // Replace variables
+        $subject = str_replace(['{user_name}', '{site_name}'], 
+            [$user->display_name, get_bloginfo('name')], $subject);
+        $message = str_replace(['{user_name}', '{site_name}'], 
+            [$user->display_name, get_bloginfo('name')], $message);
+        
         $headers = array('Content-Type: text/html; charset=UTF-8');
         
-        wp_mail($to, $subject, $message, $headers);
+        wp_mail($user->user_email, $subject, $message, $headers);
         
         wp_send_json_success('User rejected successfully');
         
@@ -192,7 +211,15 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
             wp_send_json_error('Unauthorized access');
             return;
         }
-        
+        // Verify nonce (supports both form and AJAX usage)
+        $form_nonce = $_POST['b2b_pricing_nonce'] ?? '';
+        $ajax_nonce = $_POST['nonce'] ?? '';
+        if (!( $form_nonce && wp_verify_nonce($form_nonce, 'b2b_pricing_action') )
+            && !( $ajax_nonce && wp_verify_nonce($ajax_nonce, 'b2b_pricing_nonce') )) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
         // Validate required fields
         $required_fields = ['role', 'type', 'price', 'min_qty'];
         foreach ($required_fields as $field) {
@@ -254,7 +281,13 @@ add_action('wp_ajax_b2b_delete_pricing_rule', function() {
             wp_send_json_error('Unauthorized access');
             return;
         }
-        
+        // Verify nonce
+        $nonce = $_POST['nonce'] ?? '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'b2b_pricing_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
         if (!isset($_POST['rule_id'])) {
             wp_send_json_error('Missing rule ID');
             return;
@@ -440,6 +473,119 @@ add_action('wp_ajax_b2b_download_template', function() {
     header('Content-Disposition: attachment; filename="b2b_' . $type . '_template.csv"');
     echo $csv_data;
     exit;
+});
+
+// Demo data import handler
+add_action('wp_ajax_b2b_import_demo_data', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+        return;
+    }
+    
+    if (!wp_verify_nonce($_POST['nonce'], 'b2b_import_demo')) {
+        wp_send_json_error('Security check failed');
+        return;
+    }
+    
+    try {
+        // Create demo B2B users
+        $demo_users = [
+            [
+                'user_login' => 'wholesale_demo',
+                'user_email' => 'wholesale@demo.com',
+                'user_pass' => 'demo123',
+                'first_name' => 'John',
+                'last_name' => 'Wholesale',
+                'role' => 'wholesale_customer',
+                'company' => 'Demo Wholesale Co.',
+                'phone' => '555-0101'
+            ],
+            [
+                'user_login' => 'distributor_demo',
+                'user_email' => 'distributor@demo.com',
+                'user_pass' => 'demo123',
+                'first_name' => 'Jane',
+                'last_name' => 'Distributor',
+                'role' => 'distributor',
+                'company' => 'Demo Distributor Inc.',
+                'phone' => '555-0102'
+            ],
+            [
+                'user_login' => 'retailer_demo',
+                'user_email' => 'retailer@demo.com',
+                'user_pass' => 'demo123',
+                'first_name' => 'Mike',
+                'last_name' => 'Retailer',
+                'role' => 'retailer',
+                'company' => 'Demo Retail Store',
+                'phone' => '555-0103'
+            ]
+        ];
+        
+        foreach ($demo_users as $user_data) {
+            $user_id = wp_create_user($user_data['user_login'], $user_data['user_pass'], $user_data['user_email']);
+            if (!is_wp_error($user_id)) {
+                wp_update_user([
+                    'ID' => $user_id,
+                    'first_name' => $user_data['first_name'],
+                    'last_name' => $user_data['last_name'],
+                    'role' => $user_data['role']
+                ]);
+                
+                update_user_meta($user_id, 'company_name', $user_data['company']);
+                update_user_meta($user_id, 'phone', $user_data['phone']);
+                update_user_meta($user_id, 'b2b_approval_status', 'approved');
+            }
+        }
+        
+        // Create demo pricing rules
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table'") === $table) {
+            $demo_rules = [
+                [
+                    'role' => 'wholesale_customer',
+                    'type' => 'percentage',
+                    'price' => 15,
+                    'min_qty' => 10
+                ],
+                [
+                    'role' => 'distributor',
+                    'type' => 'percentage',
+                    'price' => 25,
+                    'min_qty' => 50
+                ],
+                [
+                    'role' => 'retailer',
+                    'type' => 'fixed',
+                    'price' => 5,
+                    'min_qty' => 5
+                ]
+            ];
+            
+            foreach ($demo_rules as $rule) {
+                $wpdb->insert($table, [
+                    'product_id' => 0,
+                    'role' => $rule['role'],
+                    'user_id' => 0,
+                    'group_id' => 0,
+                    'geo_zone' => '',
+                    'start_date' => '',
+                    'end_date' => '',
+                    'min_qty' => $rule['min_qty'],
+                    'max_qty' => 0,
+                    'price' => $rule['price'],
+                    'type' => $rule['type']
+                ]);
+            }
+        }
+        
+        wp_send_json_success('Demo data imported successfully! Created ' . count($demo_users) . ' users and ' . count($demo_rules) . ' pricing rules.');
+        
+    } catch (Exception $e) {
+        wp_send_json_error('Error importing demo data: ' . $e->getMessage());
+    }
 });
 
 // Note: Quote request and bulk pricing AJAX handlers are handled in AdvancedFeatures.php

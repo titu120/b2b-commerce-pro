@@ -517,6 +517,12 @@ class AdvancedFeatures {
     
     // Calculate bulk price
     public function calculate_bulk_price() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'b2b_ajax_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
         if (!is_user_logged_in()) {
             wp_send_json_error('Please log in to calculate bulk prices');
             return;
@@ -551,25 +557,32 @@ class AdvancedFeatures {
             $quantity
         ));
         
-        $price = $product->get_price();
-        $discount = 0;
+        $original_price = (float) $product->get_price();
+        $unit_price = $original_price;
+        $discount_display = 'No discount';
         
         if (!empty($rules)) {
             $rule = $rules[0];
             if ($rule->type === 'percentage') {
-                $discount = ($price * $rule->price) / 100;
+                // Use absolute percentage; admin UI stores discounts as negative, normalize here
+                $percent = abs((float) $rule->price);
+                $unit_price = $original_price * (1 - ($percent / 100));
+                $discount_display = sprintf('%.0f%%', $percent);
             } else {
-                $discount = $rule->price;
+                // Fixed type represents final price in our system
+                $unit_price = (float) $rule->price;
+                $discount_amount = max(0, $original_price - $unit_price);
+                $discount_display = $discount_amount > 0 ? wc_price($discount_amount) : 'No discount';
             }
-            $price = max(0, $price - $discount);
+            $unit_price = max(0, $unit_price);
         }
         
-        $total_price = $price * $quantity;
+        $total_price = $unit_price * $quantity;
         
         wp_send_json_success([
-            'unit_price' => wc_price($price),
+            'unit_price' => wc_price($unit_price),
             'total_price' => wc_price($total_price),
-            'discount' => $discount > 0 ? wc_price($discount) : 'No discount'
+            'discount' => $discount_display
         ]);
     }
     

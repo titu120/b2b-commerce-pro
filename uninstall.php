@@ -7,10 +7,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 // Remove plugin options
 $options = [
     'b2b_general_settings',
-    'b2b_email_template_approval',
-    'b2b_email_template_rejection',
-    'b2b_email_template_quote',
-    'b2b_email_template_inquiry',
+    'b2b_email_templates',
+    'b2b_dismissed_notifications',
 ];
 foreach ( $options as $opt ) {
     delete_option( $opt );

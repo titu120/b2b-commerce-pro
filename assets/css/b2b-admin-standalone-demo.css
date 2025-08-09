@@ -1,5 +1,35 @@
 /* B2B Commerce Pro - WordPress Admin Integration CSS */
 
+/* Ensure no red borders anywhere */
+.b2b-admin-wrapper,
+.b2b-admin-content,
+.b2b-admin-card,
+.b2b-unified-nav,
+.b2b-nav-header,
+.b2b-nav-menu,
+.b2b-nav-item {
+    border: none !important;
+    outline: none !important;
+}
+
+/* Override any potential red border styling */
+.b2b-admin-wrapper * {
+    border-color: transparent !important;
+}
+
+/* Specific override for any red border */
+.b2b-admin-content {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Ensure clean styling */
+.b2b-admin-wrapper {
+    border: none !important;
+    outline: none !important;
+}
+
 /* Main wrapper for B2B admin pages */
 .b2b-admin-wrapper {
     margin: 20px 0;
@@ -154,7 +184,7 @@
     border-radius: 12px;
     padding: 25px;
     margin-bottom: 25px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
     border: 1px solid #e9ecef;
     transition: all 0.3s ease;
 }
@@ -198,23 +228,123 @@
 .b2b-admin-form-group input[type="email"],
 .b2b-admin-form-group input[type="number"],
 .b2b-admin-form-group input[type="password"],
-.b2b-admin-form-group select,
-.b2b-admin-form-group textarea {
+.b2b-admin-form-group textarea,
+.b2b-admin-wrapper input[type="text"],
+.b2b-admin-wrapper input[type="email"],
+.b2b-admin-wrapper input[type="number"],
+.b2b-admin-wrapper input[type="password"],
+.b2b-admin-content input[type="text"],
+.b2b-admin-content input[type="email"],
+.b2b-admin-content input[type="number"],
+.b2b-admin-content input[type="password"],
+.b2b-admin-card input[type="text"],
+.b2b-admin-card input[type="email"],
+.b2b-admin-card input[type="number"],
+.b2b-admin-card input[type="password"] {
     width: 100%;
     padding: 12px 15px;
-    border: 2px solid #e9ecef;
+    border: 2px solid #dee2e6 !important;
     border-radius: 8px;
     font-size: 0.95em;
     transition: all 0.3s ease;
     background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Enhanced select field styling for better visibility */
+.b2b-admin-form-group select,
+.b2b-admin-wrapper select,
+.b2b-admin-content select,
+.b2b-admin-card select,
+select[name="role"],
+select[name="approval"],
+select[name="bulk-action-selector"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 8px;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Hover effect for select fields */
+.b2b-admin-form-group select:hover,
+.b2b-admin-wrapper select:hover,
+.b2b-admin-content select:hover,
+.b2b-admin-card select:hover,
+select[name="role"]:hover,
+select[name="approval"]:hover,
+select[name="bulk-action-selector"]:hover {
+    border-color: #adb5bd !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+/* Enhanced input field hover and focus states */
+.b2b-admin-form-group input:hover,
+.b2b-admin-form-group textarea:hover,
+.b2b-admin-wrapper input[type="text"]:hover,
+.b2b-admin-wrapper input[type="email"]:hover,
+.b2b-admin-wrapper input[type="number"]:hover,
+.b2b-admin-wrapper input[type="password"]:hover,
+.b2b-admin-content input[type="text"]:hover,
+.b2b-admin-content input[type="email"]:hover,
+.b2b-admin-content input[type="number"]:hover,
+.b2b-admin-content input[type="password"]:hover,
+.b2b-admin-card input[type="text"]:hover,
+.b2b-admin-card input[type="email"]:hover,
+.b2b-admin-card input[type="number"]:hover,
+.b2b-admin-card input[type="password"]:hover {
+    border-color: #adb5bd !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
 }
 
 .b2b-admin-form-group input:focus,
-.b2b-admin-form-group select:focus,
-.b2b-admin-form-group textarea:focus {
+.b2b-admin-form-group textarea:focus,
+.b2b-admin-wrapper input[type="text"]:focus,
+.b2b-admin-wrapper input[type="email"]:focus,
+.b2b-admin-wrapper input[type="number"]:focus,
+.b2b-admin-wrapper input[type="password"]:focus,
+.b2b-admin-content input[type="text"]:focus,
+.b2b-admin-content input[type="email"]:focus,
+.b2b-admin-content input[type="number"]:focus,
+.b2b-admin-content input[type="password"]:focus,
+.b2b-admin-card input[type="text"]:focus,
+.b2b-admin-card input[type="email"]:focus,
+.b2b-admin-card input[type="number"]:focus,
+.b2b-admin-card input[type="password"]:focus {
     outline: none;
-    border-color: #2196f3;
-    box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+    border-color: #6c757d !important;
+    box-shadow: 0 0 0 3px rgba(108,117,125,0.2);
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+/* Enhanced focus state for select fields */
+.b2b-admin-form-group select:focus,
+.b2b-admin-wrapper select:focus,
+.b2b-admin-content select:focus,
+.b2b-admin-card select:focus,
+select[name="role"]:focus,
+select[name="approval"]:focus,
+select[name="bulk-action-selector"]:focus {
+    outline: none;
+    border-color: #6c757d !important;
+    box-shadow: 0 0 0 3px rgba(108,117,125,0.2);
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
 }
 
 /* Toggle switch */
@@ -517,6 +647,61 @@
     flex-wrap: wrap;
     gap: 15px;
     margin: 20px 0;
+}
+
+/* Enhanced checkbox styling for better visibility */
+.b2b-admin-wrapper input[type="checkbox"],
+.b2b-admin-content input[type="checkbox"],
+.b2b-admin-card input[type="checkbox"],
+#select-all-users,
+.user-checkbox {
+    width: 18px !important;
+    height: 18px !important;
+    border: 2px solid #6c757d !important;
+    border-radius: 3px;
+    background-color: #ffffff;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    position: relative;
+    transition: all 0.2s ease;
+    margin: 0;
+    padding: 0;
+}
+
+.b2b-admin-wrapper input[type="checkbox"]:checked,
+.b2b-admin-content input[type="checkbox"]:checked,
+.b2b-admin-card input[type="checkbox"]:checked,
+#select-all-users:checked,
+.user-checkbox:checked {
+    background-color: #2196f3;
+    border-color: #2196f3;
+}
+
+.b2b-admin-wrapper input[type="checkbox"]:checked::after,
+.b2b-admin-content input[type="checkbox"]:checked::after,
+.b2b-admin-card input[type="checkbox"]:checked::after,
+#select-all-users:checked::after,
+.user-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.b2b-admin-wrapper input[type="checkbox"]:hover,
+.b2b-admin-content input[type="checkbox"]:hover,
+.b2b-admin-card input[type="checkbox"]:hover,
+#select-all-users:hover,
+.user-checkbox:hover {
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
 }
 
 /* Empty state */

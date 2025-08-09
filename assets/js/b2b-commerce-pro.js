@@ -50,9 +50,10 @@
             $(document).on('click', '.b2b-delete-pricing', function(e) {
                 e.preventDefault();
                 var ruleId = $(this).data('rule-id');
+                var nonce = (typeof b2b_ajax !== 'undefined' && b2b_ajax.pricing_nonce) ? b2b_ajax.pricing_nonce : '';
                 
                 if (confirm('Are you sure you want to delete this pricing rule?')) {
-                    B2BCommercePro.deletePricingRule(ruleId);
+                    B2BCommercePro.deletePricingRule(ruleId, nonce);
                 }
             });
 
@@ -89,7 +90,7 @@
                 data: {
                     action: 'b2b_approve_user',
                     user_id: userId,
-                    nonce: nonce
+                    nonce: nonce || (typeof b2b_ajax !== 'undefined' ? b2b_ajax.approve_nonce : '')
                 },
                 success: function(response) {
                     if (response.success) {
@@ -111,7 +112,7 @@
                 data: {
                     action: 'b2b_reject_user',
                     user_id: userId,
-                    nonce: nonce
+                    nonce: nonce || (typeof b2b_ajax !== 'undefined' ? b2b_ajax.reject_nonce : '')
                 },
                 success: function(response) {
                     if (response.success) {
@@ -128,7 +129,10 @@
 
         savePricingRule: function(form) {
             var formData = form.serialize();
-            
+            if (form.find('input[name="b2b_pricing_nonce"]').length === 0 && typeof b2b_ajax !== 'undefined' && b2b_ajax.pricing_nonce) {
+                formData += '&nonce=' + encodeURIComponent(b2b_ajax.pricing_nonce);
+            }
+
             $.ajax({
                 url: b2b_ajax.ajaxurl,
                 type: 'POST',
@@ -146,13 +150,14 @@
             });
         },
 
-        deletePricingRule: function(ruleId) {
+        deletePricingRule: function(ruleId, nonce) {
             $.ajax({
                 url: b2b_ajax.ajaxurl,
                 type: 'POST',
                 data: {
                     action: 'b2b_delete_pricing_rule',
-                    rule_id: ruleId
+                    rule_id: ruleId,
+                    nonce: nonce
                 },
                 success: function(response) {
                     if (response.success) {
