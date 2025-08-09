@@ -410,6 +410,7 @@ select[name="bulk-action-selector"]:focus {
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(33,150,243,0.3);
     margin: 5px;
+    opacity:1 !important;
 }
 
 .b2b-admin-btn:hover {

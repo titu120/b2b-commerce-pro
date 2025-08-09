@@ -688,9 +688,17 @@ class AdminPanel {
         $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-admin-settings"></span>Checkout Controls</h1><p>Restrict checkout methods per role.</p></div>';
         $content .= '<div class="b2b-admin-card" style="max-width: 1100px;"><form method="post" class="b2b-admin-form">' . wp_nonce_field('b2b_checkout_controls', 'b2b_checkout_controls_nonce', true, false);
         if ( class_exists('WC_Payment_Gateways') ) {
-            $gw = \WC_Payment_Gateways::instance()->get_available_payment_gateways();
+            // In admin, get_available_payment_gateways() can be empty. Collect all registered gateways.
+            $gateways = [];
+            if ( function_exists('WC') && WC()->payment_gateways() ) {
+                $gateways = WC()->payment_gateways->payment_gateways(); // all gateways
+            }
+            if ( empty($gateways) ) {
+                $gateways = \WC_Payment_Gateways::instance()->payment_gateways();
+            }
+
             $gateway_titles = [];
-            foreach ($gw as $gid => $gateway) { $gateway_titles[$gid] = $gateway->get_title(); }
+            foreach ($gateways as $gid => $gateway) { $gateway_titles[$gid] = $gateway->get_title(); }
             $roles = ['b2b_customer'=>'B2B Customer','wholesale_customer'=>'Wholesale','distributor'=>'Distributor','retailer'=>'Retailer'];
             $content .= '<h3 style="margin-top:0;">Payment Gateways</h3>';
             if (empty($gateway_titles)) {
@@ -809,7 +817,7 @@ class AdminPanel {
                     $error_message = '<div class="b2b-admin-card" style="color: #dc3545;"><span class="icon dashicons dashicons-no-alt"></span> Error creating user: ' . $user_id->get_error_message() . '</div>';
                 } else {
                     // Set the role
-                    $user = new WP_User($user_id);
+                    $user = new \WP_User($user_id);
                     $user->set_role($role);
                     
                     // Add company name
@@ -840,7 +848,7 @@ class AdminPanel {
         $content .= '
 <div class="b2b-admin-card">
     <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-plus"></span>Create B2B User</div>
-    <form method="post" class="b2b-admin-form" id="b2b-pricing-form">
+    <form method="post" class="b2b-admin-form" id="b2b-add-user-form">
         ' . wp_nonce_field('b2b_add_user', 'b2b_add_user_nonce', true, false) . '
         
         <div class="b2b-admin-form-group">
