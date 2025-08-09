@@ -31,6 +31,15 @@ class AdvancedFeatures {
         // Advanced reporting - REMOVED: Duplicate menu registration
         // add_action( 'admin_menu', [ $this, 'add_advanced_reports_menu' ] ); // REMOVED: Duplicate menu registration
         // Plugin integration hooks (placeholder)
+        // Catalog mode & checkout controls
+        add_filter( 'woocommerce_is_purchasable', [ $this, 'maybe_disable_purchasable' ], 10, 2 );
+        add_filter( 'woocommerce_get_price_html', [ $this, 'maybe_hide_price_html' ], 10, 2 );
+        add_filter( 'woocommerce_available_payment_gateways', [ $this, 'filter_payment_gateways_by_role' ] );
+        add_filter( 'woocommerce_package_rates', [ $this, 'filter_package_rates_by_role' ], 10, 2 );
+        add_action( 'woocommerce_checkout_process', [ $this, 'block_checkout_when_forced_quote' ] );
+
+        // VAT validation (simple VIES check if SOAP present)
+        add_action( 'woocommerce_after_checkout_validation', [ $this, 'maybe_validate_vat' ], 10, 2 );
     }
 
     // Admin UI for credit, payment terms, tax exemption
@@ -138,17 +147,17 @@ class AdvancedFeatures {
         register_rest_route( 'b2b/v1', '/users', [
             'methods' => 'GET',
             'callback' => [ $this, 'rest_get_users' ],
-            'permission_callback' => '__return_true',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ] );
         register_rest_route( 'b2b/v1', '/orders', [
             'methods' => 'GET',
             'callback' => [ $this, 'rest_get_orders' ],
-            'permission_callback' => '__return_true',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ] );
         register_rest_route( 'b2b/v1', '/pricing', [
             'methods' => 'GET',
             'callback' => [ $this, 'rest_get_pricing' ],
-            'permission_callback' => '__return_true',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ] );
     }
     public function rest_get_users() {
@@ -444,6 +453,18 @@ class AdvancedFeatures {
     
     // Handle quote request
     public function handle_quote_request() {
+        // CSRF protection - accept either the global AJAX nonce or legacy b2b_quote_request nonce
+        $nonce = isset($_POST['nonce']) ? $_POST['nonce'] : '';
+        $nonce_ok = false;
+        if ( $nonce && wp_verify_nonce( $nonce, 'b2b_ajax_nonce' ) ) {
+            $nonce_ok = true;
+        } elseif ( $nonce && wp_verify_nonce( $nonce, 'b2b_quote_request' ) ) {
+            $nonce_ok = true;
+        }
+        if ( ! $nonce_ok ) {
+            wp_send_json_error( 'Security check failed' );
+            return;
+        }
         if (!is_user_logged_in()) {
             wp_send_json_error('Please log in to request quotes');
             return;
@@ -493,6 +514,99 @@ class AdvancedFeatures {
         
         wp_send_json_success('Quote request submitted successfully');
     }
+
+    // Catalog Mode: hide prices and disable add-to-cart
+    public function maybe_disable_purchasable( $purchasable, $product ) {
+        $catalog = get_option('b2b_catalog_mode', []);
+        if ( !is_user_logged_in() && !empty($catalog['disable_add_to_cart']) ) {
+            return false;
+        }
+        if ( !empty($catalog['force_quote_mode']) ) {
+            return false;
+        }
+        return $purchasable;
+    }
+
+    public function maybe_hide_price_html( $price, $product ) {
+        $catalog = get_option('b2b_catalog_mode', []);
+        if ( !is_user_logged_in() && !empty($catalog['hide_prices_guests']) ) {
+            return '<span class="price">' . esc_html__('Login to see prices', 'b2b-commerce-pro') . '</span>';
+        }
+        if ( !empty($catalog['force_quote_mode']) ) {
+            return '<span class="price">' . esc_html__('Request a quote', 'b2b-commerce-pro') . '</span>';
+        }
+        return $price;
+    }
+
+    // Role-based checkout controls
+    public function filter_payment_gateways_by_role( $gateways ) {
+        if ( !is_user_logged_in() ) return $gateways;
+        $settings = get_option('b2b_role_payment_methods', []);
+        if ( empty($settings) ) return $gateways;
+        $roles = wp_get_current_user()->roles;
+        foreach ( $gateways as $id => $gateway ) {
+            $allowed = false;
+            foreach ( $roles as $role ) {
+                if ( !empty($settings[$role]) && in_array($id, (array) $settings[$role], true) ) {
+                    $allowed = true; break;
+                }
+            }
+            if ( !$allowed ) {
+                unset($gateways[$id]);
+            }
+        }
+        return $gateways;
+    }
+
+    public function filter_package_rates_by_role( $rates, $package ) {
+        if ( !is_user_logged_in() ) return $rates;
+        $settings = get_option('b2b_role_shipping_methods', []);
+        if ( empty($settings) ) return $rates;
+        $roles = wp_get_current_user()->roles;
+        foreach ( $rates as $rate_id => $rate ) {
+            $method_id = isset($rate->method_id) ? $rate->method_id : '';
+            $allowed = false;
+            foreach ( $roles as $role ) {
+                if ( !empty($settings[$role]) && in_array($method_id, (array) $settings[$role], true) ) {
+                    $allowed = true; break;
+                }
+            }
+            if ( !$allowed ) {
+                unset($rates[$rate_id]);
+            }
+        }
+        return $rates;
+    }
+
+    public function block_checkout_when_forced_quote() {
+        if ( !function_exists('is_checkout') || !is_checkout() ) return;
+        $catalog = get_option('b2b_catalog_mode', []);
+        if ( !empty($catalog['force_quote_mode']) ) {
+            wc_add_notice( __('Checkout is disabled. Please request a quote.', 'b2b-commerce-pro'), 'error' );
+        }
+    }
+
+    // VAT validation via VIES (if SOAP is installed)
+    public function maybe_validate_vat( $data, $errors ) {
+        $vat = get_option('b2b_vat_settings', []);
+        if ( empty($vat['enable_vat_validation']) ) return;
+        $tax_id = isset($_POST['billing_vat']) ? sanitize_text_field($_POST['billing_vat']) : '';
+        if ( empty($tax_id) ) return;
+        if ( !class_exists('SoapClient') ) return;
+        try {
+            $country = substr($tax_id, 0, 2);
+            $number  = preg_replace('/\D/', '', substr($tax_id, 2));
+            $client = new \SoapClient('https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl');
+            $result = $client->checkVat([ 'countryCode' => $country, 'vatNumber' => $number ]);
+            if ( !empty($result->valid) && !empty($vat['auto_tax_exempt']) ) {
+                update_user_meta( get_current_user_id(), 'b2b_tax_exempt', 1 );
+            } elseif ( empty($result->valid) ) {
+                $errors->add('billing_vat', __('Invalid VAT number. Please verify.', 'b2b-commerce-pro'));
+            }
+        } catch ( \Throwable $e ) {
+            // Fail silently
+        }
+    }
     
     // Bulk pricing calculator
     public function bulk_pricing_calculator() {
@@ -507,7 +621,7 @@ class AdvancedFeatures {
         global $product;
         if (!$product) return;
         
-        echo '<div class="b2b-bulk-calculator">';
+        echo '<div class="b2b-bulk-calculator" data-product-id="' . esc_attr( $product->get_id() ) . '">';
         echo '<h4>Bulk Pricing Calculator</h4>';
         echo '<p><label>Quantity: <input type="number" name="bulk_qty" min="1" value="1" class="bulk-qty-input"></label></p>';
         echo '<p><strong>Price: <span class="bulk-price-display">' . $product->get_price_html() . '</span></strong></p>';

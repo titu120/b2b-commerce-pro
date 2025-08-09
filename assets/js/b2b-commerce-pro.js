@@ -329,7 +329,8 @@
             $('.calculate-bulk-price').on('click', function() {
                 var calculator = $(this).closest('.b2b-bulk-calculator');
                 var quantity = calculator.find('.bulk-qty-input').val();
-                var productId = calculator.closest('.product').find('.add_to_cart').data('product_id');
+                // Prefer product id on calculator container, fallback to theme button data attribute
+                var productId = calculator.data('product-id') || calculator.closest('.product').find('.add_to_cart').data('product_id');
 
                 if (!quantity || quantity < 1) {
                     alert('Please enter a valid quantity');

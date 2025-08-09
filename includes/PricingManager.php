@@ -22,6 +22,9 @@ class PricingManager {
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_quote_scripts' ] );
         // Price request system placeholder
         add_action( 'woocommerce_single_product_summary', [ $this, 'price_request_button' ], 35 );
+
+        // Display pricing widgets on product page
+        add_action( 'woocommerce_single_product_summary', [ $this, 'render_pricing_widgets' ], 28 );
     }
 
     // Create custom table for pricing rules
@@ -237,9 +240,9 @@ class PricingManager {
             // If rule matches, apply it
             if ( $rule_matches ) {
                 $rule_price = floatval($rule->price);
-                
-                // Handle percentage discounts
-                if ($rule->type === 'percentage' && $rule_price < 0) {
+
+                // Handle percentage discounts (treat stored value as discount percent regardless of sign)
+                if ($rule->type === 'percentage') {
                     $discount_percentage = abs($rule_price);
                     $rule_price = $price * (1 - ($discount_percentage / 100));
                 }
@@ -399,13 +402,14 @@ class PricingManager {
         $output .= '<thead><tr><th>Quantity</th><th>Price</th><th>Savings</th></tr></thead><tbody>';
         
         foreach ($rules as $rule) {
-            $original_price = get_post_meta($product_id, '_price', true);
-            $savings = $original_price - $rule->price;
-            $savings_percent = ($savings / $original_price) * 100;
+            $original_price = (float) get_post_meta($product_id, '_price', true);
+            $display_price = $rule->type === 'percentage' ? $original_price * (1 - (abs($rule->price)/100)) : (float) $rule->price;
+            $savings = max(0, $original_price - $display_price);
+            $savings_percent = $original_price > 0 ? ($savings / $original_price) * 100 : 0;
             
             $output .= '<tr>';
             $output .= '<td>' . esc_html($rule->min_qty) . '+' . '</td>';
-            $output .= '<td>' . wc_price($rule->price) . '</td>';
+            $output .= '<td>' . wc_price($display_price) . '</td>';
             $output .= '<td>' . sprintf('%.1f%%', $savings_percent) . '</td>';
             $output .= '</tr>';
         }
@@ -434,7 +438,8 @@ class PricingManager {
         $output .= '<ul>';
         
         foreach ($rules as $rule) {
-            $output .= '<li>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . ': ' . wc_price($rule->price) . '</li>';
+            $label = $rule->type === 'percentage' ? (abs($rule->price) . '% ' . __('discount','b2b-commerce-pro')) : wc_price($rule->price);
+            $output .= '<li>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . ': ' . $label . '</li>';
         }
         
         $output .= '</ul></div>';
@@ -508,6 +513,13 @@ class PricingManager {
         $output .= '</div>';
         
         return $output;
+    }
+
+    // Render pricing-related widgets on product page
+    public function render_pricing_widgets() {
+        echo $this->tiered_pricing();
+        echo $this->role_based_pricing();
+        echo $this->min_max_quantity();
     }
 
     public function min_max_quantity() {

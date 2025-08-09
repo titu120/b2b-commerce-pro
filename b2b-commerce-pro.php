@@ -41,8 +41,10 @@ function autoload_b2b_commerce_pro() {
     } );
 }
 
-// Bootstrap the plugin
+// Bootstrap the plugin and load text domain
 add_action( 'plugins_loaded', function() {
+    // i18n support
+    load_plugin_textdomain( 'b2b-commerce-pro', false, dirname( B2B_COMMERCE_PRO_BASENAME ) . '/languages' );
     // Check if required classes exist before initializing
     if ( class_exists( 'B2B\\Init' ) ) {
         try {
@@ -87,17 +89,7 @@ register_deactivation_hook( __FILE__, function() {
     }
 } );
 
-// Ensure pricing table exists on every load
-add_action( 'init', function() {
-    try {
-        if ( class_exists( 'B2B\\PricingManager' ) ) {
-            B2B\PricingManager::create_pricing_table();
-        }
-    } catch ( Exception $e ) {
-        // Log error but don't break the site
-        error_log( 'B2B Commerce Pro Table Creation Error: ' . $e->getMessage() );
-    }
-} );
+// Removed creating pricing table on every load; handled on activation and self-healing in PricingManager
 
 // AJAX handlers for B2B Commerce Pro with comprehensive error handling
 add_action('wp_ajax_b2b_approve_user', function() {

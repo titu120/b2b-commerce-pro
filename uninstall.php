@@ -9,6 +9,10 @@ $options = [
     'b2b_general_settings',
     'b2b_email_templates',
     'b2b_dismissed_notifications',
+    'b2b_catalog_mode',
+    'b2b_vat_settings',
+    'b2b_role_payment_methods',
+    'b2b_role_shipping_methods',
 ];
 foreach ( $options as $opt ) {
     delete_option( $opt );

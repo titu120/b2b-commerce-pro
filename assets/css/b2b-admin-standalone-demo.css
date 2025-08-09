@@ -132,8 +132,8 @@
 
 /* Main content area */
 .b2b-admin-content {
-    background: #ffffff;
-    padding: 40px;
+    background: #f6f8fb; /* softer neutral background */
+    padding: 48px; /* add more breathing room */
     flex: 1;
     overflow-y: auto;
     position: relative;
@@ -181,11 +181,11 @@
 /* Card styles */
 .b2b-admin-card {
     background: #ffffff;
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 28px; /* slightly larger padding for space */
+    margin-bottom: 28px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border: 1px solid #eef1f4; /* lighter border */
     transition: all 0.3s ease;
 }
 
@@ -195,14 +195,14 @@
 }
 
 .b2b-admin-card-title {
-    font-size: 1.2em;
+    font-size: 1.25em;
     font-weight: 600;
     color: #23272f;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
     display: flex;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #eef1f4;
 }
 
 .b2b-admin-card-title .icon {
@@ -504,6 +504,25 @@ select[name="bulk-action-selector"]:focus {
     font-size: 0.95em;
 }
 
+/* Matrix tables (roles x methods) - consistent checkbox alignment */
+.b2b-matrix-table th,
+.b2b-matrix-table td {
+    vertical-align: middle;
+}
+.b2b-matrix-table thead th {
+    text-align: center;
+}
+.b2b-matrix-table tbody td:first-child {
+    text-align: left;
+}
+.b2b-matrix-table tbody td:not(:first-child) {
+    text-align: center;
+}
+.b2b-matrix-table input[type="checkbox"] {
+    display: inline-block;
+    margin: 0 auto;
+}
+
 .b2b-admin-table tr:hover {
     background: #f8f9fa;
     transition: background 0.2s ease;
@@ -515,6 +534,14 @@ select[name="bulk-action-selector"]:focus {
 
 .b2b-admin-table tbody tr td:last-child {
     text-align: right;
+}
+
+/* Utility input style for toolbars */
+.b2b-input {
+    padding: 10px 12px;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 8px;
+    background:#fff;
 }
 
 /* Import/Export specific styles */

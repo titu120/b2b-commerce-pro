@@ -8,6 +8,7 @@ class AdminPanel {
         add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
         add_action( 'admin_notices', [ $this, 'show_admin_notifications' ] );
         add_action( 'wp_ajax_b2b_dismiss_notification', [ $this, 'dismiss_notification' ] );
+        add_action( 'admin_post_b2b_update_quote', [ $this, 'handle_update_quote' ] );
     }
 
     // Add main admin menu and submenus
@@ -60,6 +61,16 @@ class AdminPanel {
             'b2b-orders',
             [ $this, 'order_management_page' ]
         );
+
+        // Quotes Management
+        add_submenu_page(
+            'b2b-dashboard',
+            'Quotes',
+            'Quotes',
+            'manage_options',
+            'b2b-quotes',
+            [ $this, 'quotes_page' ]
+        );
          
 
 
@@ -71,6 +82,36 @@ class AdminPanel {
             'manage_options',
             'b2b-settings',
             [ $this, 'settings_page' ]
+        );
+
+        // Catalog Mode
+        add_submenu_page(
+            'b2b-dashboard',
+            'Catalog Mode',
+            'Catalog Mode',
+            'manage_options',
+            'b2b-catalog',
+            [ $this, 'catalog_mode_page' ]
+        );
+
+        // Checkout Controls
+        add_submenu_page(
+            'b2b-dashboard',
+            'Checkout Controls',
+            'Checkout Controls',
+            'manage_options',
+            'b2b-checkout-controls',
+            [ $this, 'checkout_controls_page' ]
+        );
+
+        // VAT Settings
+        add_submenu_page(
+            'b2b-dashboard',
+            'VAT Settings',
+            'VAT Settings',
+            'manage_options',
+            'b2b-vat',
+            [ $this, 'vat_settings_page' ]
         );
         
         add_submenu_page(
@@ -131,17 +172,22 @@ class AdminPanel {
         
         // Unified Navigation Menu
         echo '<div class="b2b-nav-menu">';
+        // Keep this list in sync with the WP admin submenu for consistency
         $menu_items = [
             'b2b-dashboard' => ['Dashboard', 'dashicons-chart-area'],
             'b2b-users' => ['User Management', 'dashicons-groups'],
             'b2b-add-user' => ['Add B2B User', 'dashicons-plus'],
             'b2b-pricing' => ['Pricing Rules', 'dashicons-tag'],
             'b2b-orders' => ['Order Management', 'dashicons-cart'],
+            'b2b-quotes' => ['Quotes', 'dashicons-email-alt'],
             'b2b-settings' => ['Settings', 'dashicons-admin-generic'],
+            'b2b-catalog' => ['Catalog Mode', 'dashicons-visibility'],
+            'b2b-checkout-controls' => ['Checkout Controls', 'dashicons-admin-settings'],
+            'b2b-vat' => ['VAT Settings', 'dashicons-universal-access-alt'],
             'b2b-emails' => ['Email Templates', 'dashicons-email'],
             'b2b-analytics' => ['Analytics', 'dashicons-chart-line'],
             'b2b-import-export' => ['Import/Export', 'dashicons-upload'],
-            'b2b-test' => ['System Test', 'dashicons-admin-tools']
+            'b2b-test' => ['System Test', 'dashicons-admin-tools'],
         ];
         
         foreach ($menu_items as $page => $item) {
@@ -149,7 +195,7 @@ class AdminPanel {
             $icon = $item[1];
             $title = $item[0];
             
-            echo '<a href="' . admin_url('admin.php?page=' . $page) . '" class="b2b-nav-item ' . $is_active . '">';
+            echo '<a href="' . esc_url( admin_url('admin.php?page=' . $page) ) . '" class="b2b-nav-item ' . $is_active . '">';
             echo '<span class="dashicons ' . $icon . '"></span>';
             echo '<span>' . $title . '</span>';
             echo '</a>';
@@ -583,6 +629,154 @@ class AdminPanel {
     </table>
 </div>';
         $this->render_admin_wrapper('b2b-users', $content);
+    }
+
+    // Simple wrappers to reuse main settings sections (for sidebar entries)
+    public function catalog_mode_page() {
+        if (!current_user_can('manage_options')) return;
+        $opts = get_option('b2b_catalog_mode', []);
+        if (isset($_POST['b2b_catalog_nonce']) && wp_verify_nonce($_POST['b2b_catalog_nonce'], 'b2b_catalog_mode')) {
+            $opts = [
+                'hide_prices_guests' => isset($_POST['b2b_catalog_mode']['hide_prices_guests']) ? 1 : 0,
+                'disable_add_to_cart' => isset($_POST['b2b_catalog_mode']['disable_add_to_cart']) ? 1 : 0,
+                'force_quote_mode' => isset($_POST['b2b_catalog_mode']['force_quote_mode']) ? 1 : 0,
+            ];
+            update_option('b2b_catalog_mode', $opts);
+            echo '<div class="b2b-admin-card" style="color:#2196f3;">Catalog mode saved.</div>';
+        }
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-visibility"></span>Catalog Mode</h1><p>Control price visibility and purchasing.</p></div>';
+        $content .= '<div class="b2b-admin-card"><form method="post" class="b2b-admin-form">' . wp_nonce_field('b2b_catalog_mode', 'b2b_catalog_nonce', true, false);
+
+        // Row 1
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:6px; margin-bottom:12px;">';
+        $content .= '<div><label style="margin:0; font-weight:600; color:#23272f;">Hide prices for guests</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Guests will see "Login to see prices" instead of price.</p></div>';
+        $content .= '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_catalog_mode[hide_prices_guests]" value="1" ' . checked($opts['hide_prices_guests'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>';
+        $content .= '</div>';
+
+        // Row 2
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:6px; margin-bottom:12px;">';
+        $content .= '<div><label style="margin:0; font-weight:600; color:#23272f;">Disable add to cart for guests</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Prevents guests from purchasing until they log in.</p></div>';
+        $content .= '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_catalog_mode[disable_add_to_cart]" value="1" ' . checked($opts['disable_add_to_cart'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>';
+        $content .= '</div>';
+
+        // Row 3
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:6px;">';
+        $content .= '<div><label style="margin:0; font-weight:600; color:#23272f;">Force Quote Mode (site‑wide)</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Disables add to cart for everyone; customers can request quotes instead.</p></div>';
+        $content .= '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_catalog_mode[force_quote_mode]" value="1" ' . checked($opts['force_quote_mode'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>';
+        $content .= '</div>';
+
+        $content .= '<div style="margin-top:15px;"><button class="b2b-admin-btn" type="submit"><span class="icon dashicons dashicons-saved"></span>Save</button></div></form></div>';
+        $this->render_admin_wrapper('b2b-catalog', $content);
+    }
+
+    public function checkout_controls_page() {
+        if (!current_user_can('manage_options')) return;
+        $role_payment = get_option('b2b_role_payment_methods', []);
+        $role_shipping = get_option('b2b_role_shipping_methods', []);
+        if (isset($_POST['b2b_checkout_controls_nonce']) && wp_verify_nonce($_POST['b2b_checkout_controls_nonce'], 'b2b_checkout_controls')) {
+            $roles = ['b2b_customer','wholesale_customer','distributor','retailer'];
+            $rp = [];$rs = [];
+            foreach ($roles as $role) {
+                $rp[$role] = isset($_POST['b2b_role_payment_methods'][$role]) ? array_map('sanitize_text_field', (array) $_POST['b2b_role_payment_methods'][$role]) : [];
+                $rs[$role] = isset($_POST['b2b_role_shipping_methods'][$role]) ? array_map('sanitize_text_field', (array) $_POST['b2b_role_shipping_methods'][$role]) : [];
+            }
+            update_option('b2b_role_payment_methods', $rp);
+            update_option('b2b_role_shipping_methods', $rs);
+            $role_payment = $rp; $role_shipping = $rs;
+            echo '<div class="b2b-admin-card" style="color:#2196f3;">Checkout controls saved.</div>';
+        }
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-admin-settings"></span>Checkout Controls</h1><p>Restrict checkout methods per role.</p></div>';
+        $content .= '<div class="b2b-admin-card" style="max-width: 1100px;"><form method="post" class="b2b-admin-form">' . wp_nonce_field('b2b_checkout_controls', 'b2b_checkout_controls_nonce', true, false);
+        if ( class_exists('WC_Payment_Gateways') ) {
+            $gw = \WC_Payment_Gateways::instance()->get_available_payment_gateways();
+            $gateway_titles = [];
+            foreach ($gw as $gid => $gateway) { $gateway_titles[$gid] = $gateway->get_title(); }
+            $roles = ['b2b_customer'=>'B2B Customer','wholesale_customer'=>'Wholesale','distributor'=>'Distributor','retailer'=>'Retailer'];
+            $content .= '<h3 style="margin-top:0;">Payment Gateways</h3>';
+            if (empty($gateway_titles)) {
+                $content .= '<p style="color:#666;">No gateways found. Enable them in <a href="' . admin_url('admin.php?page=wc-settings&tab=checkout') . '">WooCommerce → Payments</a>.</p>';
+            } else {
+                $content .= '<table class="b2b-admin-table b2b-matrix-table"><thead><tr><th>Role</th>';
+                foreach ($gateway_titles as $gid => $title) {
+                    $content .= '<th>' . esc_html($title) . '</th>';
+                }
+                $content .= '</tr></thead><tbody>';
+                foreach ($roles as $role_key => $role_label) {
+                    $content .= '<tr><td><strong>' . esc_html($role_label) . '</strong></td>';
+                    foreach ($gateway_titles as $gid => $title) {
+                        $checked = in_array($gid, $role_payment[$role_key] ?? []) ? 'checked' : '';
+                        $content .= '<td style="text-align:center;">'
+                                  . '<input type="checkbox" name="b2b_role_payment_methods[' . esc_attr($role_key) . '][]" value="' . esc_attr($gid) . '" ' . $checked . '>'
+                                  . '</td>';
+                    }
+                    $content .= '</tr>';
+                }
+                $content .= '</tbody></table>';
+            }
+        }
+
+        if ( class_exists('WC_Shipping') ) {
+            $shipping_methods = \WC_Shipping::instance()->get_shipping_methods();
+            // Map to base IDs and titles (flat_rate, free_shipping, local_pickup)
+            $method_titles = [];
+            foreach ($shipping_methods as $mid => $method) { $method_titles[$method->id] = $method->get_method_title(); }
+            // Keep only common core methods in predictable order if present
+            $order = ['flat_rate','free_shipping','local_pickup'];
+            $ordered = [];
+            foreach ($order as $id) { if (isset($method_titles[$id])) { $ordered[$id] = $method_titles[$id]; } }
+            // append any others
+            foreach ($method_titles as $id => $title) { if (!isset($ordered[$id])) { $ordered[$id] = $title; } }
+            $roles = ['b2b_customer'=>'B2B Customer','wholesale_customer'=>'Wholesale','distributor'=>'Distributor','retailer'=>'Retailer'];
+            $content .= '<h3 style="margin-top:24px;">Shipping Methods</h3>';
+            if (empty($ordered)) {
+                $content .= '<p style="color:#666;">No shipping methods found. Configure them in <a href="' . admin_url('admin.php?page=wc-settings&tab=shipping') . '">WooCommerce → Shipping</a>.</p>';
+            } else {
+                $content .= '<table class="b2b-admin-table b2b-matrix-table"><thead><tr><th>Role</th>';
+                foreach ($ordered as $id => $title) { $content .= '<th>' . esc_html($title) . '</th>'; }
+                $content .= '</tr></thead><tbody>';
+                foreach ($roles as $role_key => $role_label) {
+                    $content .= '<tr><td><strong>' . esc_html($role_label) . '</strong></td>';
+                    foreach ($ordered as $id => $title) {
+                        $checked = in_array($id, $role_shipping[$role_key] ?? []) ? 'checked' : '';
+                        $content .= '<td style="text-align:center;">'
+                                  . '<input type="checkbox" name="b2b_role_shipping_methods[' . esc_attr($role_key) . '][]" value="' . esc_attr($id) . '" ' . $checked . '>'
+                                  . '</td>';
+                    }
+                    $content .= '</tr>';
+                }
+                $content .= '</tbody></table>';
+            }
+        }
+        $content .= '<div style="margin-top:18px; display:flex; gap:10px;">';
+        $content .= '<button class="b2b-admin-btn" type="submit"><span class="icon dashicons dashicons-saved"></span>Save</button>';
+        $content .= '<a href="' . admin_url('admin.php?page=wc-settings&tab=checkout') . '" class="b2b-admin-btn" style="background:#eef3fb;color:#1976d2;box-shadow:none;">Open WooCommerce Payments</a>';
+        $content .= '</div></form></div>';
+        $this->render_admin_wrapper('b2b-checkout-controls', $content);
+    }
+
+    public function vat_settings_page() {
+        if (!current_user_can('manage_options')) return;
+        $opts = get_option('b2b_vat_settings', []);
+        if (isset($_POST['b2b_vat_nonce']) && wp_verify_nonce($_POST['b2b_vat_nonce'], 'b2b_vat_settings')) {
+            $opts = [
+                'enable_vat_validation' => isset($_POST['b2b_vat_settings']['enable_vat_validation']) ? 1 : 0,
+                'auto_tax_exempt' => isset($_POST['b2b_vat_settings']['auto_tax_exempt']) ? 1 : 0,
+            ];
+            update_option('b2b_vat_settings', $opts);
+            echo '<div class="b2b-admin-card" style="color:#2196f3;">VAT settings saved.</div>';
+        }
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-universal-access-alt"></span>VAT Settings</h1><p>Validate EU VAT numbers and auto-set exemptions.</p></div>';
+        $content .= '<div class="b2b-admin-card" style="max-width: 720px;"><form method="post" class="b2b-admin-form">' . wp_nonce_field('b2b_vat_settings', 'b2b_vat_nonce', true, false);
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px; margin-bottom:12px;">'
+                 . '<div><label style="margin:0; font-weight:600; color:#23272f;">Enable EU VAT validation (VIES)</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Checks VAT numbers using the European Commission VIES service.</p></div>'
+                 . '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_vat_settings[enable_vat_validation]" value="1" ' . checked($opts['enable_vat_validation'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>'
+                 . '</div>';
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px;">'
+                 . '<div><label style="margin:0; font-weight:600; color:#23272f;">Auto set Tax Exempt on valid VAT</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">When validation passes, mark the user as tax exempt automatically.</p></div>'
+                 . '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_vat_settings[auto_tax_exempt]" value="1" ' . checked($opts['auto_tax_exempt'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>'
+                 . '</div>';
+        $content .= '<div style="margin-top:18px;"><button class="b2b-admin-btn" type="submit"><span class="icon dashicons dashicons-saved"></span>Save</button></div></form></div>';
+        $this->render_admin_wrapper('b2b-vat', $content);
     }
 
     // Add B2B User page
@@ -1261,6 +1455,52 @@ Best regards,
 </div>';
         
         $this->render_admin_wrapper('b2b-settings', $content);
+    }
+
+    // Quotes admin list
+    public function quotes_page() {
+        if (!current_user_can('manage_options')) return;
+        $quotes = get_option('b2b_quote_requests', []);
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-email-alt"></span>Quotes</h1><p>Manage incoming quote requests.</p></div>';
+        $content .= '<div class="b2b-admin-card">';
+        if (empty($quotes)) {
+            $content .= '<p>No quote requests found.</p>';
+        } else {
+            $content .= '<table class="b2b-admin-table"><thead><tr><th>Date</th><th>User</th><th>Product</th><th>Qty</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            foreach ($quotes as $index => $q) {
+                $user = get_userdata($q['user_id']);
+                $product = function_exists('wc_get_product') ? wc_get_product($q['product_id']) : null;
+                $content .= '<tr>';
+                $content .= '<td>' . esc_html($q['date'] ?? '') . '</td>';
+                $content .= '<td>' . esc_html($user ? $user->user_email : 'User ID ' . ($q['user_id'] ?? '')) . '</td>';
+                $content .= '<td>' . esc_html($product ? $product->get_name() : ('#' . ($q['product_id'] ?? ''))) . '</td>';
+                $content .= '<td>' . esc_html($q['quantity'] ?? '') . '</td>';
+                $content .= '<td>' . esc_html($q['message'] ?? '') . '</td>';
+                $content .= '<td>' . esc_html(ucfirst($q['status'] ?? 'pending')) . '</td>';
+                $approve_url = wp_nonce_url(admin_url('admin-post.php?action=b2b_update_quote&quote=' . $index . '&status=approved'), 'b2b_update_quote_' . $index);
+                $decline_url = wp_nonce_url(admin_url('admin-post.php?action=b2b_update_quote&quote=' . $index . '&status=declined'), 'b2b_update_quote_' . $index);
+                $content .= '<td><a href="' . esc_url($approve_url) . '" class="b2b-admin-btn">Approve</a> <a href="' . esc_url($decline_url) . '" class="b2b-admin-btn b2b-admin-btn-danger">Decline</a></td>';
+                $content .= '</tr>';
+            }
+            $content .= '</tbody></table>';
+        }
+        $content .= '</div>';
+        $this->render_admin_wrapper('b2b-quotes', $content);
+    }
+
+    // Handle quote status updates
+    public function handle_update_quote() {
+        if (!current_user_can('manage_options')) wp_die('Unauthorized');
+        $index = isset($_GET['quote']) ? intval($_GET['quote']) : -1;
+        $status = sanitize_text_field($_GET['status'] ?? '');
+        if ($index < 0 || !in_array($status, ['approved','declined'], true)) wp_die('Invalid request');
+        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'b2b_update_quote_' . $index)) wp_die('Security check failed');
+        $quotes = get_option('b2b_quote_requests', []);
+        if (!isset($quotes[$index])) wp_die('Quote not found');
+        $quotes[$index]['status'] = $status;
+        update_option('b2b_quote_requests', $quotes);
+        wp_redirect(admin_url('admin.php?page=b2b-quotes'));
+        exit;
     }
 
     public function register_settings() {
