@@ -15,9 +15,9 @@ class AdvancedFeatures {
         // Payment terms display
         add_action( 'woocommerce_review_order_after_payment', [ $this, 'show_payment_terms' ] );
         // Tax exemption
-        add_filter( 'woocommerce_customer_is_vat_exempt', [ $this, 'handle_tax_exemption' ], 10, 2 );
+        add_filter( 'woocommerce_customer_is_vat_exempt', [ $this, 'handle_tax_exemption' ], 5, 2 );
         // Multi-currency support (integration hook)
-        add_filter( 'woocommerce_currency', [ $this, 'handle_multi_currency' ] );
+        add_filter( 'woocommerce_currency', [ $this, 'handle_multi_currency' ], 5 );
         // REST API endpoints
         add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
         // Quote request system
@@ -32,14 +32,14 @@ class AdvancedFeatures {
         // add_action( 'admin_menu', [ $this, 'add_advanced_reports_menu' ] ); // REMOVED: Duplicate menu registration
         // Plugin integration hooks (placeholder)
         // Catalog mode & checkout controls
-        add_filter( 'woocommerce_is_purchasable', [ $this, 'maybe_disable_purchasable' ], 10, 2 );
-        add_filter( 'woocommerce_get_price_html', [ $this, 'maybe_hide_price_html' ], 10, 2 );
-        add_filter( 'woocommerce_available_payment_gateways', [ $this, 'filter_payment_gateways_by_role' ] );
-        add_filter( 'woocommerce_package_rates', [ $this, 'filter_package_rates_by_role' ], 10, 2 );
+        add_filter( 'woocommerce_is_purchasable', [ $this, 'maybe_disable_purchasable' ], 5, 2 );
+        add_filter( 'woocommerce_get_price_html', [ $this, 'maybe_hide_price_html' ], 5, 2 );
+        add_filter( 'woocommerce_available_payment_gateways', [ $this, 'filter_payment_gateways_by_role' ], 5 );
+        add_filter( 'woocommerce_package_rates', [ $this, 'filter_package_rates_by_role' ], 5, 2 );
         add_action( 'woocommerce_checkout_process', [ $this, 'block_checkout_when_forced_quote' ] );
 
         // VAT validation (simple VIES check if SOAP present)
-        add_action( 'woocommerce_after_checkout_validation', [ $this, 'maybe_validate_vat' ], 10, 2 );
+        add_action( 'woocommerce_after_checkout_validation', [ $this, 'maybe_validate_vat' ], 5, 2 );
     }
 
     // Admin UI for credit, payment terms, tax exemption
@@ -202,12 +202,12 @@ class AdvancedFeatures {
     public function plugin_integrations() {
         // WooCommerce Multi-Currency integration
         if (class_exists('WOOCS')) {
-            add_filter('woocommerce_currency', [$this, 'handle_woocs_currency']);
+            add_filter('woocommerce_currency', [$this, 'handle_woocs_currency'], 5);
         }
         
         // WooCommerce Advanced Shipping integration
         if (class_exists('WooCommerce_Advanced_Shipping')) {
-            add_filter('woocommerce_shipping_methods', [$this, 'add_b2b_shipping_methods']);
+            add_filter('woocommerce_shipping_methods', [$this, 'add_b2b_shipping_methods'], 5);
         }
         
         // WooCommerce PDF Invoices integration
@@ -217,12 +217,12 @@ class AdvancedFeatures {
         
         // WooCommerce Subscriptions integration
         if (class_exists('WC_Subscriptions')) {
-            add_filter('woocommerce_subscription_price', [$this, 'apply_b2b_subscription_pricing']);
+            add_filter('woocommerce_subscription_price', [$this, 'apply_b2b_subscription_pricing'], 5);
         }
         
         // WooCommerce Bookings integration
         if (class_exists('WC_Bookings')) {
-            add_filter('woocommerce_bookings_cost', [$this, 'apply_b2b_booking_pricing']);
+            add_filter('woocommerce_bookings_cost', [$this, 'apply_b2b_booking_pricing'], 5);
         }
         
         // Advanced Custom Fields integration
@@ -661,11 +661,14 @@ class AdvancedFeatures {
         $user = get_userdata($user_id);
         $user_role = $user->roles[0] ?? '';
         
-        // Get pricing rules
+        // Debug logging
+        error_log("B2B Bulk Calculator Debug: Product $product_id, User $user_id, Role: $user_role, Quantity: $quantity");
+        
+        // Get pricing rules - check both product-specific and global rules (product_id = 0)
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $rules = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND role = %s AND min_qty <= %d ORDER BY min_qty DESC LIMIT 1",
+            "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND role = %s AND min_qty <= %d ORDER BY product_id DESC, min_qty DESC, price ASC LIMIT 1",
             $product_id,
             $user_role,
             $quantity
@@ -675,8 +678,12 @@ class AdvancedFeatures {
         $unit_price = $original_price;
         $discount_display = 'No discount';
         
+        // Debug logging
+        error_log("B2B Bulk Calculator Debug: Found " . count($rules) . " matching rules");
+        
         if (!empty($rules)) {
             $rule = $rules[0];
+            error_log("B2B Bulk Calculator Debug: Using rule ID " . $rule->id . ", Price: " . $rule->price . ", Type: " . $rule->type);
             if ($rule->type === 'percentage') {
                 // Use absolute percentage; admin UI stores discounts as negative, normalize here
                 $percent = abs((float) $rule->price);
@@ -685,8 +692,14 @@ class AdvancedFeatures {
             } else {
                 // Fixed type represents final price in our system
                 $unit_price = (float) $rule->price;
-                $discount_amount = max(0, $original_price - $unit_price);
-                $discount_display = $discount_amount > 0 ? wc_price($discount_amount) : 'No discount';
+                $discount_amount = $original_price - $unit_price;
+                if ($discount_amount > 0) {
+                    $discount_display = wc_price($discount_amount) . ' off';
+                } elseif ($discount_amount < 0) {
+                    $discount_display = wc_price(abs($discount_amount)) . ' more';
+                } else {
+                    $discount_display = 'Same price';
+                }
             }
             $unit_price = max(0, $unit_price);
         }

@@ -968,9 +968,24 @@ class AdminPanel {
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
             <div class="b2b-admin-form-group">
-                <label for="price">Value *</label>
-                <input type="number" name="price" id="price" step="0.01" required placeholder="Enter value">
-                <small>For discount: use negative number (e.g., -15 for 15% off)</small>
+                <label for="product_id">Product (Optional)</label>
+                <select name="product_id" id="product_id">
+                    <option value="0">All Products (Global Rule)</option>';
+                    
+                    // Get all products
+                    $products = get_posts([
+                        'post_type' => 'product',
+                        'numberposts' => -1,
+                        'post_status' => 'publish'
+                    ]);
+                    
+                    foreach ($products as $product) {
+                        $content .= '<option value="' . $product->ID . '">' . esc_html($product->post_title) . '</option>';
+                    }
+                    
+                    $content .= '
+                </select>
+                <small>Leave as "All Products" for global pricing, or select specific product</small>
             </div>
             
             <div class="b2b-admin-form-group">
@@ -980,11 +995,178 @@ class AdminPanel {
             </div>
         </div>
         
+        <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px;">
+            <div class="b2b-admin-form-group">
+                <label for="price">Value *</label>
+                <input type="number" name="price" id="price" step="0.01" required placeholder="Enter value">
+                <small>For discount: use negative number (e.g., -15 for 15% off)</small>
+            </div>
+        </div>
+        
         <div style="margin-top: 20px;">
             <button type="submit" class="b2b-admin-btn"><span class="icon dashicons dashicons-saved"></span>Save Pricing Rule</button>
         </div>
     </form>
 </div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="b2b-modal" style="display: none;">
+    <div class="b2b-modal-content">
+        <div class="b2b-modal-header">
+            <h3>Edit Pricing Rule</h3>
+            <span class="b2b-modal-close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form method="post" action="">
+            <input type="hidden" name="action" value="b2b_save_pricing_rule">
+            <input type="hidden" name="edit_rule_id" id="edit_rule_id" value="">
+            ' . wp_nonce_field('b2b_save_pricing_rule', '_wpnonce', true, false) . '
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="b2b-admin-form-group">
+                    <label for="edit_role">Customer Type</label>
+                    <select name="role" id="edit_role" required>
+                        <option value="">Choose customer type</option>
+                        <option value="wholesale_customer">Wholesale Customer</option>
+                        <option value="retail_customer">Retail Customer</option>
+                        <option value="vip_customer">VIP Customer</option>
+                    </select>
+                </div>
+                
+                <div class="b2b-admin-form-group">
+                    <label for="edit_type">Discount Type</label>
+                    <select name="type" id="edit_type" required>
+                        <option value="percentage">Percentage Discount</option>
+                        <option value="fixed">Fixed Price</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div class="b2b-admin-form-group">
+                    <label for="edit_product_id">Product</label>
+                    <select name="product_id" id="edit_product_id">
+                        <option value="0">All Products (Global Rule)</option>';
+                        
+                        // Get all products
+                        $products = get_posts([
+                            'post_type' => 'product',
+                            'numberposts' => -1,
+                            'post_status' => 'publish'
+                        ]);
+                        
+                        foreach ($products as $product) {
+                            $content .= '<option value="' . $product->ID . '">' . esc_html($product->post_title) . '</option>';
+                        }
+                        
+                        $content .= '
+                    </select>
+                </div>
+                
+                <div class="b2b-admin-form-group">
+                    <label for="edit_min_qty">Min Quantity</label>
+                    <input type="number" name="min_qty" id="edit_min_qty" min="1" value="1" required>
+                </div>
+            </div>
+            
+            <div class="b2b-admin-form-group" style="margin-top: 20px;">
+                <label for="edit_price">Value</label>
+                <input type="number" name="price" id="edit_price" step="0.01" required>
+                <small id="edit_price_help">Enter percentage (e.g., 20 for 20% discount) or fixed price</small>
+            </div>
+            
+            <div class="b2b-modal-footer">
+                <button type="button" class="b2b-admin-btn b2b-admin-btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="b2b-admin-btn">Update Rule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.b2b-modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.b2b-modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.b2b-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.b2b-modal-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.b2b-modal-close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.b2b-modal-close:hover {
+    color: #000;
+}
+
+.b2b-modal form {
+    padding: 20px;
+}
+
+.b2b-modal-footer {
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    text-align: right;
+}
+
+.b2b-modal-footer button {
+    margin-left: 10px;
+}
+</style>
+
+<script>
+function openEditModal(id, role, type, price, minQty, productId) {
+    document.getElementById("edit_rule_id").value = id;
+    document.getElementById("edit_role").value = role;
+    document.getElementById("edit_type").value = type;
+    document.getElementById("edit_price").value = price;
+    document.getElementById("edit_min_qty").value = minQty;
+    document.getElementById("edit_product_id").value = productId;
+    
+    document.getElementById("editModal").style.display = "block";
+}
+
+function closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    var modal = document.getElementById("editModal");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
 
         <!-- Current Pricing Rules -->
         <div class="b2b-admin-card">
@@ -997,6 +1179,7 @@ class AdminPanel {
         <table class="b2b-admin-table">
             <thead>
                 <tr>
+                    <th>Product</th>
                     <th>Customer Type</th>
                     <th>Pricing Type</th>
                     <th>Value</th>
@@ -1007,15 +1190,24 @@ class AdminPanel {
             <tbody>';
                 
                 foreach ($rules as $rule) {
-                    $value_display = $rule->type === 'percentage' ? abs($rule->price) . '% discount' : wc_price($rule->price);
+                    $value_display = $rule->type === 'percentage' ? abs($rule->price) . '% discount' : '$' . number_format($rule->price, 2);
+                    
+                    // Get product name
+                    $product_name = 'All Products';
+                    if ($rule->product_id > 0) {
+                        $product = get_post($rule->product_id);
+                        $product_name = $product ? $product->post_title : 'Product #' . $rule->product_id;
+                    }
                     
                     $content .= '
                 <tr>
+                    <td>' . esc_html($product_name) . '</td>
                     <td>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . '</td>
                     <td>' . esc_html(ucfirst($rule->type)) . '</td>
                     <td>' . esc_html($value_display) . '</td>
                     <td>' . esc_html($rule->min_qty ?: 'Any') . '</td>
                     <td>
+                        <button type="button" class="b2b-admin-btn b2b-admin-btn-secondary" style="padding: 6px 12px; font-size: 0.9em; margin-right: 5px;" onclick="openEditModal(' . $rule->id . ', \'' . esc_js($rule->role) . '\', \'' . esc_js($rule->type) . '\', ' . $rule->price . ', ' . $rule->min_qty . ', ' . $rule->product_id . ')"><span class="icon dashicons dashicons-edit"></span>Edit</button>
                         <a href="' . admin_url('admin-post.php?action=b2b_delete_pricing_rule&id=' . $rule->id . '&_wpnonce=' . wp_create_nonce('b2b_delete_pricing_rule')) . '" class="b2b-admin-btn b2b-admin-btn-danger" style="padding: 6px 12px; font-size: 0.9em;" onclick="return confirm(\'Delete this pricing rule?\')"><span class="icon dashicons dashicons-trash"></span>Delete</a>
                     </td>
                 </tr>';
@@ -1093,6 +1285,7 @@ class AdminPanel {
             $type = sanitize_text_field($_POST['type']);
             $price = floatval($_POST['price']);
             $min_qty = intval($_POST['min_qty']);
+            $product_id = intval($_POST['product_id'] ?? 0);
 
             // Validate price
             if ($price == 0 && $type === 'percentage') {
@@ -1117,7 +1310,7 @@ class AdminPanel {
             }
 
             $data = array(
-                'product_id' => 0,
+                'product_id' => $product_id,
                 'role' => $role,
                 'user_id' => 0,
                 'group_id' => 0,
@@ -1130,12 +1323,23 @@ class AdminPanel {
                 'type' => $type
             );
 
-            $result = $wpdb->insert($table, $data);
+            // Check if this is an edit operation
+            $edit_rule_id = isset($_POST['edit_rule_id']) ? intval($_POST['edit_rule_id']) : 0;
+            
+            if ($edit_rule_id > 0) {
+                // Update existing rule
+                $result = $wpdb->update($table, $data, ['id' => $edit_rule_id]);
+                $message = 'Pricing rule updated successfully!';
+            } else {
+                // Insert new rule
+                $result = $wpdb->insert($table, $data);
+                $message = 'Pricing rule saved successfully!';
+            }
 
             if ($result === false) {
                 echo '<div class="notice notice-error"><p>Failed to save pricing rule. Database error: ' . esc_html($wpdb->last_error) . '</p></div>';
             } else {
-                echo '<div class="notice notice-success"><p>Pricing rule saved successfully!</p></div>';
+                echo '<div class="notice notice-success"><p>' . $message . '</p></div>';
             }
             
         } catch (Exception $e) {

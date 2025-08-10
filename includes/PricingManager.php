@@ -13,13 +13,16 @@ class PricingManager {
         add_action( 'admin_notices', [ $this, 'admin_notice_table_error' ] );
         // Commented out to avoid duplicate menu - using AdminPanel.php instead
         // add_action( 'admin_menu', [ $this, 'add_pricing_menu' ] );
-        add_filter( 'woocommerce_product_get_price', [ $this, 'apply_pricing_rules' ], 10, 2 );
-        add_filter( 'woocommerce_product_get_sale_price', [ $this, 'apply_pricing_rules' ], 10, 2 );
+        add_filter( 'woocommerce_product_get_price', [ $this, 'apply_pricing_rules' ], 5, 2 );
+        add_filter( 'woocommerce_product_get_sale_price', [ $this, 'apply_pricing_rules' ], 5, 2 );
+        add_filter( 'woocommerce_get_price_html', [ $this, 'apply_pricing_to_price_html' ], 5, 2 );
         add_action( 'woocommerce_before_calculate_totals', [ $this, 'enforce_min_max_quantity' ] );
         add_action( 'admin_post_b2b_save_pricing_rule', [ $this, 'save_pricing_rule' ] );
         add_action( 'admin_post_b2b_delete_pricing_rule', [ $this, 'delete_pricing_rule' ] );
         // Quote request system - handled by AdvancedFeatures.php
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_quote_scripts' ] );
+        // Enqueue B2B assets
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_b2b_assets' ] );
         // Price request system placeholder
         add_action( 'woocommerce_single_product_summary', [ $this, 'price_request_button' ], 35 );
 
@@ -34,21 +37,36 @@ class PricingManager {
         $charset_collate = $wpdb->get_charset_collate();
         $sql = "CREATE TABLE IF NOT EXISTS $table (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            product_id BIGINT UNSIGNED NOT NULL,
-            role VARCHAR(64),
-            user_id BIGINT UNSIGNED,
-            group_id BIGINT UNSIGNED,
-            geo_zone VARCHAR(64),
-            start_date DATE,
-            end_date DATE,
-            min_qty INT,
-            max_qty INT,
-            price DECIMAL(20,6),
-            type VARCHAR(32),
-            PRIMARY KEY (id)
+            product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            role VARCHAR(64) DEFAULT '',
+            user_id BIGINT UNSIGNED DEFAULT 0,
+            group_id BIGINT UNSIGNED DEFAULT 0,
+            geo_zone VARCHAR(64) DEFAULT '',
+            start_date DATE NULL,
+            end_date DATE NULL,
+            min_qty INT DEFAULT 1,
+            max_qty INT DEFAULT 0,
+            price DECIMAL(20,6) NOT NULL,
+            type VARCHAR(32) DEFAULT 'percentage',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY product_id (product_id),
+            KEY role (role),
+            KEY user_id (user_id),
+            KEY min_qty (min_qty)
         ) $charset_collate;";
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
         dbDelta( $sql );
+        
+        // Check if table was created successfully
+        $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+        if ($exists !== $table) {
+            error_log("B2B Commerce Pro: Failed to create pricing table: $table");
+            return false;
+        }
+        
+        return true;
     }
 
     // Self-healing: check and create table if missing
@@ -57,13 +75,13 @@ class PricingManager {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
         if ( $exists != $table ) {
-            self::create_pricing_table();
-            // Check again
-            $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
-            if ( $exists != $table ) {
+            $result = self::create_pricing_table();
+            if ( !$result ) {
                 update_option( 'b2b_pricing_table_error', 1 );
+                error_log("B2B Commerce Pro: Failed to create pricing table during self-healing");
             } else {
                 delete_option( 'b2b_pricing_table_error' );
+                error_log("B2B Commerce Pro: Successfully created pricing table during self-healing");
             }
         } else {
             delete_option( 'b2b_pricing_table_error' );
@@ -197,8 +215,14 @@ class PricingManager {
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         
-        // Query for rules for this product
-        $rules = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE product_id = %d", $product_id ) );
+        // Query product-specific rules AND global rules (product_id = 0)
+        // Global rules let the admin define role-based pricing that applies to every product
+        $rules = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table WHERE product_id = %d OR product_id = 0",
+                $product_id
+            )
+        );
         
         if (empty($rules)) {
             return $price; // No rules found, return original price
@@ -241,6 +265,12 @@ class PricingManager {
             if ( $rule_matches ) {
                 $rule_price = floatval($rule->price);
 
+                // Respect minimum quantity: on price display we only know quantity = 1
+                // So ignore rules that require a higher minimum
+                if ( isset($rule->min_qty) && intval($rule->min_qty) > 1 ) {
+                    continue;
+                }
+
                 // Handle percentage discounts (treat stored value as discount percent regardless of sign)
                 if ($rule->type === 'percentage') {
                     $discount_percentage = abs($rule_price);
@@ -263,21 +293,182 @@ class PricingManager {
         return $best_price;
     }
 
+    // Apply pricing rules to price HTML display
+    public function apply_pricing_to_price_html( $price_html, $product ) {
+        if ( ! is_user_logged_in() ) return $price_html;
+        
+        $user = wp_get_current_user();
+        $user_id = $user->ID;
+        $roles = $user->roles;
+        $product_id = $product->get_id();
+        
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        
+        // Query product-specific rules AND global rules (product_id = 0)
+        $rules = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table WHERE product_id = %d OR product_id = 0",
+                $product_id
+            )
+        );
+        
+        if (empty($rules)) {
+            return $price_html; // No rules found, return original price
+        }
+        
+        $original_price = (float) $product->get_price();
+        $best_price = $original_price;
+        $matched_rule = null;
+        
+        foreach ( $rules as $rule ) {
+            $rule_matches = true;
+            
+            // Check role
+            if ( $rule->role && ! empty($rule->role) && ! in_array( $rule->role, $roles ) ) {
+                $rule_matches = false;
+            }
+            
+            // Check user
+            if ( $rule->user_id && $rule->user_id != $user_id ) {
+                $rule_matches = false;
+            }
+            
+            // Check group
+            if ( $rule->group_id ) {
+                $user_groups = wp_get_object_terms( $user_id, 'b2b_user_group', [ 'fields' => 'ids' ] );
+                if ( ! in_array( $rule->group_id, $user_groups ) ) {
+                    $rule_matches = false;
+                }
+            }
+            
+            // Check time
+            $now = date( 'Y-m-d' );
+            if ( $rule->start_date && $now < $rule->start_date ) {
+                $rule_matches = false;
+            }
+            if ( $rule->end_date && $now > $rule->end_date ) {
+                $rule_matches = false;
+            }
+            
+            // For price display, only show base discounts (min_qty = 1)
+            // Higher quantity discounts will be shown in bulk calculator
+            if ( isset($rule->min_qty) && intval($rule->min_qty) > 1 ) {
+                continue;
+            }
+            
+            // If rule matches, apply it
+            if ( $rule_matches ) {
+                $rule_price = floatval($rule->price);
+
+                // Handle percentage discounts
+                if ($rule->type === 'percentage') {
+                    $discount_percentage = abs($rule_price);
+                    $rule_price = $original_price * (1 - ($discount_percentage / 100));
+                }
+                
+                // Use this rule if it's better than current best
+                if ( $rule_price < $best_price ) {
+                    $best_price = $rule_price;
+                    $matched_rule = $rule;
+                }
+            }
+        }
+        
+        // Debug logging
+        error_log("B2B Price HTML Debug: Product $product_id, User $user_id, Roles: " . implode(',', $roles) . ", Original: $original_price, Best: $best_price, Matched Rule: " . ($matched_rule ? $matched_rule->id : 'none'));
+        
+        // If we found a matching rule and the price is different, update the price HTML
+        if ( $matched_rule && $best_price < $original_price ) {
+            $discount_percentage = 0;
+            if ( $matched_rule->type === 'percentage' ) {
+                $discount_percentage = abs((float) $matched_rule->price);
+            }
+            
+            // Create new price HTML with discount
+            $new_price_html = '<span class="price">';
+            $new_price_html .= '<del><span class="woocommerce-Price-amount amount">' . wc_price($original_price) . '</span></del> ';
+            $new_price_html .= '<ins><span class="woocommerce-Price-amount amount">' . wc_price($best_price) . '</span></ins>';
+            if ( $discount_percentage > 0 ) {
+                $new_price_html .= ' <span class="b2b-discount-badge">(' . $discount_percentage . '% off)</span>';
+            }
+            $new_price_html .= '</span>';
+            
+            return $new_price_html;
+        }
+        
+        return $price_html;
+    }
+
     // Enforce min/max quantity in cart
     public function enforce_min_max_quantity( $cart ) {
         if ( is_admin() ) return;
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
+
+        $user = wp_get_current_user();
+        $roles = (array) ($user->roles ?? []);
+        $user_id = (int) ($user->ID ?? 0);
+
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
+            $product    = $cart_item['data'];
             $product_id = $cart_item['product_id'];
-            $rules = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE product_id = %d", $product_id ) );
+            $quantity   = (int) $cart_item['quantity'];
+
+            // Pull both product-specific and global rules
+            $rules = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM $table WHERE product_id = %d OR product_id = 0",
+                    $product_id
+                )
+            );
+
+            // Enforce min/max and determine best price for current quantity
+            $original_price = $product->get_regular_price();
+            if ($original_price === '') {
+                $original_price = $product->get_price();
+            }
+            $original_price = (float) $original_price;
+            $best_price = $original_price;
+
             foreach ( $rules as $rule ) {
-                if ( $rule->min_qty && $cart_item['quantity'] < $rule->min_qty ) {
+                // Enforce min/max messages
+                if ( $rule->min_qty && $quantity < $rule->min_qty ) {
                     wc_add_notice( 'Minimum quantity for this product is ' . $rule->min_qty, 'error' );
                 }
-                if ( $rule->max_qty && $cart_item['quantity'] > $rule->max_qty ) {
+                if ( $rule->max_qty && $quantity > $rule->max_qty ) {
                     wc_add_notice( 'Maximum quantity for this product is ' . $rule->max_qty, 'error' );
                 }
+
+                // Check matching conditions
+                $matches = true;
+                if ( $rule->role && !in_array( $rule->role, $roles, true ) ) {
+                    $matches = false;
+                }
+                if ( $rule->user_id && (int)$rule->user_id !== $user_id ) {
+                    $matches = false;
+                }
+                if ( $rule->min_qty && $quantity < (int)$rule->min_qty ) {
+                    $matches = false;
+                }
+                $now = date('Y-m-d');
+                if ( $rule->start_date && $now < $rule->start_date ) { $matches = false; }
+                if ( $rule->end_date && $now > $rule->end_date ) { $matches = false; }
+                if ( ! $matches ) { continue; }
+
+                $candidate = (float)$rule->price;
+                if ( $rule->type === 'percentage' ) {
+                    $discount_percentage = abs( $candidate );
+                    $candidate = $original_price * ( 1 - ( $discount_percentage / 100 ) );
+                }
+                if ( $candidate < $best_price ) {
+                    $best_price = max( 0, $candidate );
+                }
+            }
+
+            // Apply best price for this cart item and quantity
+            if ( $best_price !== $original_price ) {
+                $product->set_price( $best_price );
             }
         }
     }
@@ -330,7 +521,16 @@ class PricingManager {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('b2b_quote_request'),
         ]);
-        wp_enqueue_style('b2b-quote-style', B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css', [], B2B_COMMERCE_PRO_VERSION);
+    }
+    
+    // Enqueue B2B styles and scripts
+    public function enqueue_b2b_assets() {
+        wp_enqueue_style('b2b-commerce-pro', B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css', [], B2B_COMMERCE_PRO_VERSION);
+        wp_enqueue_script('b2b-commerce-pro', B2B_COMMERCE_PRO_URL . 'assets/js/b2b-commerce-pro.js', ['jquery'], B2B_COMMERCE_PRO_VERSION, true);
+        wp_localize_script('b2b-commerce-pro', 'b2b_ajax', [
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('b2b_ajax_nonce')
+        ]);
     }
 
     // Price request button and modal
@@ -386,13 +586,26 @@ class PricingManager {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $product_id = get_the_ID();
         $user_id = get_current_user_id();
-        $user_roles = wp_get_current_user()->roles;
+        $user_roles = is_user_logged_in() ? (array) wp_get_current_user()->roles : [];
         
         // Get tiered pricing rules for this product and user
-        $rules = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND (user_id = %d OR role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")) ORDER BY min_qty ASC",
-            array_merge([$product_id, $user_id], $user_roles)
-        ));
+        if (empty($user_roles)) {
+            // Guests or users without roles: only match generic rules (user_id = 0)
+                    $rules = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND user_id = 0 ORDER BY product_id DESC, min_qty ASC",
+                $product_id
+            )
+        );
+        } else {
+            $placeholders = implode(',', array_fill(0, count($user_roles), '%s'));
+            $rules = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND (user_id = %d OR role IN ($placeholders)) ORDER BY product_id DESC, min_qty ASC",
+                    array_merge([$product_id, $user_id], $user_roles)
+                )
+            );
+        }
         
         if (empty($rules)) return '';
         
@@ -403,14 +616,29 @@ class PricingManager {
         
         foreach ($rules as $rule) {
             $original_price = (float) get_post_meta($product_id, '_price', true);
-            $display_price = $rule->type === 'percentage' ? $original_price * (1 - (abs($rule->price)/100)) : (float) $rule->price;
-            $savings = max(0, $original_price - $display_price);
-            $savings_percent = $original_price > 0 ? ($savings / $original_price) * 100 : 0;
+            
+            if ($rule->type === 'percentage') {
+                $display_price = $original_price * (1 - (abs($rule->price)/100));
+                $savings = max(0, $original_price - $display_price);
+                $savings_percent = $original_price > 0 ? ($savings / $original_price) * 100 : 0;
+                $savings_display = sprintf('%.1f%%', $savings_percent);
+            } else {
+                // Fixed pricing
+                $display_price = (float) $rule->price;
+                $savings = $original_price - $display_price;
+                if ($savings > 0) {
+                    $savings_display = wc_price($savings) . ' off';
+                } elseif ($savings < 0) {
+                    $savings_display = wc_price(abs($savings)) . ' more';
+                } else {
+                    $savings_display = 'Same price';
+                }
+            }
             
             $output .= '<tr>';
             $output .= '<td>' . esc_html($rule->min_qty) . '+' . '</td>';
             $output .= '<td>' . wc_price($display_price) . '</td>';
-            $output .= '<td>' . sprintf('%.1f%%', $savings_percent) . '</td>';
+            $output .= '<td>' . $savings_display . '</td>';
             $output .= '</tr>';
         }
         
@@ -427,7 +655,7 @@ class PricingManager {
         if (empty($user_roles)) return '';
         
         $rules = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")",
+            "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ") ORDER BY product_id DESC",
             array_merge([$product_id], $user_roles)
         ));
         
@@ -438,7 +666,11 @@ class PricingManager {
         $output .= '<ul>';
         
         foreach ($rules as $rule) {
-            $label = $rule->type === 'percentage' ? (abs($rule->price) . '% ' . __('discount','b2b-commerce-pro')) : wc_price($rule->price);
+            if ($rule->type === 'percentage') {
+                $label = abs($rule->price) . '% ' . __('discount','b2b-commerce-pro');
+            } else {
+                $label = wc_price($rule->price) . ' per unit';
+            }
             $output .= '<li>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . ': ' . $label . '</li>';
         }
         
@@ -455,7 +687,7 @@ class PricingManager {
         if (!$user_id) return '';
         
         $rule = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND user_id = %d LIMIT 1",
+            "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND user_id = %d ORDER BY product_id DESC LIMIT 1",
             $product_id, $user_id
         ));
         
@@ -479,7 +711,7 @@ class PricingManager {
         if (!$user_country) return '';
         
         $rule = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND geo_zone = %s LIMIT 1",
+            "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND geo_zone = %s ORDER BY product_id DESC LIMIT 1",
             $product_id, $user_country
         ));
         
@@ -500,7 +732,7 @@ class PricingManager {
         $current_date = current_time('Y-m-d');
         
         $rule = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table WHERE product_id = %d AND start_date <= %s AND end_date >= %s LIMIT 1",
+            "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND start_date <= %s AND end_date >= %s ORDER BY product_id DESC LIMIT 1",
             $product_id, $current_date, $current_date
         ));
         
@@ -527,12 +759,24 @@ class PricingManager {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $product_id = get_the_ID();
         $user_id = get_current_user_id();
-        $user_roles = wp_get_current_user()->roles;
+        $user_roles = is_user_logged_in() ? (array) wp_get_current_user()->roles : [];
         
-        $rule = $wpdb->get_row($wpdb->prepare(
-            "SELECT min_qty, max_qty FROM $table WHERE product_id = %d AND (user_id = %d OR role IN (" . implode(',', array_fill(0, count($user_roles), '%s')) . ")) ORDER BY min_qty ASC LIMIT 1",
-            array_merge([$product_id, $user_id], $user_roles)
-        ));
+        if (empty($user_roles)) {
+            $rule = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT min_qty, max_qty FROM $table WHERE (product_id = %d OR product_id = 0) AND user_id = 0 ORDER BY product_id DESC, min_qty ASC LIMIT 1",
+                    $product_id
+                )
+            );
+        } else {
+            $placeholders = implode(',', array_fill(0, count($user_roles), '%s'));
+            $rule = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT min_qty, max_qty FROM $table WHERE (product_id = %d OR product_id = 0) AND (user_id = %d OR role IN ($placeholders)) ORDER BY product_id DESC, min_qty ASC LIMIT 1",
+                    array_merge([$product_id, $user_id], $user_roles)
+                )
+            );
+        }
         
         if (!$rule) return '';
         

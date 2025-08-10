@@ -45,6 +45,15 @@ function autoload_b2b_commerce_pro() {
 add_action( 'plugins_loaded', function() {
     // i18n support
     load_plugin_textdomain( 'b2b-commerce-pro', false, dirname( B2B_COMMERCE_PRO_BASENAME ) . '/languages' );
+    
+    // Ensure WooCommerce is active
+    if ( !class_exists( 'WooCommerce' ) ) {
+        add_action( 'admin_notices', function() {
+            echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> WooCommerce is required for this plugin to work.</p></div>';
+        });
+        return;
+    }
+    
     // Check if required classes exist before initializing
     if ( class_exists( 'B2B\\Init' ) ) {
         try {
@@ -58,6 +67,11 @@ add_action( 'plugins_loaded', function() {
         add_action( 'admin_notices', function() {
             echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> Required classes not found. Please reinstall the plugin.</p></div>';
         });
+    }
+    
+    // Ensure pricing table exists
+    if ( class_exists( 'B2B\\PricingManager' ) ) {
+        B2B\PricingManager::create_pricing_table();
     }
 } );
 

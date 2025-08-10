@@ -13,6 +13,11 @@ class ProductManager {
         add_action( 'template_redirect', [ $this, 'maybe_block_product_page' ] );
         // Admin assets for nicer UI (Select2/SelectWoo if available)
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+        // Prevent adding restricted products to cart
+        add_filter( 'woocommerce_add_to_cart_validation', [ $this, 'validate_add_to_cart_visibility' ], 10, 5 );
+        // De-duplicate noisy removal notices across the site (after cart session loads and on cart checks)
+        add_action( 'woocommerce_check_cart_items', [ $this, 'dedupe_removed_notices' ], 1000 );
+        add_action( 'woocommerce_cart_loaded_from_session', [ $this, 'dedupe_removed_notices' ], 1000 );
         add_filter( 'woocommerce_product_query_meta_query', [ $this, 'filter_product_query_visibility' ] );
         // Category restrictions
         add_action( 'product_cat_add_form_fields', [ $this, 'add_category_restriction_fields' ] );
@@ -30,6 +35,10 @@ class ProductManager {
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_bulk_order_scripts' ] );
         // Note: b2b_bulk_product_search AJAX handlers are in main plugin file
         add_action( 'wp_loaded', [ $this, 'handle_bulk_order_form' ] );
+
+        // Suppress WooCommerce's per-item removal message for non-purchasable items;
+        // we show a single consolidated notice instead.
+        add_filter( 'woocommerce_cart_item_removed_message', [ $this, 'suppress_wc_removed_message' ], 10, 2 );
     }
 
     // Add product visibility and wholesale-only fields
@@ -157,6 +166,10 @@ class ProductManager {
     }
 
     private function is_user_allowed_for_product( $product_id ) {
+        // Admins/store managers can always view for preview/management
+        if ( current_user_can( 'manage_options' ) || current_user_can( 'manage_woocommerce' ) || current_user_can( 'edit_products' ) ) {
+            return true;
+        }
         $roles = (array) ( wp_get_current_user()->roles ?? [] );
         $groups = wp_get_object_terms( get_current_user_id(), 'b2b_user_group', [ 'fields' => 'ids' ] );
         $allowed_roles = array_filter( array_map( 'trim', explode( ',', (string) get_post_meta( $product_id, '_b2b_visible_roles', true ) ) ) );
@@ -175,6 +188,54 @@ class ProductManager {
         // Try to enqueue selectWoo/select2 if available (no harm if already loaded)
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
+    }
+
+    // Block adding restricted products to cart
+    public function validate_add_to_cart_visibility( $passed, $product_id, $quantity, $variation_id = 0, $variations = [] ) {
+        if ( ! $this->is_user_allowed_for_product( $product_id ) ) {
+            wc_add_notice( __( 'This product is not available for your account.', 'b2b-commerce-pro' ), 'error' );
+            return false;
+        }
+        return $passed;
+    }
+
+    // Reduce repeated cart removal notices to a single line
+    public function dedupe_removed_notices() {
+        if ( ! function_exists( 'wc_get_notices' ) ) return;
+        $all = wc_get_notices();
+        if ( empty( $all ) || empty( $all['error'] ) ) return;
+        $error_notices = $all['error'];
+        $pattern = 'has been removed from your cart because it can no longer be purchased';
+        $kept = [];
+        $removed_count = 0;
+        foreach ( $error_notices as $item ) {
+            $text = is_array( $item ) && isset( $item['notice'] ) ? (string) $item['notice'] : (string) $item;
+            if ( strpos( $text, $pattern ) !== false ) {
+                $removed_count++;
+                continue;
+            }
+            $kept[] = $item;
+        }
+        if ( $removed_count > 0 ) {
+            // Rebuild notices without the spammy ones
+            wc_clear_notices();
+            // Re-add kept errors
+            foreach ( $kept as $item ) {
+                $text = is_array( $item ) && isset( $item['notice'] ) ? (string) $item['notice'] : (string) $item;
+                wc_add_notice( $text, 'error' );
+            }
+            // Add a single summary message
+            wc_add_notice( __( 'Some items were removed from your cart because they are not purchasable for your account.', 'b2b-commerce-pro' ), 'notice' );
+        }
+    }
+
+    // Only suppress the stock WC message that matches the non-purchasable pattern
+    public function suppress_wc_removed_message( $message, $product ) {
+        $pattern = 'has been removed from your cart because it can no longer be purchased';
+        if ( is_string( $message ) && strpos( $message, $pattern ) !== false ) {
+            return '';
+        }
+        return $message;
     }
 
     // Filter product queries for visibility

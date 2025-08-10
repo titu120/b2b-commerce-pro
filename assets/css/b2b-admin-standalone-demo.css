@@ -250,6 +250,9 @@
     background: #ffffff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+.b2b-admin-card  .b2b-admin-table tbody tr td:last-child {
+   text-align: left !important;
+}
 
 /* Enhanced select field styling for better visibility */
 .b2b-admin-form-group select,
