@@ -934,6 +934,11 @@ class AdminPanel {
             $this->save_pricing_rule();
         }
         
+        // Show success message if redirected after update
+        if (isset($_GET['updated']) && $_GET['updated'] == '1') {
+            $content = '<div class="notice notice-success"><p>Pricing rule updated successfully!</p></div>';
+        }
+        
         $content = '
 <div class="b2b-admin-header">
     <h1><span class="icon dashicons dashicons-tag"></span>B2B Pricing Management</h1>
@@ -1017,9 +1022,8 @@ class AdminPanel {
             <span class="b2b-modal-close" onclick="closeEditModal()">&times;</span>
         </div>
         <form method="post" action="">
-            <input type="hidden" name="action" value="b2b_save_pricing_rule">
             <input type="hidden" name="edit_rule_id" id="edit_rule_id" value="">
-            ' . wp_nonce_field('b2b_save_pricing_rule', '_wpnonce', true, false) . '
+            ' . wp_nonce_field('b2b_pricing_action', 'b2b_pricing_nonce', true, false) . '
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="b2b-admin-form-group">
@@ -1027,8 +1031,8 @@ class AdminPanel {
                     <select name="role" id="edit_role" required>
                         <option value="">Choose customer type</option>
                         <option value="wholesale_customer">Wholesale Customer</option>
-                        <option value="retail_customer">Retail Customer</option>
-                        <option value="vip_customer">VIP Customer</option>
+                        <option value="distributor">Distributor</option>
+                        <option value="retailer">Retailer</option>
                     </select>
                 </div>
                 
@@ -1330,6 +1334,9 @@ window.onclick = function(event) {
                 // Update existing rule
                 $result = $wpdb->update($table, $data, ['id' => $edit_rule_id]);
                 $message = 'Pricing rule updated successfully!';
+                
+                // Debug: Log the update
+                error_log("B2B Pricing: Updated rule ID $edit_rule_id with price $price");
             } else {
                 // Insert new rule
                 $result = $wpdb->insert($table, $data);
@@ -1339,7 +1346,9 @@ window.onclick = function(event) {
             if ($result === false) {
                 echo '<div class="notice notice-error"><p>Failed to save pricing rule. Database error: ' . esc_html($wpdb->last_error) . '</p></div>';
             } else {
-                echo '<div class="notice notice-success"><p>' . $message . '</p></div>';
+                // Redirect with success message
+                wp_redirect(admin_url('admin.php?page=b2b-pricing&updated=1'));
+                exit;
             }
             
         } catch (Exception $e) {

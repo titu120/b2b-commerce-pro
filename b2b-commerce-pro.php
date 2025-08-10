@@ -23,8 +23,6 @@ define( 'B2B_COMMERCE_PRO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'B2B_COMMERCE_PRO_URL', plugin_dir_url( __FILE__ ) );
 define( 'B2B_COMMERCE_PRO_BASENAME', plugin_basename( __FILE__ ) );
 
-autoload_b2b_commerce_pro();
-
 function autoload_b2b_commerce_pro() {
     spl_autoload_register( function ( $class ) {
         $prefix = 'B2B\\';
@@ -40,6 +38,9 @@ function autoload_b2b_commerce_pro() {
         }
     } );
 }
+
+// Register the autoloader
+autoload_b2b_commerce_pro();
 
 // Bootstrap the plugin and load text domain
 add_action( 'plugins_loaded', function() {
@@ -78,6 +79,9 @@ add_action( 'plugins_loaded', function() {
 // Register activation and deactivation hooks
 register_activation_hook( __FILE__, function() {
     try {
+        // Load autoloader first
+        autoload_b2b_commerce_pro();
+        
         // Create pricing table
         if ( class_exists( 'B2B\\PricingManager' ) ) {
             B2B\PricingManager::create_pricing_table();
@@ -94,6 +98,9 @@ register_activation_hook( __FILE__, function() {
 
 register_deactivation_hook( __FILE__, function() {
     try {
+        // Load autoloader first
+        autoload_b2b_commerce_pro();
+        
         if ( class_exists( 'B2B\\UserManager' ) ) {
             B2B\UserManager::remove_roles();
         }
