@@ -748,3 +748,24 @@ select[name="bulk-action-selector"]:focus {
     color: #dee2e6;
     margin-bottom: 20px;
 } 
+
+td.actions-cell {
+    display: flex;
+    flex-direction: column;
+    gap:5px
+}
+
+td.actions-cell button {
+    background: #2196f3;
+    padding: 5px;
+    border-radius: 5px;
+    color: #fff
+}
+
+td.actions-cell span.b2b-status-badge.b2b-status-closed {
+    background: #2196f3;
+    padding: 5px;
+    border-radius: 5px;
+    color: #fff;
+    text-align: center;
+}

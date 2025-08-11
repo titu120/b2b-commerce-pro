@@ -1114,3 +1114,273 @@
         padding: 8px;
     }
 } 
+
+/* ===== MODAL STYLES ===== */
+.b2b-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.b2b-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.b2b-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    cursor: pointer;
+}
+
+.b2b-modal-close:hover,
+.b2b-modal-close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.b2b-modal h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.5em;
+}
+
+.b2b-modal label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.b2b-modal textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 120px;
+}
+
+.b2b-modal textarea:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 2px rgba(0,124,186,0.2);
+}
+
+.b2b-modal button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #007cba;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.b2b-modal button:hover {
+    background: #005a87;
+}
+
+/* ===== INQUIRY BUTTON STYLES ===== */
+.b2b-respond-btn,
+.b2b-close-btn,
+.b2b-view-response-btn,
+.b2b-delete-btn {
+    display: block !important;
+    background: #007cba !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin: 3px 0 !important;
+    line-height: 1.2 !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+}
+
+.b2b-respond-btn {
+    background: #007cba !important;
+}
+
+.b2b-respond-btn:hover {
+    background: #005a87 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.b2b-close-btn {
+    background: #dc3545 !important;
+}
+
+.b2b-close-btn:hover {
+    background: #c82333 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.b2b-view-response-btn {
+    background: #17a2b8 !important;
+}
+
+.b2b-view-response-btn:hover {
+    background: #138496 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.b2b-delete-btn {
+    background: #dc3545 !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin: 3px 0 !important;
+    line-height: 1.2 !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+}
+
+.b2b-delete-btn:hover {
+    background: #c82333 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+/* ===== ACTIONS COLUMN STYLING ===== */
+.b2b-admin-table td:last-child {
+    white-space: nowrap !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    min-width: 120px !important;
+    max-width: 140px !important;
+}
+
+.b2b-admin-table .actions-cell {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 6px !important;
+}
+
+/* ===== MESSAGE COLUMN STYLING ===== */
+.b2b-admin-table td:nth-child(4) {
+    max-width: 400px !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+}
+
+.b2b-admin-table td:nth-child(4) .message-content {
+    max-height: none !important;
+    overflow: visible !important;
+    line-height: 1.4 !important;
+    padding: 4px 0 !important;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .b2b-respond-btn,
+    .b2b-close-btn,
+    .b2b-view-response-btn,
+    .b2b-delete-btn {
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        width: 100% !important;
+    }
+    
+    .b2b-admin-table .actions-cell {
+        gap: 3px !important;
+        padding: 6px 4px !important;
+    }
+    
+    .b2b-admin-table td:last-child {
+        min-width: 100px !important;
+    }
+    
+    .b2b-admin-table td:nth-child(4) {
+        max-width: 250px !important;
+    }
+}
+
+/* ===== NAVIGATION BADGE STYLES ===== */
+.b2b-nav-badge {
+    background: #ff4444;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: bold;
+    margin-left: auto;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.b2b-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ===== STATUS BADGE STYLES ===== */
+.b2b-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #fff;
+    margin: 2px 3px;
+    text-align: center;
+    min-width: 60px;
+}
+
+.b2b-status-responded {
+    background: #28a745;
+}
+
+.b2b-status-closed {
+    background: #6c757d;
+}
+
+.b2b-status-pending {
+    background: #ffc107;
+    color: #212529;
+}

@@ -9,6 +9,8 @@ class AdminPanel {
         add_action( 'admin_notices', [ $this, 'show_admin_notifications' ] );
         add_action( 'wp_ajax_b2b_dismiss_notification', [ $this, 'dismiss_notification' ] );
         add_action( 'admin_post_b2b_update_quote', [ $this, 'handle_update_quote' ] );
+        add_action( 'admin_post_b2b_update_inquiry', [ $this, 'handle_update_inquiry' ] );
+        add_action( 'admin_post_b2b_delete_inquiry', [ $this, 'handle_delete_inquiry' ] );
     }
 
     // Add main admin menu and submenus
@@ -70,6 +72,16 @@ class AdminPanel {
             'manage_options',
             'b2b-quotes',
             [ $this, 'quotes_page' ]
+        );
+        
+        // Product Inquiries Management
+        add_submenu_page(
+            'b2b-dashboard',
+            'Product Inquiries',
+            'Product Inquiries',
+            'manage_options',
+            'b2b-inquiries',
+            [ $this, 'inquiries_page' ]
         );
          
 
@@ -172,32 +184,56 @@ class AdminPanel {
         
         // Unified Navigation Menu
         echo '<div class="b2b-nav-menu">';
+        
+        // Get notification counts
+        $quotes = get_option('b2b_quote_requests', []);
+        $inquiries = get_option('b2b_product_inquiries', []);
+        $pending_quotes = 0;
+        $pending_inquiries = 0;
+        
+        foreach ($quotes as $quote) {
+            if (($quote['status'] ?? 'pending') === 'pending') {
+                $pending_quotes++;
+            }
+        }
+        
+        foreach ($inquiries as $inquiry) {
+            if (($inquiry['status'] ?? 'pending') === 'pending') {
+                $pending_inquiries++;
+            }
+        }
+        
         // Keep this list in sync with the WP admin submenu for consistency
         $menu_items = [
-            'b2b-dashboard' => ['Dashboard', 'dashicons-chart-area'],
-            'b2b-users' => ['User Management', 'dashicons-groups'],
-            'b2b-add-user' => ['Add B2B User', 'dashicons-plus'],
-            'b2b-pricing' => ['Pricing Rules', 'dashicons-tag'],
-            'b2b-orders' => ['Order Management', 'dashicons-cart'],
-            'b2b-quotes' => ['Quotes', 'dashicons-email-alt'],
-            'b2b-settings' => ['Settings', 'dashicons-admin-generic'],
-            'b2b-catalog' => ['Catalog Mode', 'dashicons-visibility'],
-            'b2b-checkout-controls' => ['Checkout Controls', 'dashicons-admin-settings'],
-            'b2b-vat' => ['VAT Settings', 'dashicons-universal-access-alt'],
-            'b2b-emails' => ['Email Templates', 'dashicons-email'],
-            'b2b-analytics' => ['Analytics', 'dashicons-chart-line'],
-            'b2b-import-export' => ['Import/Export', 'dashicons-upload'],
-            'b2b-test' => ['System Test', 'dashicons-admin-tools'],
+            'b2b-dashboard' => ['Dashboard', 'dashicons-chart-area', 0],
+            'b2b-users' => ['User Management', 'dashicons-groups', 0],
+            'b2b-add-user' => ['Add B2B User', 'dashicons-plus', 0],
+            'b2b-pricing' => ['Pricing Rules', 'dashicons-tag', 0],
+            'b2b-orders' => ['Order Management', 'dashicons-cart', 0],
+            'b2b-quotes' => ['Quotes', 'dashicons-email-alt', $pending_quotes],
+            'b2b-inquiries' => ['Product Inquiries', 'dashicons-format-chat', $pending_inquiries],
+            'b2b-settings' => ['Settings', 'dashicons-admin-generic', 0],
+            'b2b-catalog' => ['Catalog Mode', 'dashicons-visibility', 0],
+            'b2b-checkout-controls' => ['Checkout Controls', 'dashicons-admin-settings', 0],
+            'b2b-vat' => ['VAT Settings', 'dashicons-universal-access-alt', 0],
+            'b2b-emails' => ['Email Templates', 'dashicons-email', 0],
+            'b2b-analytics' => ['Analytics', 'dashicons-chart-line', 0],
+            'b2b-import-export' => ['Import/Export', 'dashicons-upload', 0],
+            'b2b-test' => ['System Test', 'dashicons-admin-tools', 0],
         ];
         
         foreach ($menu_items as $page => $item) {
             $is_active = ($current_page === $page) ? 'active' : '';
             $icon = $item[1];
             $title = $item[0];
+            $badge_count = $item[2];
             
             echo '<a href="' . esc_url( admin_url('admin.php?page=' . $page) ) . '" class="b2b-nav-item ' . $is_active . '">';
             echo '<span class="dashicons ' . $icon . '"></span>';
             echo '<span>' . $title . '</span>';
+            if ($badge_count > 0) {
+                echo '<span class="b2b-nav-badge">' . $badge_count . '</span>';
+            }
             echo '</a>';
         }
         echo '</div>';
@@ -277,6 +313,24 @@ class AdminPanel {
         $roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
         foreach ($roles as $role) {
             $role_breakdown[$role] = count(get_users(['role' => $role]));
+        }
+        
+        // Get quotes and inquiries counts
+        $quotes = get_option('b2b_quote_requests', []);
+        $inquiries = get_option('b2b_product_inquiries', []);
+        $pending_quotes = 0;
+        $pending_inquiries = 0;
+        
+        foreach ($quotes as $quote) {
+            if (($quote['status'] ?? 'pending') === 'pending') {
+                $pending_quotes++;
+            }
+        }
+        
+        foreach ($inquiries as $inquiry) {
+            if (($inquiry['status'] ?? 'pending') === 'pending') {
+                $pending_inquiries++;
+            }
         }
         
         $content = '
@@ -373,6 +427,26 @@ class AdminPanel {
             <span class="dashicons dashicons-tag" style="font-size: 2em; color: #2196f3;"></span>
         </div>
     </div>
+    
+    <div class="b2b-admin-card">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0; color: #666; font-size: 0.9em;">Pending Quotes</h3>
+                <p style="margin: 5px 0 0 0; font-size: 1.5em; font-weight: bold; color: #ff9800;">' . $pending_quotes . '</p>
+            </div>
+            <span class="dashicons dashicons-email-alt" style="font-size: 2em; color: #ff9800;"></span>
+        </div>
+    </div>
+    
+    <div class="b2b-admin-card">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0; color: #666; font-size: 0.9em;">Pending Inquiries</h3>
+                <p style="margin: 5px 0 0 0; font-size: 1.5em; font-weight: bold; color: #e91e63;">' . $pending_inquiries . '</p>
+            </div>
+            <span class="dashicons dashicons-format-chat" style="font-size: 2em; color: #e91e63;"></span>
+        </div>
+    </div>
 </div>
 
 <!-- Quick Actions -->
@@ -383,6 +457,8 @@ class AdminPanel {
         <a href="' . admin_url('admin.php?page=b2b-add-user') . '" class="b2b-admin-btn b2b-admin-btn-success"><span class="icon dashicons dashicons-plus"></span>Add New User</a>
         <a href="' . admin_url('admin.php?page=b2b-orders') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-cart"></span>View Orders</a>
         <a href="' . admin_url('admin.php?page=b2b-pricing') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-tag"></span>B2B Pricing</a>
+        <a href="' . admin_url('admin.php?page=b2b-quotes') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-email-alt"></span>Manage Quotes</a>
+        <a href="' . admin_url('admin.php?page=b2b-inquiries') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-format-chat"></span>Product Inquiries</a>
         <a href="' . admin_url('admin.php?page=b2b-emails') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-email"></span>Email Templates</a>
         <a href="' . admin_url('admin.php?page=b2b-settings') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-admin-generic"></span>Settings</a>
         <a href="' . admin_url('admin.php?page=b2b-analytics') . '" class="b2b-admin-btn"><span class="icon dashicons dashicons-chart-line"></span>Analytics</a>
@@ -1709,6 +1785,141 @@ Best regards,
         $this->render_admin_wrapper('b2b-quotes', $content);
     }
 
+    // Product Inquiries admin list
+    public function inquiries_page() {
+        if (!current_user_can('manage_options')) return;
+        $inquiries = get_option('b2b_product_inquiries', []);
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-format-chat"></span>Product Inquiries</h1><p>Manage incoming product inquiries.</p></div>';
+        $content .= '<div class="b2b-admin-card">';
+        if (empty($inquiries)) {
+            $content .= '<p>No product inquiries found.</p>';
+        } else {
+            $content .= '<table class="b2b-admin-table"><thead><tr><th style="width: 120px;">Date</th><th style="width: 180px;">Email</th><th style="width: 150px;">Product</th><th style="width: 400px;">Message</th><th style="width: 100px;">Status</th><th style="width: 120px; text-align: center;">Actions</th></tr></thead><tbody>';
+            foreach ($inquiries as $index => $inquiry) {
+                $product = function_exists('wc_get_product') ? wc_get_product($inquiry['product_id']) : null;
+                $content .= '<tr>';
+                $content .= '<td>' . esc_html($inquiry['date'] ?? '') . '</td>';
+                $content .= '<td>' . esc_html($inquiry['email'] ?? '') . '</td>';
+                $content .= '<td>' . esc_html($product ? $product->get_name() : ('#' . ($inquiry['product_id'] ?? ''))) . '</td>';
+                $content .= '<td><div class="message-content">' . esc_html($inquiry['message'] ?? '') . '</div></td>';
+                $status = $inquiry['status'] ?? 'pending';
+                $status_class = 'b2b-status-' . $status;
+                $content .= '<td><span class="b2b-status-badge ' . $status_class . '">' . esc_html(ucfirst($status)) . '</span></td>';
+                $content .= '<td class="actions-cell">';
+                if (($inquiry['status'] ?? 'pending') === 'pending') {
+                    $content .= '<button type="button" class="b2b-respond-btn" data-index="' . $index . '">Respond</button>';
+                    $content .= '<button type="button" class="b2b-close-btn" data-index="' . $index . '">Close</button>';
+                } elseif (($inquiry['status'] ?? 'pending') === 'responded') {
+                    $content .= '<button type="button" class="b2b-view-response-btn" data-index="' . $index . '" data-response="' . esc_attr($inquiry['admin_response'] ?? '') . '" data-responded-date="' . esc_attr($inquiry['responded_date'] ?? '') . '" data-responded-by="' . esc_attr(get_userdata($inquiry['responded_by'] ?? 0)->display_name ?? 'Admin') . '">View Response</button>';
+                    $content .= '<button type="button" class="b2b-close-btn" data-index="' . $index . '">Close</button>';
+                } elseif (($inquiry['status'] ?? 'pending') === 'closed') {
+                    $content .= '<button type="button" class="b2b-view-response-btn" data-index="' . $index . '" data-response="' . esc_attr($inquiry['admin_response'] ?? '') . '" data-responded-date="' . esc_attr($inquiry['responded_date'] ?? '') . '" data-responded-by="' . esc_attr(get_userdata($inquiry['responded_by'] ?? 0)->display_name ?? 'Admin') . '">View Response</button>';
+                    $content .= '<span class="b2b-status-badge b2b-status-closed">Closed</span>';
+                }
+                
+                // Add delete button for all inquiries
+                $content .= '<button type="button" class="b2b-delete-btn" data-index="' . $index . '">Delete</button>';
+                $content .= '</td>';
+                $content .= '</tr>';
+            }
+            $content .= '</tbody></table>';
+        }
+        $content .= '</div>';
+        
+        // Add response modal
+        $content .= '<div id="b2b-response-modal" style="display:none;" class="b2b-modal">';
+        $content .= '<div class="b2b-modal-content">';
+        $content .= '<span class="b2b-modal-close">&times;</span>';
+        $content .= '<h3>Respond to Inquiry</h3>';
+        $content .= '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        $content .= '<input type="hidden" name="action" value="b2b_update_inquiry">';
+        $content .= wp_nonce_field('b2b_update_inquiry', '_wpnonce', true, false);
+        $content .= '<input type="hidden" name="inquiry_index" id="inquiry_index">';
+        $content .= '<input type="hidden" name="status" id="inquiry_status" value="responded">';
+        $content .= '<p><label>Your Response:<br><textarea name="admin_response" rows="5" style="width:100%;" required></textarea></label></p>';
+        $content .= '<p><button type="submit" class="b2b-admin-btn">Send Response</button></p>';
+        $content .= '</form>';
+        $content .= '</div>';
+        $content .= '</div>';
+        
+        // Add view response modal
+        $content .= '<div id="b2b-view-response-modal" style="display:none;" class="b2b-modal">';
+        $content .= '<div class="b2b-modal-content">';
+        $content .= '<span class="b2b-modal-close">&times;</span>';
+        $content .= '<h3>View Response</h3>';
+        $content .= '<div id="response-content" style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;"></div>';
+        $content .= '<p><button type="button" class="b2b-admin-btn" onclick="$(\'#b2b-view-response-modal\').hide();">Close</button></p>';
+        $content .= '</div>';
+        $content .= '</div>';
+        
+        // Add delete confirmation modal
+        $content .= '<div id="b2b-delete-modal" style="display:none;" class="b2b-modal">';
+        $content .= '<div class="b2b-modal-content">';
+        $content .= '<span class="b2b-modal-close">&times;</span>';
+        $content .= '<h3>Delete Inquiry</h3>';
+        $content .= '<p>Are you sure you want to delete this inquiry? This action cannot be undone.</p>';
+        $content .= '<form method="post" action="' . admin_url('admin-post.php') . '">';
+        $content .= '<input type="hidden" name="action" value="b2b_delete_inquiry">';
+        $content .= wp_nonce_field('b2b_delete_inquiry', '_wpnonce', true, false);
+        $content .= '<input type="hidden" name="inquiry_index" id="delete_inquiry_index">';
+        $content .= '<p><button type="submit" class="b2b-admin-btn b2b-admin-btn-danger">Delete</button> <button type="button" class="b2b-admin-btn" onclick="$(\'#b2b-delete-modal\').hide();">Cancel</button></p>';
+        $content .= '</form>';
+        $content .= '</div>';
+        $content .= '</div>';
+        
+        // Add JavaScript for modal functionality
+        $content .= '<script>
+        jQuery(function($){
+            $(".b2b-respond-btn").on("click", function(){
+                var index = $(this).data("index");
+                $("#inquiry_index").val(index);
+                $("#inquiry_status").val("responded");
+                $("#b2b-response-modal").show();
+            });
+            
+            $(".b2b-view-response-btn").on("click", function(){
+                var index = $(this).data("index");
+                var response = $(this).data("response");
+                var respondedDate = $(this).data("responded-date");
+                var respondedBy = $(this).data("responded-by");
+                
+                var content = "<strong>Response:</strong><br>" + response + "<br><br>";
+                content += "<strong>Responded on:</strong> " + respondedDate + "<br>";
+                content += "<strong>Responded by:</strong> " + respondedBy;
+                
+                $("#response-content").html(content);
+                $("#b2b-view-response-modal").show();
+            });
+            
+            $(".b2b-close-btn").on("click", function(){
+                var index = $(this).data("index");
+                $("#inquiry_index").val(index);
+                $("#inquiry_status").val("closed");
+                $("input[name=admin_response]").val("Inquiry closed by admin.");
+                $("form").submit();
+            });
+            
+            $(".b2b-delete-btn").on("click", function(){
+                var index = $(this).data("index");
+                $("#delete_inquiry_index").val(index);
+                $("#b2b-delete-modal").show();
+            });
+            
+            $(".b2b-modal-close").on("click", function(){
+                $(".b2b-modal").hide();
+            });
+            
+            $(window).on("click", function(e){
+                if($(e.target).hasClass("b2b-modal")){
+                    $(".b2b-modal").hide();
+                }
+            });
+        });
+        </script>';
+        
+        $this->render_admin_wrapper('b2b-inquiries', $content);
+    }
+
     // Handle quote status updates
     public function handle_update_quote() {
         if (!current_user_can('manage_options')) wp_die('Unauthorized');
@@ -1721,6 +1932,79 @@ Best regards,
         $quotes[$index]['status'] = $status;
         update_option('b2b_quote_requests', $quotes);
         wp_redirect(admin_url('admin.php?page=b2b-quotes'));
+        exit;
+    }
+
+    // Handle inquiry status updates
+    public function handle_update_inquiry() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        check_admin_referer('b2b_update_inquiry');
+        
+        $inquiry_index = intval($_POST['inquiry_index']);
+        $new_status = sanitize_text_field($_POST['status']);
+        $admin_response = sanitize_textarea_field($_POST['admin_response']);
+        
+        $inquiries = get_option('b2b_product_inquiries', []);
+        
+        if (isset($inquiries[$inquiry_index])) {
+            $inquiries[$inquiry_index]['status'] = $new_status;
+            $inquiries[$inquiry_index]['admin_response'] = $admin_response;
+            $inquiries[$inquiry_index]['responded_date'] = current_time('mysql');
+            $inquiries[$inquiry_index]['responded_by'] = get_current_user_id();
+            
+            update_option('b2b_product_inquiries', $inquiries);
+            
+            // Send email response to customer if provided
+            if (!empty($admin_response) && !empty($inquiries[$inquiry_index]['email'])) {
+                $this->send_inquiry_response_email($inquiries[$inquiry_index]);
+            }
+            
+            wp_redirect(admin_url('admin.php?page=b2b-inquiries&updated=1'));
+            exit;
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-inquiries&error=1'));
+        exit;
+    }
+    
+    private function send_inquiry_response_email($inquiry) {
+        $product = wc_get_product($inquiry['product_id']);
+        $subject = 'Response to your inquiry about ' . ($product ? $product->get_name() : 'Product');
+        
+        $message = "Dear Customer,\n\n";
+        $message .= "Thank you for your inquiry about " . ($product ? $product->get_name() : 'our product') . ".\n\n";
+        $message .= "Our response:\n" . $inquiry['admin_response'] . "\n\n";
+        $message .= "Best regards,\n" . get_bloginfo('name');
+        
+        wp_mail($inquiry['email'], $subject, $message);
+    }
+    
+    // Handle inquiry deletion
+    public function handle_delete_inquiry() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        check_admin_referer('b2b_delete_inquiry');
+        
+        $inquiry_index = intval($_POST['inquiry_index']);
+        $inquiries = get_option('b2b_product_inquiries', []);
+        
+        if (isset($inquiries[$inquiry_index])) {
+            // Remove the inquiry from the array
+            unset($inquiries[$inquiry_index]);
+            // Reindex the array
+            $inquiries = array_values($inquiries);
+            update_option('b2b_product_inquiries', $inquiries);
+            
+            wp_redirect(admin_url('admin.php?page=b2b-inquiries&deleted=1'));
+            exit;
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-inquiries&error=1'));
         exit;
     }
 

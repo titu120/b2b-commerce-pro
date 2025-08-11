@@ -353,10 +353,32 @@ class ProductManager {
         $email = sanitize_email($_POST['email']);
         $message = sanitize_textarea_field($_POST['message']);
         $product = wc_get_product($product_id);
+        
+        if (!$product) {
+            wp_send_json_error('Product not found');
+            return;
+        }
+        
+        // Save inquiry to database
+        $inquiry_data = [
+            'product_id' => $product_id,
+            'email' => $email,
+            'message' => $message,
+            'status' => 'pending',
+            'date' => current_time('mysql'),
+            'user_id' => get_current_user_id() ?: 0
+        ];
+        
+        $inquiries = get_option('b2b_product_inquiries', []);
+        $inquiries[] = $inquiry_data;
+        update_option('b2b_product_inquiries', $inquiries);
+        
+        // Send email notification to admin
         $admin_email = get_option('admin_email');
         $subject = 'B2B Product Inquiry for ' . $product->get_name();
         $body = "Product: " . $product->get_name() . "\nEmail: $email\nMessage: $message";
         wp_mail($admin_email, $subject, $body);
+        
         wp_send_json_success('Your inquiry has been sent!');
     }
 
