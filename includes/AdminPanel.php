@@ -11,6 +11,7 @@ class AdminPanel {
         add_action( 'admin_post_b2b_update_quote', [ $this, 'handle_update_quote' ] );
         add_action( 'admin_post_b2b_update_inquiry', [ $this, 'handle_update_inquiry' ] );
         add_action( 'admin_post_b2b_delete_inquiry', [ $this, 'handle_delete_inquiry' ] );
+        add_action( 'admin_post_b2b_migrate_quotes', [ $this, 'handle_migrate_quotes' ] );
     }
 
     // Add main admin menu and submenus
@@ -231,9 +232,6 @@ class AdminPanel {
             echo '<a href="' . esc_url( admin_url('admin.php?page=' . $page) ) . '" class="b2b-nav-item ' . $is_active . '">';
             echo '<span class="dashicons ' . $icon . '"></span>';
             echo '<span>' . $title . '</span>';
-            if ($badge_count > 0) {
-                echo '<span class="b2b-nav-badge">' . $badge_count . '</span>';
-            }
             echo '</a>';
         }
         echo '</div>';
@@ -1758,18 +1756,53 @@ Best regards,
     public function quotes_page() {
         if (!current_user_can('manage_options')) return;
         $quotes = get_option('b2b_quote_requests', []);
+        
+        // Migrate existing quotes to include user_email if missing
+        $quotes_updated = false;
+        foreach ($quotes as $index => $quote) {
+            if (!isset($quote['user_email']) && isset($quote['user_id'])) {
+                $user = get_userdata($quote['user_id']);
+                $quotes[$index]['user_email'] = $user ? $user->user_email : 'User not found';
+                $quotes_updated = true;
+            }
+        }
+        
+        // Save updated quotes if any were modified
+        if ($quotes_updated) {
+            update_option('b2b_quote_requests', $quotes);
+        }
+        
         $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-email-alt"></span>Quotes</h1><p>Manage incoming quote requests.</p></div>';
+        
+        // Add migration button if there are quotes without emails
+        $quotes_without_emails = 0;
+        foreach ($quotes as $quote) {
+            if (!isset($quote['user_email']) && isset($quote['user_id'])) {
+                $quotes_without_emails++;
+            }
+        }
+        
+        if ($quotes_without_emails > 0) {
+            $migrate_url = wp_nonce_url(admin_url('admin-post.php?action=b2b_migrate_quotes'), 'b2b_migrate_quotes');
+            $content .= '<div class="b2b-admin-card" style="margin-bottom: 20px; background: #fff3cd; border: 1px solid #ffeaa7;">';
+            $content .= '<div style="padding: 15px;">';
+            $content .= '<h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Data Migration Required</h4>';
+            $content .= '<p style="margin: 0 0 15px 0; color: #856404;">Found ' . $quotes_without_emails . ' quote request(s) with missing email data. Click the button below to fix this.</p>';
+            $content .= '<a href="' . esc_url($migrate_url) . '" class="b2b-admin-btn" style="background: #dc3545; color: #fff;">Migrate Quote Data</a>';
+            $content .= '</div>';
+            $content .= '</div>';
+        }
+        
         $content .= '<div class="b2b-admin-card">';
         if (empty($quotes)) {
             $content .= '<p>No quote requests found.</p>';
         } else {
             $content .= '<table class="b2b-admin-table"><thead><tr><th>Date</th><th>User</th><th>Product</th><th>Qty</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
             foreach ($quotes as $index => $q) {
-                $user = get_userdata($q['user_id']);
                 $product = function_exists('wc_get_product') ? wc_get_product($q['product_id']) : null;
                 $content .= '<tr>';
                 $content .= '<td>' . esc_html($q['date'] ?? '') . '</td>';
-                $content .= '<td>' . esc_html($user ? $user->user_email : 'User ID ' . ($q['user_id'] ?? '')) . '</td>';
+                $content .= '<td>' . esc_html($q['user_email'] ?? 'No email') . '</td>';
                 $content .= '<td>' . esc_html($product ? $product->get_name() : ('#' . ($q['product_id'] ?? ''))) . '</td>';
                 $content .= '<td>' . esc_html($q['quantity'] ?? '') . '</td>';
                 $content .= '<td>' . esc_html($q['message'] ?? '') . '</td>';
@@ -2005,6 +2038,34 @@ Best regards,
         }
         
         wp_redirect(admin_url('admin.php?page=b2b-inquiries&error=1'));
+        exit;
+    }
+    
+    // Handle quote data migration
+    public function handle_migrate_quotes() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        check_admin_referer('b2b_migrate_quotes');
+        
+        $quotes = get_option('b2b_quote_requests', []);
+        $migrated_count = 0;
+        
+        foreach ($quotes as $index => $quote) {
+            if (!isset($quote['user_email']) && isset($quote['user_id'])) {
+                $user = get_userdata($quote['user_id']);
+                $quotes[$index]['user_email'] = $user ? $user->user_email : 'User not found';
+                $migrated_count++;
+            }
+        }
+        
+        if ($migrated_count > 0) {
+            update_option('b2b_quote_requests', $quotes);
+            wp_redirect(admin_url('admin.php?page=b2b-quotes&migrated=' . $migrated_count));
+        } else {
+            wp_redirect(admin_url('admin.php?page=b2b-quotes&no_migration=1'));
+        }
         exit;
     }
 

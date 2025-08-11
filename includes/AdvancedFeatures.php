@@ -443,6 +443,7 @@ class AdvancedFeatures {
         echo '</button>';
         echo '<div class="b2b-quote-form" style="display: none;">';
         echo '<h4>Request Quote</h4>';
+        echo '<p><label>Your Email: <input type="email" name="quote_email" value="' . esc_attr($user->user_email) . '" required></label></p>';
         echo '<p><label>Quantity: <input type="number" name="quote_qty" min="1" value="1"></label></p>';
         echo '<p><label>Message: <textarea name="quote_message" placeholder="Additional requirements..."></textarea></label></p>';
         echo '<button type="button" class="button button-primary submit-quote">Submit Quote Request</button>';
@@ -473,9 +474,10 @@ class AdvancedFeatures {
         $product_id = intval($_POST['product_id']);
         $quantity = intval($_POST['quantity']);
         $message = sanitize_textarea_field($_POST['message']);
+        $email = sanitize_email($_POST['email']);
         $user_id = get_current_user_id();
         
-        if (!$product_id || !$quantity) {
+        if (!$product_id || !$quantity || !$email) {
             wp_send_json_error('Invalid request data');
             return;
         }
@@ -492,6 +494,7 @@ class AdvancedFeatures {
             'quantity' => $quantity,
             'message' => $message,
             'user_id' => $user_id,
+            'user_email' => $email,
             'status' => 'pending',
             'date' => current_time('mysql')
         ];
@@ -504,9 +507,10 @@ class AdvancedFeatures {
         $admin_email = get_option('admin_email');
         $subject = 'New B2B Quote Request';
         $message_body = sprintf(
-            'New quote request received for %s (Qty: %d) from user ID: %d',
+            'New quote request received for %s (Qty: %d) from user: %s (ID: %d)',
             $product->get_name(),
             $quantity,
+            $email,
             $user_id
         );
         
