@@ -47,7 +47,7 @@ add_action( 'plugins_loaded', function() {
     // i18n support
     load_plugin_textdomain( 'b2b-commerce-pro', false, dirname( B2B_COMMERCE_PRO_BASENAME ) . '/languages' );
     
-    // Ensure WooCommerce is active
+
     if ( !class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
             echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro:', 'b2b-commerce-pro') . '</strong> ' . __('WooCommerce is required for this plugin to work.', 'b2b-commerce-pro') . '</p></div>';

@@ -198,7 +198,7 @@ class ProductManager {
     public function enqueue_admin_assets( $hook ) {
         // Only on product edit screens
         if ( ! isset( $_GET['post'] ) ) return;
-        // Try to enqueue selectWoo/select2 if available (no harm if already loaded)
+
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
     }

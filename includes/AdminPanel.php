@@ -1441,7 +1441,7 @@ window.onclick = function(event) {
             $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
             
             if ($exists !== $table) {
-                // Try to create table
+        
                 if (class_exists('B2B\\PricingManager')) {
                     B2B\PricingManager::create_pricing_table();
                     

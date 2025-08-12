@@ -5,23 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class Reporting {
     public function __construct() {
-        // add_action( 'admin_menu', [ $this, 'add_reporting_menu' ] ); // REMOVED: Duplicate menu registration
+
         add_action( 'wp_ajax_b2b_get_user_analytics', [ $this, 'get_user_analytics' ] );
         add_action( 'wp_ajax_b2b_get_performance_metrics', [ $this, 'get_performance_metrics' ] );
         add_action( 'wp_ajax_b2b_export_report', [ $this, 'export_report' ] );
     }
 
-    // Remove duplicate menu registration - handled by AdminPanel.php
-    // public function add_reporting_menu() {
-    //     add_submenu_page(
-    //         'b2b-dashboard',
-    //         'B2B Analytics & Reports',
-    //         'Analytics',
-    //         'manage_options',
-    //         'b2b-analytics',
-    //         [ $this, 'analytics_page' ]
-    //     );
-    // }
+    
 
     public function analytics_page() {
         $tab = $_GET['tab'] ?? 'dashboard';

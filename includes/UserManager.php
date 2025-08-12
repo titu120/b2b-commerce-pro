@@ -8,10 +8,7 @@ class UserManager {
         // Register roles and taxonomies
         add_action( 'init', [ $this, 'register_roles' ] );
         add_action( 'init', [ $this, 'register_group_taxonomy' ] );
-        // COMMENTED OUT - Admin menus are now handled by AdminPanel.php to avoid conflicts
-        // add_action( 'admin_menu', [ $this, 'add_group_menu' ] );
-        // add_action( 'admin_menu', [ $this, 'add_approval_menu' ] );
-        // add_action( 'admin_menu', [ $this, 'add_import_export_menu' ] );
+
         // Registration form hooks
         add_action( 'register_form', [ $this, 'registration_form' ] );
         add_action( 'user_register', [ $this, 'save_registration_fields' ] );

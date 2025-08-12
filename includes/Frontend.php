@@ -410,7 +410,7 @@ class Frontend {
             $errors[] = 'Invalid account type selected.';
         }
 
-        // If there are validation errors, return them
+
         if (!empty($errors)) {
             return '<div class="b2b-message notice-error"><p>❌ ' . implode('<br>', $errors) . '</p></div>';
         }
