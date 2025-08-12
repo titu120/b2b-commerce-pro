@@ -392,6 +392,13 @@ class UserManager {
 
     // Import users from CSV
     public function import_users_csv( $file ) {
+        // Validate file type
+        $allowed_types = ['csv', 'txt'];
+        $file_extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if (!in_array($file_extension, $allowed_types)) {
+            wp_die(__('Invalid file type. Only CSV and TXT files are allowed.', 'b2b-commerce-pro'));
+        }
+        
         $handle = fopen( $file, 'r' );
         if ( ! $handle ) return;
         $header = fgetcsv( $handle );

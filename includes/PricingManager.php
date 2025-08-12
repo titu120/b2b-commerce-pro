@@ -112,7 +112,7 @@ class PricingManager {
             return false;
         }
         
-        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $table));
         error_log("B2B Pricing: Table exists with $count rules");
         return true;
     }
@@ -144,8 +144,8 @@ class PricingManager {
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $edit_id = isset($_GET['edit']) ? intval($_GET['edit']) : 0;
-        $edit_rule = $edit_id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $edit_id) ) : null;
-        $rules = $wpdb->get_results("SELECT * FROM $table ORDER BY id DESC");
+        $edit_rule = $edit_id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $edit_id) ) : null;
+        $rules = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC", $table));
         $content = '';
         $content .= '<div class="b2b-admin-header">';
         $content .= '<h1><span class="icon dashicons dashicons-tag"></span>B2B Pricing Rules</h1>';
@@ -321,8 +321,8 @@ class PricingManager {
         // Query product-specific rules AND global rules (product_id = 0)
         $rules = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM $table WHERE product_id = %d OR product_id = 0",
-                $product_id
+                "SELECT * FROM %i WHERE product_id = %d OR product_id = 0",
+                $table, $product_id
             )
         );
         
@@ -388,8 +388,7 @@ class PricingManager {
             }
         }
         
-        // Debug logging
-        error_log("B2B Price HTML Debug: Product $product_id, User $user_id, Roles: " . implode(',', $roles) . ", Original: $original_price, Best: $best_price, Matched Rule: " . ($matched_rule ? $matched_rule->id : 'none'));
+
         
         // If we found a matching rule and the price is different, update the price HTML
         if ( $matched_rule && $best_price < $original_price ) {

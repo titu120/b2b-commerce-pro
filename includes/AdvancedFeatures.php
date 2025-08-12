@@ -666,8 +666,7 @@ class AdvancedFeatures {
         $user = get_userdata($user_id);
         $user_role = $user->roles[0] ?? '';
         
-        // Debug logging
-        error_log("B2B Bulk Calculator Debug: Product $product_id, User $user_id, Role: $user_role, Quantity: $quantity");
+
         
         // Get pricing rules - check both product-specific and global rules (product_id = 0)
         global $wpdb;
@@ -683,12 +682,11 @@ class AdvancedFeatures {
         $unit_price = $original_price;
         $discount_display = 'No discount';
         
-        // Debug logging
-        error_log("B2B Bulk Calculator Debug: Found " . count($rules) . " matching rules");
+
         
         if (!empty($rules)) {
             $rule = $rules[0];
-            error_log("B2B Bulk Calculator Debug: Using rule ID " . $rule->id . ", Price: " . $rule->price . ", Type: " . $rule->type);
+    
             if ($rule->type === 'percentage') {
                 // Use absolute percentage; admin UI stores discounts as negative, normalize here
                 $percent = abs((float) $rule->price);

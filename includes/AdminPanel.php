@@ -9,6 +9,7 @@ class AdminPanel {
         add_action( 'admin_notices', [ $this, 'show_admin_notifications' ] );
         add_action( 'wp_ajax_b2b_dismiss_notification', [ $this, 'dismiss_notification' ] );
         add_action( 'admin_post_b2b_update_quote', [ $this, 'handle_update_quote' ] );
+        add_action( 'wp_ajax_b2b_update_quote_ajax', [ $this, 'handle_update_quote_ajax' ] );
         add_action( 'admin_post_b2b_update_inquiry', [ $this, 'handle_update_inquiry' ] );
         add_action( 'admin_post_b2b_delete_inquiry', [ $this, 'handle_delete_inquiry' ] );
         add_action( 'admin_post_b2b_migrate_quotes', [ $this, 'handle_migrate_quotes' ] );
@@ -1001,7 +1002,7 @@ class AdminPanel {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         
         // Get existing rules
-        $rules = $wpdb->get_results("SELECT * FROM $table ORDER BY id DESC");
+        $rules = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC", $table));
         
         // Handle form submission
         if (isset($_POST['b2b_pricing_nonce']) && wp_verify_nonce($_POST['b2b_pricing_nonce'], 'b2b_pricing_action')) {
@@ -1328,18 +1329,18 @@ window.onclick = function(event) {
         try {
             // Check if WooCommerce is active
             if (!class_exists('WooCommerce')) {
-                echo '<div class="notice notice-error"><p>WooCommerce is required for pricing rules.</p></div>';
+                echo '<div class="notice notice-error"><p>' . esc_html__('WooCommerce is required for pricing rules.', 'b2b-commerce-pro') . '</p></div>';
                 return;
             }
 
             // Verify nonce and permissions
             if (!isset($_POST['b2b_pricing_nonce']) || !wp_verify_nonce($_POST['b2b_pricing_nonce'], 'b2b_pricing_action')) {
-                echo '<div class="notice notice-error"><p>Security check failed.</p></div>';
+                echo '<div class="notice notice-error"><p>' . esc_html__('Security check failed.', 'b2b-commerce-pro') . '</p></div>';
                 return;
             }
 
             if (!current_user_can('manage_options')) {
-                echo '<div class="notice notice-error"><p>You do not have permission to perform this action.</p></div>';
+                echo '<div class="notice notice-error"><p>' . esc_html__('You do not have permission to perform this action.', 'b2b-commerce-pro') . '</p></div>';
                 return;
             }
 
@@ -1774,6 +1775,15 @@ Best regards,
         
         $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-email-alt"></span>Quotes</h1><p>Manage incoming quote requests.</p></div>';
         
+        // Show success message if quote was updated
+        if (isset($_GET['updated']) && $_GET['updated'] == '1') {
+            $status = sanitize_text_field($_GET['status'] ?? '');
+            $status_text = ucfirst($status);
+            $content .= '<div class="notice notice-success is-dismissible"><p><strong>Success!</strong> Quote has been ' . esc_html($status_text) . '.</p></div>';
+        }
+        
+
+        
         // Add migration button if there are quotes without emails
         $quotes_without_emails = 0;
         foreach ($quotes as $quote) {
@@ -1807,14 +1817,104 @@ Best regards,
                 $content .= '<td>' . esc_html($q['quantity'] ?? '') . '</td>';
                 $content .= '<td>' . esc_html($q['message'] ?? '') . '</td>';
                 $content .= '<td>' . esc_html(ucfirst($q['status'] ?? 'pending')) . '</td>';
-                $approve_url = wp_nonce_url(admin_url('admin-post.php?action=b2b_update_quote&quote=' . $index . '&status=approved'), 'b2b_update_quote_' . $index);
-                $decline_url = wp_nonce_url(admin_url('admin-post.php?action=b2b_update_quote&quote=' . $index . '&status=declined'), 'b2b_update_quote_' . $index);
-                $content .= '<td><a href="' . esc_url($approve_url) . '" class="b2b-admin-btn">Approve</a> <a href="' . esc_url($decline_url) . '" class="b2b-admin-btn b2b-admin-btn-danger">Decline</a></td>';
+                $content .= '<td><button type="button" class="b2b-admin-btn b2b-quote-action" data-index="' . $index . '" data-action="approve">Approve</button> <button type="button" class="b2b-admin-btn b2b-admin-btn-danger b2b-quote-action" data-index="' . $index . '" data-action="decline">Decline</button></td>';
                 $content .= '</tr>';
             }
             $content .= '</tbody></table>';
         }
         $content .= '</div>';
+        
+        // Add CSS and JavaScript to improve button functionality
+        $content .= '<style>
+        .b2b-quote-action {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 2px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .b2b-quote-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .b2b-quote-action.processing {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .b2b-admin-btn {
+            background: #0073aa;
+            color: white;
+            border: 1px solid #0073aa;
+        }
+        .b2b-admin-btn:hover {
+            background: #005a87;
+            color: white;
+        }
+        .b2b-admin-btn-danger {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        .b2b-admin-btn-danger:hover {
+            background: #c82333;
+        }
+        </style>';
+        
+        $content .= '<script>
+        jQuery(document).ready(function($) {
+            $(".b2b-quote-action").on("click", function() {
+                var $btn = $(this);
+                if ($btn.hasClass("processing")) {
+                    return false;
+                }
+                
+                var index = $btn.data("index");
+                var action = $btn.data("action");
+                var confirmText = action === "approve" ? "Are you sure you want to approve this quote?" : "Are you sure you want to decline this quote?";
+                
+                if (!confirm(confirmText)) {
+                    return false;
+                }
+                
+                $btn.addClass("processing").text("Processing...");
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: "POST",
+                    data: {
+                        action: "b2b_update_quote_ajax",
+                        quote_index: index,
+                        status: action + "d", // approved or declined
+                        nonce: "' . wp_create_nonce('b2b_update_quote_ajax') . '"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Show success message
+                            var notice = $("<div class=\"notice notice-success is-dismissible\"><p><strong>Success!</strong> " + response.data.message + "</p></div>");
+                            $(".b2b-admin-header").after(notice);
+                            
+                            // Update the status in the table
+                            $btn.closest("tr").find("td:nth-child(6)").text(response.data.status.charAt(0).toUpperCase() + response.data.status.slice(1));
+                            
+                            // Remove the buttons or disable them
+                            $btn.closest("td").html("<span class=\"b2b-status-badge b2b-status-" + response.data.status + "\">" + response.data.status.charAt(0).toUpperCase() + response.data.status.slice(1) + "</span>");
+                        } else {
+                            alert("Error: " + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert("Error: Failed to update quote. Please try again.");
+                    },
+                    complete: function() {
+                        $btn.removeClass("processing").text(action === "approve" ? "Approve" : "Decline");
+                    }
+                });
+            });
+        });
+        </script>';
+        
         $this->render_admin_wrapper('b2b-quotes', $content);
     }
 
@@ -1955,17 +2055,95 @@ Best regards,
 
     // Handle quote status updates
     public function handle_update_quote() {
-        if (!current_user_can('manage_options')) wp_die('Unauthorized');
-        $index = isset($_GET['quote']) ? intval($_GET['quote']) : -1;
-        $status = sanitize_text_field($_GET['status'] ?? '');
-        if ($index < 0 || !in_array($status, ['approved','declined'], true)) wp_die('Invalid request');
-        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'b2b_update_quote_' . $index)) wp_die('Security check failed');
-        $quotes = get_option('b2b_quote_requests', []);
-        if (!isset($quotes[$index])) wp_die('Quote not found');
-        $quotes[$index]['status'] = $status;
-        update_option('b2b_quote_requests', $quotes);
-        wp_redirect(admin_url('admin.php?page=b2b-quotes'));
-        exit;
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_die(__('Unauthorized access.', 'b2b-commerce-pro'));
+            }
+            
+            $index = isset($_GET['quote']) ? intval($_GET['quote']) : -1;
+            $status = sanitize_text_field($_GET['status'] ?? '');
+            
+            if ($index < 0 || !in_array($status, ['approved','declined'], true)) {
+                wp_die(__('Invalid request parameters.', 'b2b-commerce-pro'));
+            }
+            
+            if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'b2b_update_quote_' . $index)) {
+                wp_die(__('Security check failed.', 'b2b-commerce-pro'));
+            }
+            
+            $quotes = get_option('b2b_quote_requests', []);
+            if (!isset($quotes[$index])) {
+                wp_die(__('Quote not found.', 'b2b-commerce-pro'));
+            }
+            
+            $quotes[$index]['status'] = $status;
+            $quotes[$index]['updated_at'] = current_time('mysql');
+            $quotes[$index]['updated_by'] = get_current_user_id();
+            
+            $result = update_option('b2b_quote_requests', $quotes);
+            
+            if (!$result) {
+                wp_die(__('Failed to update quote status.', 'b2b-commerce-pro'));
+            }
+            
+            // Send email notification to customer
+            $this->send_quote_status_email($quotes[$index], $status);
+            
+            wp_redirect(admin_url('admin.php?page=b2b-quotes&updated=1&status=' . $status));
+            exit;
+            
+        } catch (Exception $e) {
+            error_log('B2B Quote Update Error: ' . $e->getMessage());
+            wp_die(__('An error occurred while updating the quote.', 'b2b-commerce-pro'));
+        }
+    }
+
+    // AJAX handler for quote updates
+    public function handle_update_quote_ajax() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(__('Unauthorized access.', 'b2b-commerce-pro'));
+            }
+            
+            // Validate and sanitize input
+            $index = isset($_POST['quote_index']) ? absint($_POST['quote_index']) : -1;
+            $status = sanitize_text_field($_POST['status'] ?? '');
+            
+            if ($index < 0 || !in_array($status, ['approved','declined'], true)) {
+                wp_send_json_error(__('Invalid request parameters.', 'b2b-commerce-pro'));
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'b2b_update_quote_ajax')) {
+                wp_send_json_error(__('Security check failed.', 'b2b-commerce-pro'));
+            }
+            
+            $quotes = get_option('b2b_quote_requests', []);
+            if (!isset($quotes[$index])) {
+                wp_send_json_error(__('Quote not found.', 'b2b-commerce-pro'));
+            }
+            
+            $quotes[$index]['status'] = $status;
+            $quotes[$index]['updated_at'] = current_time('mysql');
+            $quotes[$index]['updated_by'] = get_current_user_id();
+            
+            $result = update_option('b2b_quote_requests', $quotes);
+            
+            if (!$result) {
+                wp_send_json_error(__('Failed to update quote status.', 'b2b-commerce-pro'));
+            }
+            
+            // Send email notification
+            $this->send_quote_status_email($quotes[$index], $status);
+            
+            wp_send_json_success([
+                'message' => sprintf(__('Quote has been %s.', 'b2b-commerce-pro'), ucfirst($status)),
+                'status' => $status
+            ]);
+            
+        } catch (Exception $e) {
+            error_log('B2B Quote AJAX Error: ' . $e->getMessage());
+            wp_send_json_error(__('An error occurred while updating the quote.', 'b2b-commerce-pro'));
+        }
     }
 
     // Handle inquiry status updates
@@ -2738,5 +2916,47 @@ Best regards,
         update_option('b2b_dismissed_notifications', array_unique($dismissed));
         
         wp_send_json_success('Notification dismissed');
+    }
+    
+    // Send email notification for quote status changes
+    private function send_quote_status_email($quote, $status) {
+        if (empty($quote['user_email'])) {
+            return false;
+        }
+        
+        $product = wc_get_product($quote['product_id']);
+        $product_name = $product ? $product->get_name() : __('Product', 'b2b-commerce-pro');
+        
+        $subject = sprintf(__('Your quote request for %s has been %s', 'b2b-commerce-pro'), $product_name, $status);
+        
+        $message = sprintf(
+            __('Dear Customer,
+
+Your quote request for %s (Quantity: %d) has been %s.
+
+Quote Details:
+- Product: %s
+- Quantity: %d
+- Your Message: %s
+- Status: %s
+
+%s
+
+Best regards,
+%s', 'b2b-commerce-pro'),
+            $product_name,
+            $quote['quantity'],
+            $status,
+            $product_name,
+            $quote['quantity'],
+            $quote['message'] ?? '',
+            ucfirst($status),
+            $status === 'approved' ? __('We will contact you shortly with pricing information.' , 'b2b-commerce-pro') : __('We are unable to fulfill this request at this time.' , 'b2b-commerce-pro'),
+            get_bloginfo('name')
+        );
+        
+        $headers = ['Content-Type: text/plain; charset=UTF-8'];
+        
+        return wp_mail($quote['user_email'], $subject, $message, $headers);
     }
 } 

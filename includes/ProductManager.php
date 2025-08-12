@@ -548,7 +548,14 @@ class ProductManager {
             }
             // Handle CSV import
             if ( !empty($_FILES['b2b_bulk_csv']['tmp_name']) ) {
-                $file = fopen($_FILES['b2b_bulk_csv']['tmp_name'], 'r');
+                // Validate file type
+        $allowed_types = ['csv', 'txt'];
+        $file_extension = strtolower(pathinfo($_FILES['b2b_bulk_csv']['name'], PATHINFO_EXTENSION));
+        if (!in_array($file_extension, $allowed_types)) {
+            wp_die(__('Invalid file type. Only CSV and TXT files are allowed.', 'b2b-commerce-pro'));
+        }
+        
+        $file = fopen($_FILES['b2b_bulk_csv']['tmp_name'], 'r');
                 while ( ($row = fgetcsv($file)) !== false ) {
                     $pid = wc_get_product_id_by_sku($row[0]);
                     if ( !$pid ) $pid = intval($row[0]);
