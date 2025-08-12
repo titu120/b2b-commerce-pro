@@ -241,35 +241,88 @@ class ProductManager {
     // Filter product queries for visibility
     public function filter_product_query_visibility( $meta_query ) {
         if ( is_admin() ) return $meta_query;
+        
         $user = wp_get_current_user();
         $roles = (array) ( $user->roles ?? [] );
         $groups = wp_get_object_terms( $user->ID, 'b2b_user_group', [ 'fields' => 'ids' ] );
-        $meta_query[] = [
-            'relation' => 'OR',
+        
+        // Skip filtering for admin users, shop managers, and users with edit_products capability
+        if ( current_user_can( 'manage_options' ) || 
+             current_user_can( 'manage_woocommerce' ) || 
+             current_user_can( 'edit_products' ) ||
+             in_array( 'administrator', $roles, true ) ||
+             in_array( 'shop_manager', $roles, true ) ) {
+            return $meta_query;
+        }
+        
+        // Build the meta query to show only products the user can access
+        $visibility_query = [
+            'relation' => 'AND',
             [
-                'key' => '_b2b_visible_roles',
-                'value' => '',
-                'compare' => '='
+                'relation' => 'OR',
+                // Products with no role restrictions (show to everyone)
+                [
+                    'key' => '_b2b_visible_roles',
+                    'compare' => 'NOT EXISTS'
+                ],
+                [
+                    'key' => '_b2b_visible_roles',
+                    'value' => '',
+                    'compare' => '='
+                ],
+                // Products with role restrictions that match current user
+                [
+                    'key' => '_b2b_visible_roles',
+                    'value' => implode( ',', $roles ),
+                    'compare' => 'LIKE'
+                ]
             ],
             [
-                'key' => '_b2b_visible_roles',
-                'value' => implode( ',', $roles ),
-                'compare' => 'LIKE'
+                'relation' => 'OR',
+                // Products with no group restrictions (show to everyone)
+                [
+                    'key' => '_b2b_visible_groups',
+                    'compare' => 'NOT EXISTS'
+                ],
+                [
+                    'key' => '_b2b_visible_groups',
+                    'value' => '',
+                    'compare' => '='
+                ],
+                // Products with group restrictions that match current user
+                [
+                    'key' => '_b2b_visible_groups',
+                    'value' => implode( ',', $groups ),
+                    'compare' => 'LIKE'
+                ]
             ]
         ];
-        $meta_query[] = [
-            'relation' => 'OR',
-            [
-                'key' => '_b2b_visible_groups',
-                'value' => '',
-                'compare' => '='
-            ],
-            [
-                'key' => '_b2b_visible_groups',
-                'value' => implode( ',', $groups ),
-                'compare' => 'LIKE'
-            ]
-        ];
+        
+        // Add wholesale-only check for non-wholesale users
+        if ( ! in_array( 'wholesale_customer', $roles, true ) ) {
+            $visibility_query[] = [
+                'relation' => 'OR',
+                // Products that are not wholesale-only
+                [
+                    'key' => '_b2b_wholesale_only',
+                    'compare' => 'NOT EXISTS'
+                ],
+                [
+                    'key' => '_b2b_wholesale_only',
+                    'value' => 'no',
+                    'compare' => '='
+                ]
+            ];
+        }
+        
+        $meta_query[] = $visibility_query;
+        
+        // Debug: Log the filtering (remove this after testing)
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'B2B Product Filter: User roles: ' . implode( ', ', $roles ) );
+            error_log( 'B2B Product Filter: Meta query: ' . print_r( $meta_query, true ) );
+        }
+        
         return $meta_query;
     }
 
