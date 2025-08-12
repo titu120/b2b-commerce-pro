@@ -119,7 +119,7 @@ class PricingManager {
 
     public function admin_notice_table_error() {
         if ( get_option( 'b2b_pricing_table_error' ) ) {
-            echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> Could not create the pricing rules table. Please check your database permissions or contact your host.</p></div>';
+            echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro:', 'b2b-commerce-pro') . '</strong> ' . __('Could not create the pricing rules table. Please check your database permissions or contact your host.', 'b2b-commerce-pro') . '</p></div>';
         }
     }
 
@@ -550,13 +550,22 @@ class PricingManager {
     public function price_request_button() {
         global $product;
         if ( ! $product->is_type( 'simple' ) ) return;
-        echo '<button class="button b2b-price-request" data-product="' . esc_attr($product->get_id()) . '">Request a Quote</button>';
-        echo '<div id="b2b-quote-modal" style="display:none;"><form id="b2b-quote-form"><h3>Request a Quote</h3>';
+        
+        // Use helper function to check if buttons should be shown
+        if (class_exists('B2B\\ProductManager')) {
+            $product_manager = new ProductManager();
+            if (!$product_manager->should_show_b2b_buttons($product->get_id())) {
+                return;
+            }
+        }
+        
+        echo '<button class="button b2b-price-request" data-product="' . esc_attr($product->get_id()) . '">' . __('Request a Quote', 'b2b-commerce-pro') . '</button>';
+        echo '<div id="b2b-quote-modal" style="display:none;"><form id="b2b-quote-form"><h3>' . __('Request a Quote', 'b2b-commerce-pro') . '</h3>';
         echo '<input type="hidden" name="product_id" value="' . esc_attr($product->get_id()) . '">';
-        echo '<p><label>Your Email<br><input type="email" name="email" required></label></p>';
-        echo '<p><label>Quantity<br><input type="number" name="quantity" min="1" required></label></p>';
-        echo '<p><label>Message<br><textarea name="message" required></textarea></label></p>';
-        echo '<p><button type="submit" class="button">Send Request</button></p>';
+        echo '<p><label>' . __('Your Email', 'b2b-commerce-pro') . '<br><input type="email" name="email" required></label></p>';
+        echo '<p><label>' . __('Quantity', 'b2b-commerce-pro') . '<br><input type="number" name="quantity" min="1" required></label></p>';
+        echo '<p><label>' . __('Message', 'b2b-commerce-pro') . '<br><textarea name="message" required></textarea></label></p>';
+        echo '<p><button type="submit" class="button">' . __('Send Request', 'b2b-commerce-pro') . '</button></p>';
         echo '<div class="b2b-quote-response"></div>';
         echo '</form></div>';
         ?>
@@ -623,9 +632,9 @@ class PricingManager {
         if (empty($rules)) return '';
         
         $output = '<div class="b2b-tiered-pricing">';
-        $output .= '<h4>Tiered Pricing</h4>';
+        $output .= '<h4>' . __('Tiered Pricing', 'b2b-commerce-pro') . '</h4>';
         $output .= '<table class="tiered-pricing-table">';
-        $output .= '<thead><tr><th>Quantity</th><th>Price</th><th>Savings</th></tr></thead><tbody>';
+        $output .= '<thead><tr><th>' . __('Quantity', 'b2b-commerce-pro') . '</th><th>' . __('Price', 'b2b-commerce-pro') . '</th><th>' . __('Savings', 'b2b-commerce-pro') . '</th></tr></thead><tbody>';
         
         foreach ($rules as $rule) {
             $original_price = (float) get_post_meta($product_id, '_price', true);

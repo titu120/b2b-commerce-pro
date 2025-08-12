@@ -53,24 +53,24 @@ class ProductManager {
 
         // Toggle
         echo '<style>#b2b_visibility_fields .form-field{margin:12px 0}#b2b_visibility_box{border:1px solid #e2e8f0;padding:12px 14px;border-radius:6px;background:#fafbfc}#b2b_visibility_fields select{min-width:280px;min-height:120px;width:100%}#b2b_visibility_summary{margin-left:8px;color:#666}</style>';
-        echo '<p class="form-field"><label for="_b2b_restrict_visibility">Restrict visibility</label>';
+        echo '<p class="form-field"><label for="_b2b_restrict_visibility">' . __('Restrict visibility', 'b2b-commerce-pro') . '</label>';
         echo '<input type="checkbox" id="_b2b_restrict_visibility" name="_b2b_restrict_visibility" value="yes" ' . checked( $has_restrictions, true, false ) . ' />';
-        echo ' <span class="description">Enable to limit who can see/purchase this product.</span><span id="b2b_visibility_summary"></span></p>';
+        echo ' <span class="description">' . __('Enable to limit who can see/purchase this product.', 'b2b-commerce-pro') . '</span><span id="b2b_visibility_summary"></span></p>';
 
         echo '<div id="b2b_visibility_box"><div id="b2b_visibility_fields">';
 
         // User roles (multi-select)
         $all_roles = function_exists('wp_roles') ? array_keys( wp_roles()->roles ) : [];
-        echo '<p class="form-field"><label for="_b2b_visible_roles">Visible to Roles</label>';
+        echo '<p class="form-field"><label for="_b2b_visible_roles">' . __('Visible to Roles', 'b2b-commerce-pro') . '</label>';
         echo '<select id="_b2b_visible_roles" name="_b2b_visible_roles[]" multiple>'; 
         foreach ( $all_roles as $role_key ) {
             $selected = in_array( $role_key, $saved_roles, true ) ? 'selected' : '';
             echo '<option value="' . esc_attr( $role_key ) . '" ' . $selected . '>' . esc_html( $role_key ) . '</option>';
         }
-        echo '</select><span class="description"> Choose roles allowed to see this product.</span></p>';
+        echo '</select><span class="description">' . __('Choose roles allowed to see this product.', 'b2b-commerce-pro') . '</span></p>';
 
         // User groups (multi-select of taxonomy terms if present)
-        echo '<p class="form-field"><label for="_b2b_visible_groups">Visible to Groups</label>';
+        echo '<p class="form-field"><label for="_b2b_visible_groups">' . __('Visible to Groups', 'b2b-commerce-pro') . '</label>';
         echo '<select id="_b2b_visible_groups" name="_b2b_visible_groups[]" multiple>';
         if ( taxonomy_exists( 'b2b_user_group' ) ) {
             $terms = get_terms( [ 'taxonomy' => 'b2b_user_group', 'hide_empty' => false ] );
@@ -81,13 +81,23 @@ class ProductManager {
                 }
             }
         }
-        echo '</select><span class="description"> Choose groups (taxonomy: b2b_user_group).</span></p>';
+        echo '</select><span class="description">' . __('Choose groups (taxonomy: b2b_user_group).', 'b2b-commerce-pro') . '</span></p>';
 
         // Wholesale-only
         woocommerce_wp_checkbox([
             'id' => '_b2b_wholesale_only',
-            'label' => 'Wholesale Only',
-            'description' => 'Only visible to wholesale users.'
+            'label' => __('Wholesale Only', 'b2b-commerce-pro'),
+            'description' => __('Only visible to wholesale users.', 'b2b-commerce-pro')
+        ]);
+
+        // Quote/Inquiry buttons control
+        $show_quote_buttons = get_post_meta($post->ID, '_b2b_show_quote_buttons', true);
+        if ($show_quote_buttons === '') $show_quote_buttons = 'yes'; // Default to yes
+        woocommerce_wp_checkbox([
+            'id' => '_b2b_show_quote_buttons',
+            'label' => __('Show Quote/Inquiry Buttons', 'b2b-commerce-pro'),
+            'description' => __('Show "Request Quote" and "Product Inquiry" buttons for B2B customers.', 'b2b-commerce-pro'),
+            'value' => $show_quote_buttons
         ]);
 
         echo '</div></div>';
@@ -137,6 +147,9 @@ class ProductManager {
             update_post_meta( $post_id, '_b2b_visible_groups', '' );
             update_post_meta( $post_id, '_b2b_wholesale_only', 'no' );
         }
+        
+        // Always save quote button setting (independent of restrictions)
+        update_post_meta( $post_id, '_b2b_show_quote_buttons', isset( $_POST['_b2b_show_quote_buttons'] ) ? 'yes' : 'no' );
     }
 
     // Filter product visibility on frontend
@@ -366,12 +379,18 @@ class ProductManager {
     // Product inquiry button and modal
     public function product_inquiry_button() {
         global $product;
-        echo '<button class="button b2b-inquiry-btn" data-product="' . esc_attr( $product->get_id() ) . '">Product Inquiry</button>';
-        echo '<div id="b2b-inquiry-modal" style="display:none;"><form id="b2b-inquiry-form"><h3>Product Inquiry</h3>';
+        
+        // Use helper function to check if buttons should be shown
+        if (!$this->should_show_b2b_buttons($product->get_id())) {
+            return;
+        }
+        
+        echo '<button class="button b2b-inquiry-btn" data-product="' . esc_attr( $product->get_id() ) . '">' . __('Product Inquiry', 'b2b-commerce-pro') . '</button>';
+        echo '<div id="b2b-inquiry-modal" style="display:none;"><form id="b2b-inquiry-form"><h3>' . __('Product Inquiry', 'b2b-commerce-pro') . '</h3>';
         echo '<input type="hidden" name="product_id" value="' . esc_attr( $product->get_id() ) . '">';
-        echo '<p><label>Your Email<br><input type="email" name="email" required></label></p>';
-        echo '<p><label>Message<br><textarea name="message" required></textarea></label></p>';
-        echo '<p><button type="submit" class="button">Send Inquiry</button></p>';
+        echo '<p><label>' . __('Your Email', 'b2b-commerce-pro') . '<br><input type="email" name="email" required></label></p>';
+        echo '<p><label>' . __('Message', 'b2b-commerce-pro') . '<br><textarea name="message" required></textarea></label></p>';
+        echo '<p><button type="submit" class="button">' . __('Send Inquiry', 'b2b-commerce-pro') . '</button></p>';
         echo '<div class="b2b-inquiry-response"></div>';
         echo '</form></div>';
         ?>
@@ -854,6 +873,31 @@ class ProductManager {
         
         if ($allowed_groups && $allowed_groups[0] && !array_intersect($groups, $allowed_groups)) {
             return false;
+        }
+        
+        return true;
+    }
+
+    // Helper function to check if quote/inquiry buttons should be shown for a product
+    public function should_show_b2b_buttons($product_id) {
+        // Check if user is logged in and has B2B role
+        if (!is_user_logged_in()) return false;
+        
+        $user = wp_get_current_user();
+        $user_roles = $user->roles;
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        if (!array_intersect($user_roles, $b2b_roles)) return false;
+        
+        // Check if user is allowed to see this product (B2B restrictions)
+        if (!$this->is_user_allowed_for_product($product_id)) {
+            return false; // Don't show buttons if user can't access this product
+        }
+        
+        // Check if product has specific B2B button settings
+        $show_b2b_buttons = get_post_meta($product_id, '_b2b_show_quote_buttons', true);
+        if ($show_b2b_buttons === 'no') {
+            return false; // Explicitly disabled for this product
         }
         
         return true;

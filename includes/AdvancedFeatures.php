@@ -45,20 +45,20 @@ class AdvancedFeatures {
     // Admin UI for credit, payment terms, tax exemption
     public function user_advanced_fields( $user ) {
         ?>
-        <h3>B2B Advanced Features</h3>
+        <h3><?php _e('B2B Advanced Features', 'b2b-commerce-pro'); ?></h3>
         <table class="form-table">
             <tr>
-                <th><label for="b2b_credit_limit">Credit Limit</label></th>
+                <th><label for="b2b_credit_limit"><?php _e('Credit Limit', 'b2b-commerce-pro'); ?></label></th>
                 <td><input type="number" name="b2b_credit_limit" id="b2b_credit_limit" value="<?php echo esc_attr( get_user_meta( $user->ID, 'b2b_credit_limit', true ) ); ?>" step="0.01"></td>
             </tr>
             <tr>
-                <th><label for="b2b_payment_terms">Payment Terms</label></th>
-                <td><input type="text" name="b2b_payment_terms" id="b2b_payment_terms" value="<?php echo esc_attr( get_user_meta( $user->ID, 'b2b_payment_terms', true ) ); ?>" placeholder="Net 30, Net 60, etc."></td>
+                <th><label for="b2b_payment_terms"><?php _e('Payment Terms', 'b2b-commerce-pro'); ?></label></th>
+                <td><input type="text" name="b2b_payment_terms" id="b2b_payment_terms" value="<?php echo esc_attr( get_user_meta( $user->ID, 'b2b_payment_terms', true ) ); ?>" placeholder="<?php _e('Net 30, Net 60, etc.', 'b2b-commerce-pro'); ?>"></td>
             </tr>
             <tr>
-                <th><label for="b2b_tax_exempt">Tax Exempt</label></th>
-                <td><input type="checkbox" name="b2b_tax_exempt" value="1" <?php checked( get_user_meta( $user->ID, 'b2b_tax_exempt', true ), 1 ); ?>> Yes<br>
-                <input type="text" name="b2b_tax_exempt_number" value="<?php echo esc_attr( get_user_meta( $user->ID, 'b2b_tax_exempt_number', true ) ); ?>" placeholder="Tax Exempt Number"></td>
+                <th><label for="b2b_tax_exempt"><?php _e('Tax Exempt', 'b2b-commerce-pro'); ?></label></th>
+                <td><input type="checkbox" name="b2b_tax_exempt" value="1" <?php checked( get_user_meta( $user->ID, 'b2b_tax_exempt', true ), 1 ); ?>> <?php _e('Yes', 'b2b-commerce-pro'); ?><br>
+                <input type="text" name="b2b_tax_exempt_number" value="<?php echo esc_attr( get_user_meta( $user->ID, 'b2b_tax_exempt_number', true ) ); ?>" placeholder="<?php _e('Tax Exempt Number', 'b2b-commerce-pro'); ?>"></td>
             </tr>
         </table>
         <?php
@@ -122,7 +122,7 @@ class AdvancedFeatures {
         $user_id = get_current_user_id();
         $terms = get_user_meta( $user_id, 'b2b_payment_terms', true );
         if ( $terms ) {
-            echo '<tr class="b2b-payment-terms"><td colspan="2">Payment Terms: ' . esc_html( $terms ) . '</td></tr>';
+            echo '<tr class="b2b-payment-terms"><td colspan="2">' . __('Payment Terms:', 'b2b-commerce-pro') . ' ' . esc_html( $terms ) . '</td></tr>';
         }
     }
 
@@ -426,28 +426,29 @@ class AdvancedFeatures {
     
     // Quote request button
     public function quote_request_button() {
-        if (!is_user_logged_in()) return;
-        
-        $user = wp_get_current_user();
-        $user_roles = $user->roles;
-        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
-        
-        if (!array_intersect($user_roles, $b2b_roles)) return;
-        
         global $product;
         if (!$product) return;
         
+        // Use helper function to check if buttons should be shown
+        if (class_exists('B2B\\ProductManager')) {
+            $product_manager = new ProductManager();
+            if (!$product_manager->should_show_b2b_buttons($product->get_id())) {
+                return;
+            }
+        }
+        
+        $user = wp_get_current_user();
         echo '<div class="b2b-quote-request">';
         echo '<button type="button" class="button b2b-quote-btn" data-product-id="' . $product->get_id() . '">';
-        echo '<span class="dashicons dashicons-email-alt"></span> Request Quote';
+        echo '<span class="dashicons dashicons-email-alt"></span> ' . __('Request Quote', 'b2b-commerce-pro');
         echo '</button>';
         echo '<div class="b2b-quote-form" style="display: none;">';
-        echo '<h4>Request Quote</h4>';
-        echo '<p><label>Your Email: <input type="email" name="quote_email" value="' . esc_attr($user->user_email) . '" required></label></p>';
-        echo '<p><label>Quantity: <input type="number" name="quote_qty" min="1" value="1"></label></p>';
-        echo '<p><label>Message: <textarea name="quote_message" placeholder="Additional requirements..."></textarea></label></p>';
-        echo '<button type="button" class="button button-primary submit-quote">Submit Quote Request</button>';
-        echo '<button type="button" class="button cancel-quote">Cancel</button>';
+        echo '<h4>' . __('Request Quote', 'b2b-commerce-pro') . '</h4>';
+        echo '<p><label>' . __('Your Email:', 'b2b-commerce-pro') . ' <input type="email" name="quote_email" value="' . esc_attr($user->user_email) . '" required></label></p>';
+        echo '<p><label>' . __('Quantity:', 'b2b-commerce-pro') . ' <input type="number" name="quote_qty" min="1" value="1"></label></p>';
+        echo '<p><label>' . __('Message:', 'b2b-commerce-pro') . ' <textarea name="quote_message" placeholder="' . __('Additional requirements...', 'b2b-commerce-pro') . '"></textarea></label></p>';
+        echo '<button type="button" class="button button-primary submit-quote">' . __('Submit Quote Request', 'b2b-commerce-pro') . '</button>';
+        echo '<button type="button" class="button cancel-quote">' . __('Cancel', 'b2b-commerce-pro') . '</button>';
         echo '</div>';
         echo '</div>';
     }
@@ -467,7 +468,7 @@ class AdvancedFeatures {
             return;
         }
         if (!is_user_logged_in()) {
-            wp_send_json_error('Please log in to request quotes');
+            wp_send_json_error(__('Please log in to request quotes', 'b2b-commerce-pro'));
             return;
         }
         
@@ -626,10 +627,10 @@ class AdvancedFeatures {
         if (!$product) return;
         
         echo '<div class="b2b-bulk-calculator" data-product-id="' . esc_attr( $product->get_id() ) . '">';
-        echo '<h4>Bulk Pricing Calculator</h4>';
-        echo '<p><label>Quantity: <input type="number" name="bulk_qty" min="1" value="1" class="bulk-qty-input"></label></p>';
-        echo '<p><strong>Price: <span class="bulk-price-display">' . $product->get_price_html() . '</span></strong></p>';
-        echo '<button type="button" class="button calculate-bulk-price">Calculate Bulk Price</button>';
+        echo '<h4>' . __('Bulk Pricing Calculator', 'b2b-commerce-pro') . '</h4>';
+        echo '<p><label>' . __('Quantity:', 'b2b-commerce-pro') . ' <input type="number" name="bulk_qty" min="1" value="1" class="bulk-qty-input"></label></p>';
+        echo '<p><strong>' . __('Price:', 'b2b-commerce-pro') . ' <span class="bulk-price-display">' . $product->get_price_html() . '</span></strong></p>';
+        echo '<button type="button" class="button calculate-bulk-price">' . __('Calculate Bulk Price', 'b2b-commerce-pro') . '</button>';
         echo '</div>';
     }
     
@@ -732,24 +733,24 @@ class AdvancedFeatures {
     // Advanced reports page
     public function advanced_reports_page() {
         echo '<div class="wrap">';
-        echo '<h1>B2B Advanced Reports</h1>';
+        echo '<h1>' . __('B2B Advanced Reports', 'b2b-commerce-pro') . '</h1>';
         echo '<div class="b2b-admin-card">';
-        echo '<h3>Quote Requests</h3>';
+        echo '<h3>' . __('Quote Requests', 'b2b-commerce-pro') . '</h3>';
         
         $quotes = get_option('b2b_quote_requests', []);
         if (empty($quotes)) {
-            echo '<p>No quote requests found.</p>';
+            echo '<p>' . __('No quote requests found.', 'b2b-commerce-pro') . '</p>';
         } else {
             echo '<table class="wp-list-table widefat fixed striped">';
-            echo '<thead><tr><th>Product</th><th>Quantity</th><th>User</th><th>Status</th><th>Date</th></tr></thead>';
+            echo '<thead><tr><th>' . __('Product', 'b2b-commerce-pro') . '</th><th>' . __('Quantity', 'b2b-commerce-pro') . '</th><th>' . __('User', 'b2b-commerce-pro') . '</th><th>' . __('Status', 'b2b-commerce-pro') . '</th><th>' . __('Date', 'b2b-commerce-pro') . '</th></tr></thead>';
             echo '<tbody>';
             foreach ($quotes as $quote) {
                 $product = wc_get_product($quote['product_id']);
                 $user = get_userdata($quote['user_id']);
                 echo '<tr>';
-                echo '<td>' . ($product ? $product->get_name() : 'Product not found') . '</td>';
+                echo '<td>' . ($product ? $product->get_name() : __('Product not found', 'b2b-commerce-pro')) . '</td>';
                 echo '<td>' . $quote['quantity'] . '</td>';
-                echo '<td>' . ($user ? $user->display_name : 'User not found') . '</td>';
+                echo '<td>' . ($user ? $user->display_name : __('User not found', 'b2b-commerce-pro')) . '</td>';
                 echo '<td>' . ucfirst($quote['status']) . '</td>';
                 echo '<td>' . $quote['date'] . '</td>';
                 echo '</tr>';

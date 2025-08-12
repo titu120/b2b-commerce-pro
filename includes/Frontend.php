@@ -17,7 +17,7 @@ class Frontend {
 
     // B2B dashboard shortcode
     public function b2b_dashboard_shortcode() {
-        if ( ! is_user_logged_in() ) return '<p>Please log in to access your B2B dashboard.</p>';
+        if ( ! is_user_logged_in() ) return '<p>' . __('Please log in to access your B2B dashboard.', 'b2b-commerce-pro') . '</p>';
         $user = wp_get_current_user();
         ob_start();
         echo '<div class="b2b-dashboard">';

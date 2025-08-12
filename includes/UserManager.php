@@ -135,10 +135,10 @@ class UserManager {
     public function customer_groups_page() {
         // Display success messages
         if (isset($_GET['saved'])) {
-            echo '<div class="notice notice-success"><p>Group saved successfully!</p></div>';
+            echo '<div class="notice notice-success"><p>' . __('Group saved successfully!', 'b2b-commerce-pro') . '</p></div>';
         }
         if (isset($_GET['deleted'])) {
-            echo '<div class="notice notice-success"><p>Group deleted successfully!</p></div>';
+            echo '<div class="notice notice-success"><p>' . __('Group deleted successfully!', 'b2b-commerce-pro') . '</p></div>';
         }
         
         if (isset($_GET['action'])) {
@@ -252,20 +252,20 @@ class UserManager {
             'meta_key' => 'b2b_approval_status',
             'meta_value' => 'pending',
         ] );
-        echo '<div class="wrap"><h1>B2B User Approvals</h1>';
+        echo '<div class="wrap"><h1>' . __('B2B User Approvals', 'b2b-commerce-pro') . '</h1>';
         if ( empty( $pending_users ) ) {
-            echo '<p>No pending users.</p></div>';
+            echo '<p>' . __('No pending users.', 'b2b-commerce-pro') . '</p></div>';
             return;
         }
-        echo '<table class="widefat"><thead><tr><th>User</th><th>Company</th><th>Role</th><th>Actions</th></tr></thead><tbody>';
+        echo '<table class="widefat"><thead><tr><th>' . __('User', 'b2b-commerce-pro') . '</th><th>' . __('Company', 'b2b-commerce-pro') . '</th><th>' . __('Role', 'b2b-commerce-pro') . '</th><th>' . __('Actions', 'b2b-commerce-pro') . '</th></tr></thead><tbody>';
         foreach ( $pending_users as $user ) {
             echo '<tr>';
             echo '<td>' . esc_html( $user->user_login ) . '</td>';
             echo '<td>' . esc_html( get_user_meta( $user->ID, 'company_name', true ) ) . '</td>';
             echo '<td>' . esc_html( implode( ', ', $user->roles ) ) . '</td>';
             echo '<td>';
-            echo '<a href="' . esc_url( admin_url( 'admin-post.php?action=b2b_approve_user&user_id=' . $user->ID ) ) . '" class="button">Approve</a> ';
-            echo '<a href="' . esc_url( admin_url( 'admin-post.php?action=b2b_reject_user&user_id=' . $user->ID ) ) . '" class="button">Reject</a>';
+            echo '<a href="' . esc_url( admin_url( 'admin-post.php?action=b2b_approve_user&user_id=' . $user->ID ) ) . '" class="button">' . __('Approve', 'b2b-commerce-pro') . '</a> ';
+            echo '<a href="' . esc_url( admin_url( 'admin-post.php?action=b2b_reject_user&user_id=' . $user->ID ) ) . '" class="button">' . __('Reject', 'b2b-commerce-pro') . '</a>';
             echo '</td>';
             echo '</tr>';
         }
@@ -348,15 +348,15 @@ class UserManager {
 
     // Render import/export page
     public function import_export_page() {
-        echo '<div class="wrap"><h1>Bulk User Import/Export</h1>';
+        echo '<div class="wrap"><h1>' . __('Bulk User Import/Export', 'b2b-commerce-pro') . '</h1>';
         echo '<form method="post" enctype="multipart/form-data">';
-        echo '<h2>Export Users</h2>';
-        echo '<input type="submit" name="b2b_export_users" class="button button-primary" value="Export CSV">';
+        echo '<h2>' . __('Export Users', 'b2b-commerce-pro') . '</h2>';
+        echo '<input type="submit" name="b2b_export_users" class="button button-primary" value="' . __('Export CSV', 'b2b-commerce-pro') . '">';
         echo '</form>';
         echo '<form method="post" enctype="multipart/form-data">';
-        echo '<h2>Import Users</h2>';
+        echo '<h2>' . __('Import Users', 'b2b-commerce-pro') . '</h2>';
         echo '<input type="file" name="b2b_import_file" accept=".csv">';
-        echo '<input type="submit" name="b2b_import_users" class="button button-primary" value="Import CSV">';
+        echo '<input type="submit" name="b2b_import_users" class="button button-primary" value="' . __('Import CSV', 'b2b-commerce-pro') . '">';
         echo '</form></div>';
 
         // Handle export
@@ -421,7 +421,7 @@ class UserManager {
             }
         }
         fclose( $handle );
-        echo '<div class="notice notice-success"><p>Users imported successfully.</p></div>';
+        echo '<div class="notice notice-success"><p>' . __('Users imported successfully.', 'b2b-commerce-pro') . '</p></div>';
     }
 
     // Advanced user management features
@@ -451,16 +451,16 @@ class UserManager {
         $description = $group ? $group->description : '';
         
         echo '<div class="b2b-admin-card">';
-        echo '<h2>' . ($group_id ? 'Edit Group' : 'Add New Group') . '</h2>';
+        echo '<h2>' . ($group_id ? __('Edit Group', 'b2b-commerce-pro') : __('Add New Group', 'b2b-commerce-pro')) . '</h2>';
         echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
         echo '<input type="hidden" name="action" value="b2b_save_group">';
         echo wp_nonce_field('b2b_save_group', 'b2b_group_nonce', true, false);
         echo '<input type="hidden" name="group_id" value="' . $group_id . '">';
         echo '<table class="form-table">';
-        echo '<tr><th>Group Name</th><td><input type="text" name="group_name" value="' . esc_attr($name) . '" required></td></tr>';
-        echo '<tr><th>Description</th><td><textarea name="group_description" rows="3">' . esc_textarea($description) . '</textarea></td></tr>';
+        echo '<tr><th>' . __('Group Name', 'b2b-commerce-pro') . '</th><td><input type="text" name="group_name" value="' . esc_attr($name) . '" required></td></tr>';
+        echo '<tr><th>' . __('Description', 'b2b-commerce-pro') . '</th><td><textarea name="group_description" rows="3">' . esc_textarea($description) . '</textarea></td></tr>';
         echo '</table>';
-        echo '<p><button type="submit" class="button button-primary">Save Group</button></p>';
+        echo '<p><button type="submit" class="button button-primary">' . __('Save Group', 'b2b-commerce-pro') . '</button></p>';
         echo '</form></div>';
     }
 
@@ -468,20 +468,20 @@ class UserManager {
         $groups = get_terms(['taxonomy' => 'b2b_user_group', 'hide_empty' => false]);
         
         echo '<div class="b2b-admin-card">';
-        echo '<h2>Customer Groups</h2>';
-        echo '<p><a href="' . admin_url('admin.php?page=b2b-customer-groups&action=add') . '" class="button">Add New Group</a></p>';
+        echo '<h2>' . __('Customer Groups', 'b2b-commerce-pro') . '</h2>';
+        echo '<p><a href="' . admin_url('admin.php?page=b2b-customer-groups&action=add') . '" class="button">' . __('Add New Group', 'b2b-commerce-pro') . '</a></p>';
         echo '<table class="wp-list-table widefat fixed striped">';
-        echo '<thead><tr><th>Group Name</th><th>Description</th><th>Members</th><th>Actions</th></tr></thead><tbody>';
+        echo '<thead><tr><th>' . __('Group Name', 'b2b-commerce-pro') . '</th><th>' . __('Description', 'b2b-commerce-pro') . '</th><th>' . __('Members', 'b2b-commerce-pro') . '</th><th>' . __('Actions', 'b2b-commerce-pro') . '</th></tr></thead><tbody>';
         
         foreach ($groups as $group) {
             $member_count = $group->count;
             echo '<tr>';
             echo '<td>' . esc_html($group->name) . '</td>';
             echo '<td>' . esc_html($group->description) . '</td>';
-            echo '<td>' . $member_count . ' members</td>';
+            echo '<td>' . $member_count . ' ' . __('members', 'b2b-commerce-pro') . '</td>';
             echo '<td>';
-            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=edit&group_id=' . $group->term_id) . '" class="button">Edit</a> ';
-            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=delete&group_id=' . $group->term_id) . '" class="button" onclick="return confirm(\'Delete this group?\')">Delete</a>';
+            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=edit&group_id=' . $group->term_id) . '" class="button">' . __('Edit', 'b2b-commerce-pro') . '</a> ';
+            echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=delete&group_id=' . $group->term_id) . '" class="button" onclick="return confirm(\'' . __('Delete this group?', 'b2b-commerce-pro') . '\')">' . __('Delete', 'b2b-commerce-pro') . '</a>';
             echo '</td></tr>';
         }
         
@@ -512,25 +512,25 @@ class UserManager {
 
     private function render_import_export_interface() {
         echo '<div class="b2b-admin-card">';
-        echo '<h2>Bulk Import/Export Users</h2>';
+        echo '<h2>' . __('Bulk Import/Export Users', 'b2b-commerce-pro') . '</h2>';
         
         // Export Section
-        echo '<h3>Export Users</h3>';
-        echo '<p>Export all B2B users to CSV format.</p>';
+        echo '<h3>' . __('Export Users', 'b2b-commerce-pro') . '</h3>';
+        echo '<p>' . __('Export all B2B users to CSV format.', 'b2b-commerce-pro') . '</p>';
         echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
         echo '<input type="hidden" name="action" value="b2b_export_users">';
         echo wp_nonce_field('b2b_export_users', 'b2b_export_nonce', true, false);
-        echo '<p><button type="submit" class="button">Export Users</button></p>';
+        echo '<p><button type="submit" class="button">' . __('Export Users', 'b2b-commerce-pro') . '</button></p>';
         echo '</form>';
         
         // Import Section
-        echo '<h3>Import Users</h3>';
-        echo '<p>Import users from CSV file. <a href="#" onclick="showImportTemplate()">Download template</a></p>';
+        echo '<h3>' . __('Import Users', 'b2b-commerce-pro') . '</h3>';
+        echo '<p>' . __('Import users from CSV file.', 'b2b-commerce-pro') . ' <a href="#" onclick="showImportTemplate()">' . __('Download template', 'b2b-commerce-pro') . '</a></p>';
         echo '<form method="post" enctype="multipart/form-data">';
         echo wp_nonce_field('b2b_import_users', 'b2b_import_nonce', true, false);
         echo '<p><input type="file" name="csv_file" accept=".csv" required></p>';
-        echo '<p><label><input type="checkbox" name="send_welcome_email" value="1"> Send welcome email to new users</label></p>';
-        echo '<p><button type="submit" class="button button-primary">Import Users</button></p>';
+        echo '<p><label><input type="checkbox" name="send_welcome_email" value="1"> ' . __('Send welcome email to new users', 'b2b-commerce-pro') . '</label></p>';
+        echo '<p><button type="submit" class="button button-primary">' . __('Import Users', 'b2b-commerce-pro') . '</button></p>';
         echo '</form></div>';
         
         echo '<script>
@@ -662,25 +662,25 @@ class UserManager {
         $template = $template_id ? get_option("b2b_email_template_$template_id") : null;
         
         echo '<div class="b2b-admin-card">';
-        echo '<h2>' . ($template_id ? 'Edit Email Template' : 'Add Email Template') . '</h2>';
+        echo '<h2>' . ($template_id ? __('Edit Email Template', 'b2b-commerce-pro') : __('Add Email Template', 'b2b-commerce-pro')) . '</h2>';
         echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
         echo '<input type="hidden" name="action" value="b2b_save_email_template">';
         echo wp_nonce_field('b2b_save_email_template', 'b2b_email_nonce', true, false);
         echo '<input type="hidden" name="template_id" value="' . $template_id . '">';
         
         echo '<table class="form-table">';
-        echo '<tr><th>Template Name</th><td><input type="text" name="template_name" value="' . esc_attr($template['name'] ?? '') . '" required></td></tr>';
-        echo '<tr><th>Subject</th><td><input type="text" name="subject" value="' . esc_attr($template['subject'] ?? '') . '" required></td></tr>';
-        echo '<tr><th>Message</th><td><textarea name="message" rows="10" cols="50">' . esc_textarea($template['message'] ?? '') . '</textarea></td></tr>';
-        echo '<tr><th>Trigger</th><td><select name="trigger">';
-        echo '<option value="user_approved"' . selected($template['trigger'] ?? '', 'user_approved', false) . '>User Approved</option>';
-        echo '<option value="user_rejected"' . selected($template['trigger'] ?? '', 'user_rejected', false) . '>User Rejected</option>';
-        echo '<option value="welcome_email"' . selected($template['trigger'] ?? '', 'welcome_email', false) . '>Welcome Email</option>';
-        echo '<option value="order_confirmation"' . selected($template['trigger'] ?? '', 'order_confirmation', false) . '>Order Confirmation</option>';
+        echo '<tr><th>' . __('Template Name', 'b2b-commerce-pro') . '</th><td><input type="text" name="template_name" value="' . esc_attr($template['name'] ?? '') . '" required></td></tr>';
+        echo '<tr><th>' . __('Subject', 'b2b-commerce-pro') . '</th><td><input type="text" name="subject" value="' . esc_attr($template['subject'] ?? '') . '" required></td></tr>';
+        echo '<tr><th>' . __('Message', 'b2b-commerce-pro') . '</th><td><textarea name="message" rows="10" cols="50">' . esc_textarea($template['message'] ?? '') . '</textarea></td></tr>';
+        echo '<tr><th>' . __('Trigger', 'b2b-commerce-pro') . '</th><td><select name="trigger">';
+        echo '<option value="user_approved"' . selected($template['trigger'] ?? '', 'user_approved', false) . '>' . __('User Approved', 'b2b-commerce-pro') . '</option>';
+        echo '<option value="user_rejected"' . selected($template['trigger'] ?? '', 'user_rejected', false) . '>' . __('User Rejected', 'b2b-commerce-pro') . '</option>';
+        echo '<option value="welcome_email"' . selected($template['trigger'] ?? '', 'welcome_email', false) . '>' . __('Welcome Email', 'b2b-commerce-pro') . '</option>';
+        echo '<option value="order_confirmation"' . selected($template['trigger'] ?? '', 'order_confirmation', false) . '>' . __('Order Confirmation', 'b2b-commerce-pro') . '</option>';
         echo '</select></td></tr>';
         echo '</table>';
         
-        echo '<p><button type="submit" class="button button-primary">Save Template</button></p>';
+        echo '<p><button type="submit" class="button button-primary">' . __('Save Template', 'b2b-commerce-pro') . '</button></p>';
         echo '</form></div>';
     }
 
@@ -694,14 +694,14 @@ class UserManager {
         }
         
         echo '<div class="b2b-admin-card">';
-        echo '<h2>Email Templates</h2>';
-        echo '<p><a href="' . admin_url('admin.php?page=b2b-emails&action=add') . '" class="button">Add New Template</a></p>';
+        echo '<h2>' . __('Email Templates', 'b2b-commerce-pro') . '</h2>';
+        echo '<p><a href="' . admin_url('admin.php?page=b2b-emails&action=add') . '" class="button">' . __('Add New Template', 'b2b-commerce-pro') . '</a></p>';
         
         if (empty($templates)) {
-            echo '<p>No email templates found.</p>';
+            echo '<p>' . __('No email templates found.', 'b2b-commerce-pro') . '</p>';
         } else {
             echo '<table class="wp-list-table widefat fixed striped">';
-            echo '<thead><tr><th>Template Name</th><th>Trigger</th><th>Subject</th><th>Actions</th></tr></thead><tbody>';
+            echo '<thead><tr><th>' . __('Template Name', 'b2b-commerce-pro') . '</th><th>' . __('Trigger', 'b2b-commerce-pro') . '</th><th>' . __('Subject', 'b2b-commerce-pro') . '</th><th>' . __('Actions', 'b2b-commerce-pro') . '</th></tr></thead><tbody>';
             
             foreach ($templates as $id => $template) {
                 echo '<tr>';
@@ -709,8 +709,8 @@ class UserManager {
                 echo '<td>' . esc_html($template['trigger']) . '</td>';
                 echo '<td>' . esc_html($template['subject']) . '</td>';
                 echo '<td>';
-                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=edit&template_id=' . $id) . '" class="button">Edit</a> ';
-                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=test&template_id=' . $id) . '" class="button">Test</a>';
+                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=edit&template_id=' . $id) . '" class="button">' . __('Edit', 'b2b-commerce-pro') . '</a> ';
+                echo '<a href="' . admin_url('admin.php?page=b2b-emails&action=test&template_id=' . $id) . '" class="button">' . __('Test', 'b2b-commerce-pro') . '</a>';
                 echo '</td></tr>';
             }
             
