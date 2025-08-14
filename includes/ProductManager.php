@@ -25,9 +25,7 @@ class ProductManager {
         add_action( 'edited_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_action( 'create_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_filter( 'woocommerce_product_query_tax_query', [ $this, 'filter_category_restrictions' ] );
-        // Product inquiry system
-        add_action( 'woocommerce_single_product_summary', [ $this, 'product_inquiry_button' ], 40 );
-        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_inquiry_scripts' ] );
+        // Scripts are now handled by the main plugin file
         add_action( 'wp_ajax_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
         add_action( 'wp_ajax_nopriv_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
         // Bulk order and CSV import placeholders
@@ -380,6 +378,11 @@ class ProductManager {
     public function product_inquiry_button() {
         global $product;
         
+        // Prevent duplicate buttons
+        static $inquiry_button_rendered = false;
+        if ($inquiry_button_rendered) return;
+        $inquiry_button_rendered = true;
+        
         // Use helper function to check if buttons should be shown
         if (!$this->should_show_b2b_buttons($product->get_id())) {
             return;
@@ -411,14 +414,7 @@ class ProductManager {
         </script>
         <?php
     }
-    public function enqueue_inquiry_scripts() {
-        wp_enqueue_script('b2b-quote-request', B2B_COMMERCE_PRO_URL . 'assets/js/b2b-commerce-pro.js', ['jquery'], B2B_COMMERCE_PRO_VERSION, true);
-        wp_localize_script('b2b-quote-request', 'b2bQuote', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('b2b_quote_request'),
-        ]);
-        wp_enqueue_style('b2b-quote-style', B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css', [], B2B_COMMERCE_PRO_VERSION);
-    }
+    // Scripts are now handled by the main plugin file
     public function handle_product_inquiry() {
         check_ajax_referer('b2b_quote_request', 'nonce');
         $product_id = intval($_POST['product_id']);

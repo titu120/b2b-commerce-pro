@@ -57,7 +57,7 @@ class Frontend {
             echo '<td>#' . $order->get_id() . '</td>';
             echo '<td>' . esc_html( $order->get_date_created()->date( 'Y-m-d' ) ) . '</td>';
             echo '<td>' . esc_html( wc_get_order_status_name( $order->get_status() ) ) . '</td>';
-            echo '<td>' . esc_html( $order->get_formatted_order_total() ) . '</td>';
+            echo '<td>' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</td>';
             echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank">Download</a></td>';
             echo '</tr>';
         }
@@ -78,7 +78,7 @@ class Frontend {
                 header( 'Content-Type: text/html' );
                 echo '<h2>Invoice for Order #' . $order->get_id() . '</h2>';
                 echo '<p>Date: ' . esc_html( $order->get_date_created()->date( 'Y-m-d' ) ) . '</p>';
-                echo '<p>Total: ' . esc_html( $order->get_formatted_order_total() ) . '</p>';
+                echo '<p>Total: ' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</p>';
                 echo '<h3>Items</h3><ul>';
                 foreach ( $order->get_items() as $item ) {
                     echo '<li>' . esc_html( $item->get_name() ) . ' x ' . esc_html( $item->get_quantity() ) . '</li>';

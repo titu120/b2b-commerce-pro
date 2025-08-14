@@ -17,14 +17,15 @@ class PricingManager {
         add_filter( 'woocommerce_product_get_sale_price', [ $this, 'apply_pricing_rules' ], 5, 2 );
         add_filter( 'woocommerce_get_price_html', [ $this, 'apply_pricing_to_price_html' ], 5, 2 );
         add_action( 'woocommerce_before_calculate_totals', [ $this, 'enforce_min_max_quantity' ] );
+        add_action( 'woocommerce_cart_updated', [ $this, 'clear_notice_flag' ] );
+        add_action( 'woocommerce_add_to_cart', [ $this, 'clear_notice_flag' ] );
+        add_action( 'woocommerce_remove_cart_item', [ $this, 'clear_notice_flag' ] );
         add_action( 'admin_post_b2b_save_pricing_rule', [ $this, 'save_pricing_rule' ] );
         add_action( 'admin_post_b2b_delete_pricing_rule', [ $this, 'delete_pricing_rule' ] );
-        // Quote request system - handled by AdvancedFeatures.php
-        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_quote_scripts' ] );
+        // Scripts are now handled by the main plugin file
         // Enqueue B2B assets
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_b2b_assets' ] );
-        // Price request system placeholder
-        add_action( 'woocommerce_single_product_summary', [ $this, 'price_request_button' ], 35 );
+        // Price request system - REMOVED: Duplicate of AdvancedFeatures quote_request_button
 
         // Display pricing widgets on product page
         add_action( 'woocommerce_single_product_summary', [ $this, 'render_pricing_widgets' ], 28 );
@@ -107,10 +108,12 @@ class PricingManager {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
         
+
         if ($exists != $table) {
             error_log("B2B Pricing: Table does not exist");
             return false;
         }
+        
         
         $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $table));
         error_log("B2B Pricing: Table exists with $count rules");
@@ -324,12 +327,22 @@ class PricingManager {
     // Enforce min/max quantity in cart
     public function enforce_min_max_quantity( $cart ) {
         if ( is_admin() ) return;
+        
+        // Prevent duplicate notices by using a session flag
+        if (WC()->session && WC()->session->get('b2b_quantity_notices_processed')) {
+            return;
+        }
+        
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
 
         $user = wp_get_current_user();
         $roles = (array) ($user->roles ?? []);
         $user_id = (int) ($user->ID ?? 0);
+
+        // Collect all notices to avoid duplicates
+        $notices = [];
+        $processed_products = [];
 
         foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
             $product    = $cart_item['data'];
@@ -353,12 +366,27 @@ class PricingManager {
             $best_price = $original_price;
 
             foreach ( $rules as $rule ) {
-                // Enforce min/max messages
+                // Get quantity settings
+                $quantity_settings = get_option('b2b_quantity_settings', ['enforce_min_qty' => 1, 'min_qty_behavior' => 'warning']);
+                $enforce_min_qty = $quantity_settings['enforce_min_qty'] ?? 1;
+                $min_qty_behavior = $quantity_settings['min_qty_behavior'] ?? 'warning';
+                
+                // Enforce min/max messages based on settings
                 if ( $rule->min_qty && $quantity < $rule->min_qty ) {
-                    wc_add_notice( 'Minimum quantity for this product is ' . $rule->min_qty, 'error' );
+                    $notice_key = 'min_qty_' . $rule->role . '_' . $rule->min_qty;
+                    if (!in_array($notice_key, $processed_products)) {
+                        $processed_products[] = $notice_key;
+                        
+                        if ($enforce_min_qty && $min_qty_behavior === 'error') {
+                            $notices[] = 'Minimum quantity for wholesale pricing is ' . $rule->min_qty . ' items.';
+                        } elseif ($enforce_min_qty && $min_qty_behavior === 'warning') {
+                            $notices[] = 'Note: Minimum quantity for wholesale pricing is ' . $rule->min_qty . ' items. You may not receive wholesale pricing for quantities below this threshold.';
+                        }
+                        // If behavior is 'ignore', don't add any notice
+                    }
                 }
                 if ( $rule->max_qty && $quantity > $rule->max_qty ) {
-                    wc_add_notice( 'Maximum quantity for this product is ' . $rule->max_qty, 'error' );
+                    $notices[] = 'Maximum quantity for this product is ' . $rule->max_qty . ' items.';
                 }
 
                 // Check matching conditions
@@ -369,7 +397,11 @@ class PricingManager {
                 if ( $rule->user_id && (int)$rule->user_id !== $user_id ) {
                     $matches = false;
                 }
-                if ( $rule->min_qty && $quantity < (int)$rule->min_qty ) {
+                // Check quantity settings for pricing rule matching
+                $quantity_settings = get_option('b2b_quantity_settings', ['enforce_min_qty' => 1, 'min_qty_behavior' => 'warning']);
+                $enforce_min_qty = $quantity_settings['enforce_min_qty'] ?? 1;
+                
+                if ( $enforce_min_qty && $rule->min_qty && $quantity < (int)$rule->min_qty ) {
                     $matches = false;
                 }
                 $now = date('Y-m-d');
@@ -391,6 +423,25 @@ class PricingManager {
             if ( $best_price !== $original_price ) {
                 $product->set_price( $best_price );
             }
+        }
+        
+        // Display collected notices (only once)
+        if (!empty($notices)) {
+            foreach ($notices as $notice) {
+                wc_add_notice($notice, 'notice');
+            }
+        }
+        
+        // Set session flag to prevent duplicate processing
+        if (WC()->session) {
+            WC()->session->set('b2b_quantity_notices_processed', true);
+        }
+    }
+    
+    // Clear notice flag when cart is updated
+    public function clear_notice_flag() {
+        if (WC()->session) {
+            WC()->session->__unset('b2b_quantity_notices_processed');
         }
     }
 
@@ -435,14 +486,7 @@ class PricingManager {
         exit;
     }
 
-    // Enqueue scripts for quote request
-    public function enqueue_quote_scripts() {
-        wp_enqueue_script('b2b-quote-request', B2B_COMMERCE_PRO_URL . 'assets/js/b2b-commerce-pro.js', ['jquery'], B2B_COMMERCE_PRO_VERSION, true);
-        wp_localize_script('b2b-quote-request', 'b2bQuote', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('b2b_quote_request'),
-        ]);
-    }
+    // Scripts are now handled by the main plugin file
     
     // Enqueue B2B styles and scripts
     public function enqueue_b2b_assets() {
@@ -455,60 +499,9 @@ class PricingManager {
     }
 
     // Price request button and modal
-    public function price_request_button() {
-        global $product;
-        if ( ! $product->is_type( 'simple' ) ) return;
-        
-        // Use helper function to check if buttons should be shown
-        if (class_exists('B2B\\ProductManager')) {
-            $product_manager = new ProductManager();
-            if (!$product_manager->should_show_b2b_buttons($product->get_id())) {
-                return;
-            }
-        }
-        
-        echo '<button class="button b2b-price-request" data-product="' . esc_attr($product->get_id()) . '">' . __('Request a Quote', 'b2b-commerce-pro') . '</button>';
-        echo '<div id="b2b-quote-modal" style="display:none;"><form id="b2b-quote-form"><h3>' . __('Request a Quote', 'b2b-commerce-pro') . '</h3>';
-        echo '<input type="hidden" name="product_id" value="' . esc_attr($product->get_id()) . '">';
-        echo '<p><label>' . __('Your Email', 'b2b-commerce-pro') . '<br><input type="email" name="email" required></label></p>';
-        echo '<p><label>' . __('Quantity', 'b2b-commerce-pro') . '<br><input type="number" name="quantity" min="1" required></label></p>';
-        echo '<p><label>' . __('Message', 'b2b-commerce-pro') . '<br><textarea name="message" required></textarea></label></p>';
-        echo '<p><button type="submit" class="button">' . __('Send Request', 'b2b-commerce-pro') . '</button></p>';
-        echo '<div class="b2b-quote-response"></div>';
-        echo '</form></div>';
-        ?>
-        <script>
-        jQuery(function($){
-            $('.b2b-price-request').on('click', function(e){
-                e.preventDefault();
-                $('#b2b-quote-modal').show();
-            });
-            $('#b2b-quote-form').on('submit', function(e){
-                e.preventDefault();
-                var data = $(this).serialize();
-                $.post(b2bQuote.ajax_url, data + '&action=b2b_quote_request&nonce=' + b2bQuote.nonce, function(response){
-                    $('.b2b-quote-response').html(response.data ? response.data : response);
-                });
-            });
-        });
-        </script>
-        <?php
-    }
+    // REMOVED: price_request_button() - Duplicate of AdvancedFeatures quote_request_button
 
-    // Handle AJAX quote request
-    public function handle_quote_request() {
-        check_ajax_referer('b2b_quote_request', 'nonce');
-        $product_id = intval($_POST['product_id']);
-        $email = sanitize_email($_POST['email']);
-        $quantity = intval($_POST['quantity']);
-        $message = sanitize_textarea_field($_POST['message']);
-        $product = wc_get_product($product_id);
-        $admin_email = get_option('admin_email');
-        $subject = 'B2B Quote Request for ' . $product->get_name();
-        $body = "Product: " . $product->get_name() . "\nEmail: $email\nQuantity: $quantity\nMessage: $message";
-        wp_mail($admin_email, $subject, $body);
-        wp_send_json_success('Your quote request has been sent!');
-    }
+    // REMOVED: handle_quote_request() - Duplicate of AdvancedFeatures handle_quote_request
 
     // Advanced pricing features implementation
     public function tiered_pricing() {

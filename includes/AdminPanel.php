@@ -86,8 +86,6 @@ class AdminPanel {
             [ $this, 'inquiries_page' ]
         );
          
-
-
         
         add_submenu_page(
             'b2b-dashboard',
@@ -165,7 +163,6 @@ class AdminPanel {
             [ $this, 'test_page' ]
         );
     }
-
 
 
     // Render the admin wrapper with unified navigation
@@ -511,7 +508,7 @@ class AdminPanel {
                 <td><strong><a href="' . admin_url('post.php?post=' . $order->get_id() . '&action=edit') . '">#' . $order->get_id() . '</a></strong></td>
                 <td>' . esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()) . '</td>
                 <td>' . esc_html($order->get_date_created()->date('Y-m-d H:i')) . '</td>
-                <td><strong>' . esc_html($order->get_formatted_order_total()) . '</strong></td>
+                <td><strong>' . esc_html(get_woocommerce_currency_symbol() . number_format($order->get_total(), 2)) . '</strong></td>
                 <td><span class="b2b-badge b2b-badge-' . $status_class . '">' . esc_html(wc_get_order_status_name($order->get_status())) . '</span></td>
                 <td>
                     <a href="' . admin_url('post.php?post=' . $order->get_id() . '&action=edit') . '" class="b2b-admin-btn" style="padding: 4px 8px; font-size: 0.8em;"><span class="icon dashicons dashicons-edit"></span>View</a>
@@ -748,6 +745,8 @@ class AdminPanel {
         if (!current_user_can('manage_options')) return;
         $role_payment = get_option('b2b_role_payment_methods', []);
         $role_shipping = get_option('b2b_role_shipping_methods', []);
+        $quantity_settings = get_option('b2b_quantity_settings', ['enforce_min_qty' => 1]);
+        
         if (isset($_POST['b2b_checkout_controls_nonce']) && wp_verify_nonce($_POST['b2b_checkout_controls_nonce'], 'b2b_checkout_controls')) {
             $roles = ['b2b_customer','wholesale_customer','distributor','retailer'];
             $rp = [];$rs = [];
@@ -757,6 +756,14 @@ class AdminPanel {
             }
             update_option('b2b_role_payment_methods', $rp);
             update_option('b2b_role_shipping_methods', $rs);
+            
+            // Save quantity settings
+            $quantity_settings = [
+                'enforce_min_qty' => isset($_POST['b2b_quantity_settings']['enforce_min_qty']) ? 1 : 0,
+                'min_qty_behavior' => sanitize_text_field($_POST['b2b_quantity_settings']['min_qty_behavior'] ?? 'warning')
+            ];
+            update_option('b2b_quantity_settings', $quantity_settings);
+            
             $role_payment = $rp; $role_shipping = $rs;
             echo '<div class="b2b-admin-card" style="color:#2196f3;">Checkout controls saved.</div>';
         }
@@ -830,6 +837,25 @@ class AdminPanel {
                 $content .= '</tbody></table>';
             }
         }
+        
+        // Quantity Settings Section
+        $content .= '<h3 style="margin-top:30px; border-top:1px solid #e0e0e0; padding-top:20px;">Minimum Quantity Settings</h3>';
+        $content .= '<p style="color:#666; margin-bottom:20px;">Control how minimum quantity requirements are enforced during checkout.</p>';
+        
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px; margin-bottom:12px;">';
+        $content .= '<div><label style="margin:0; font-weight:600; color:#23272f;">Enforce Minimum Quantity</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">When enabled, customers must meet minimum quantity requirements to checkout.</p></div>';
+        $content .= '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_quantity_settings[enforce_min_qty]" value="1" ' . checked($quantity_settings['enforce_min_qty'] ?? 1, 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>';
+        $content .= '</div>';
+        
+        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px; margin-bottom:12px;">';
+        $content .= '<div><label style="margin:0; font-weight:600; color:#23272f;">Behavior when minimum not met</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Choose how to handle customers who don\'t meet minimum quantities.</p></div>';
+        $content .= '<select name="b2b_quantity_settings[min_qty_behavior]" style="padding:8px; border:1px solid #ddd; border-radius:4px;">';
+        $content .= '<option value="error" ' . selected($quantity_settings['min_qty_behavior'] ?? 'warning', 'error', false) . '>Block checkout (Error)</option>';
+        $content .= '<option value="warning" ' . selected($quantity_settings['min_qty_behavior'] ?? 'warning', 'warning', false) . '>Allow with warning</option>';
+        $content .= '<option value="ignore" ' . selected($quantity_settings['min_qty_behavior'] ?? 'warning', 'ignore', false) . '>Ignore completely</option>';
+        $content .= '</select>';
+        $content .= '</div>';
+        
         $content .= '<div style="margin-top:18px; display:flex; gap:10px;">';
         $content .= '<button class="b2b-admin-btn" type="submit"><span class="icon dashicons dashicons-saved"></span>Save</button>';
         $content .= '<a href="' . admin_url('admin.php?page=wc-settings&tab=checkout') . '" class="b2b-admin-btn" style="background:#eef3fb;color:#1976d2;box-shadow:none;">Open WooCommerce Payments</a>';
@@ -1817,7 +1843,7 @@ Best regards,
                 $content .= '<td>' . esc_html($q['quantity'] ?? '') . '</td>';
                 $content .= '<td>' . esc_html($q['message'] ?? '') . '</td>';
                 $content .= '<td>' . esc_html(ucfirst($q['status'] ?? 'pending')) . '</td>';
-                $content .= '<td><button type="button" class="b2b-admin-btn b2b-quote-action" data-index="' . $index . '" data-action="approve">Approve</button> <button type="button" class="b2b-admin-btn b2b-admin-btn-danger b2b-quote-action" data-index="' . $index . '" data-action="decline">Decline</button></td>';
+                $content .= '<td><button type="button" class="b2b-admin-btn b2b-quote-action" data-index="' . $index . '" data-action="approve">Approve</button> <button type="button" class="b2b-admin-btn b2b-admin-btn-danger b2b-quote-action" data-index="' . $index . '" data-action="decline">Decline</button> <button type="button" class="b2b-admin-btn b2b-admin-btn-danger b2b-delete-quote" data-index="' . $index . '">Delete</button></td>';
                 $content .= '</tr>';
             }
             $content .= '</tbody></table>';
@@ -1835,6 +1861,8 @@ Best regards,
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 12px;
+            min-width: 60px;
         }
         .b2b-quote-action:hover {
             transform: translateY(-1px);
@@ -1859,6 +1887,18 @@ Best regards,
         }
         .b2b-admin-btn-danger:hover {
             background: #c82333;
+        }
+        .b2b-delete-quote {
+            background: #6c757d !important;
+            border-color: #6c757d !important;
+            color: white !important;
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+            min-width: 60px !important;
+        }
+        .b2b-delete-quote:hover {
+            background: #5a6268 !important;
+            border-color: #5a6268 !important;
         }
         </style>';
         
@@ -1909,6 +1949,51 @@ Best regards,
                     },
                     complete: function() {
                         $btn.removeClass("processing").text(action === "approve" ? "Approve" : "Decline");
+                    }
+                });
+            });
+            
+            $(".b2b-delete-quote").on("click", function() {
+                var $btn = $(this);
+                if ($btn.hasClass("processing")) {
+                    return false;
+                }
+                
+                var index = $btn.data("index");
+                
+                if (!confirm("Are you sure you want to delete this quote? This action cannot be undone.")) {
+                    return false;
+                }
+                
+                $btn.addClass("processing").text("Deleting...");
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: "POST",
+                    data: {
+                        action: "b2b_delete_quote_ajax",
+                        quote_index: index,
+                        nonce: "' . wp_create_nonce('b2b_delete_quote_ajax') . '"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Show success message
+                            var notice = $("<div class=\"notice notice-success is-dismissible\"><p><strong>Success!</strong> Quote has been deleted.</p></div>");
+                            $(".b2b-admin-header").after(notice);
+                            
+                            // Remove the entire row
+                            $btn.closest("tr").fadeOut(300, function() {
+                                $(this).remove();
+                            });
+                        } else {
+                            alert("Error: " + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert("Error: Failed to delete quote. Please try again.");
+                    },
+                    complete: function() {
+                        $btn.removeClass("processing").text("Delete");
                     }
                 });
             });
@@ -2916,6 +3001,51 @@ Best regards,
         update_option('b2b_dismissed_notifications', array_unique($dismissed));
         
         wp_send_json_success('Notification dismissed');
+    }
+    
+    // AJAX handler for quote deletion
+    public function handle_delete_quote_ajax() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(__('Unauthorized access.', 'b2b-commerce-pro'));
+            }
+            
+            // Validate and sanitize input
+            $index = isset($_POST['quote_index']) ? absint($_POST['quote_index']) : -1;
+            
+            if ($index < 0) {
+                wp_send_json_error(__('Invalid request parameters.', 'b2b-commerce-pro'));
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'b2b_delete_quote_ajax')) {
+                wp_send_json_error(__('Security check failed.', 'b2b-commerce-pro'));
+            }
+            
+            $quotes = get_option('b2b_quote_requests', []);
+            if (!isset($quotes[$index])) {
+                wp_send_json_error(__('Quote not found.', 'b2b-commerce-pro'));
+            }
+            
+            // Remove the quote from the array
+            unset($quotes[$index]);
+            
+            // Reindex the array to maintain sequential keys
+            $quotes = array_values($quotes);
+            
+            $result = update_option('b2b_quote_requests', $quotes);
+            
+            if (!$result) {
+                wp_send_json_error(__('Failed to delete quote.', 'b2b-commerce-pro'));
+            }
+            
+            wp_send_json_success([
+                'message' => __('Quote has been deleted successfully.', 'b2b-commerce-pro')
+            ]);
+            
+        } catch (Exception $e) {
+            error_log('B2B Quote Delete AJAX Error: ' . $e->getMessage());
+            wp_send_json_error(__('An error occurred while deleting the quote.', 'b2b-commerce-pro'));
+        }
     }
     
     // Send email notification for quote status changes

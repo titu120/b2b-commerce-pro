@@ -551,7 +551,7 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
             }
         }
         
-        // Create demo pricing rules
+        // Create demo pricing rules with more flexible minimums
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         
@@ -561,19 +561,19 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
                     'role' => 'wholesale_customer',
                     'type' => 'percentage',
                     'price' => 15,
-                    'min_qty' => 10
+                    'min_qty' => 5  // Reduced from 10 to 5
                 ],
                 [
                     'role' => 'distributor',
                     'type' => 'percentage',
                     'price' => 25,
-                    'min_qty' => 50
+                    'min_qty' => 20  // Reduced from 50 to 20
                 ],
                 [
                     'role' => 'retailer',
                     'type' => 'fixed',
                     'price' => 5,
-                    'min_qty' => 5
+                    'min_qty' => 1   // Reduced from 5 to 1
                 ]
             ];
             
@@ -677,4 +677,40 @@ add_action('wp_ajax_b2b_bulk_user_action', function() {
     }
 
     wp_send_json_success(array('affected' => $affected));
+});
+
+// AJAX handler for quote deletion
+add_action('wp_ajax_b2b_delete_quote_ajax', function() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+    }
+    
+    $nonce = $_POST['nonce'] ?? '';
+    if (!$nonce || !wp_verify_nonce($nonce, 'b2b_delete_quote_ajax')) {
+        wp_send_json_error('Security check failed');
+    }
+    
+    $index = isset($_POST['quote_index']) ? absint($_POST['quote_index']) : -1;
+    if ($index < 0) {
+        wp_send_json_error('Invalid quote index');
+    }
+    
+    $quotes = get_option('b2b_quote_requests', []);
+    if (!isset($quotes[$index])) {
+        wp_send_json_error('Quote not found');
+    }
+    
+    // Remove the quote from the array
+    unset($quotes[$index]);
+    
+    // Reindex the array to maintain sequential keys
+    $quotes = array_values($quotes);
+    
+    $result = update_option('b2b_quote_requests', $quotes);
+    
+    if ($result) {
+        wp_send_json_success('Quote deleted successfully');
+    } else {
+        wp_send_json_error('Failed to delete quote');
+    }
 });

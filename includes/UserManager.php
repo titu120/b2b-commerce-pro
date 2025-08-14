@@ -44,6 +44,9 @@ class UserManager {
         }
     }
 
+
+
+
     // Register activation and deactivation hooks
     public static function activate() {
         self::add_roles();
@@ -84,6 +87,8 @@ class UserManager {
         remove_role( 'distributor' );
         remove_role( 'retailer' );
     }
+
+
 
     // Ensure roles exist on init
     public function register_roles() {

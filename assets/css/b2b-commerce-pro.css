@@ -681,6 +681,24 @@
     border-bottom: none;
 }
 
+/* B2B Buttons Container - Horizontal Layout */
+.b2b-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    flex-wrap: wrap;
+}
+
+.b2b-buttons-container .button {
+    flex: 1;
+    min-width: 150px;
+    margin: 0;
+}
+
 /* Quote Request Styles */
 .b2b-quote-request {
     margin: 20px 0;
@@ -702,6 +720,22 @@
 }
 
 .b2b-quote-btn:hover {
+    background: #005a87;
+}
+
+/* Product Inquiry Button Styles */
+.b2b-inquiry-btn {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.b2b-inquiry-btn:hover {
     background: #005a87;
 }
 
@@ -876,6 +910,82 @@
 
 .b2b-quote-btn:hover {
     background: #218838;
+}
+
+/* Product Inquiry Button Styles */
+.b2b-inquiry-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.b2b-inquiry-btn:hover {
+    background: #218838;
+}
+
+/* Product Inquiry Form Styles */
+.b2b-inquiry-form {
+    margin-top: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.b2b-inquiry-form h4 {
+    margin-top: 0;
+    color: #23272f;
+}
+
+.b2b-inquiry-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.b2b-inquiry-form input,
+.b2b-inquiry-form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.b2b-inquiry-form textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+.submit-inquiry {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.submit-inquiry:hover {
+    background: #005a87;
+}
+
+.cancel-inquiry {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.cancel-inquiry:hover {
+    background: #545b62;
 }
 
 .b2b-quote-form {

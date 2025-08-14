@@ -313,14 +313,19 @@
 
         // Quote request functionality
         initQuoteRequests: function() {
-            $('.b2b-quote-btn').on('click', function() {
+            // Prevent multiple event bindings
+            if (this.quoteRequestsInitialized) return;
+            this.quoteRequestsInitialized = true;
+            
+            // Use event delegation for dynamically added elements
+            $(document).on('click', '.b2b-quote-btn', function() {
                 var form = $(this).siblings('.b2b-quote-form');
-                form.toggle();
+                form.slideToggle();
             });
 
-            $('.submit-quote').on('click', function() {
+            $(document).on('click', '.submit-quote', function() {
                 var form = $(this).closest('.b2b-quote-form');
-                var productId = form.closest('.b2b-quote-request').find('.b2b-quote-btn').data('product-id');
+                var productId = form.siblings('.b2b-quote-btn').data('product-id');
                 var quantity = form.find('input[name="quote_qty"]').val();
                 var message = form.find('textarea[name="quote_message"]').val();
 
@@ -340,7 +345,7 @@
                 $.post(b2b_ajax.ajaxurl, data, function(response) {
                     if (response.success) {
                         alert('Quote request submitted successfully!');
-                        form.hide();
+                        form.slideUp();
                         form.find('input, textarea').val('');
                     } else {
                         alert('Error: ' + response.data);
@@ -348,14 +353,58 @@
                 });
             });
 
-            $('.cancel-quote').on('click', function() {
-                $(this).closest('.b2b-quote-form').hide();
+            $(document).on('click', '.cancel-quote', function() {
+                $(this).closest('.b2b-quote-form').slideUp();
+            });
+
+            // Product Inquiry functionality
+            $(document).on('click', '.b2b-inquiry-btn', function() {
+                var form = $(this).siblings('.b2b-inquiry-form');
+                form.slideToggle();
+            });
+
+            $(document).on('click', '.submit-inquiry', function() {
+                var form = $(this).closest('.b2b-inquiry-form');
+                var productId = form.siblings('.b2b-inquiry-btn').data('product-id');
+                var email = form.find('input[name="inquiry_email"]').val();
+                var message = form.find('textarea[name="inquiry_message"]').val();
+
+                if (!email || !message) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+
+                var data = {
+                    action: 'b2b_product_inquiry',
+                    product_id: productId,
+                    email: email,
+                    message: message,
+                    nonce: b2b_ajax.nonce
+                };
+
+                $.post(b2b_ajax.ajaxurl, data, function(response) {
+                    if (response.success) {
+                        alert('Inquiry submitted successfully!');
+                        form.slideUp();
+                        form.find('input, textarea').val('');
+                    } else {
+                        alert('Error: ' + response.data);
+                    }
+                });
+            });
+
+            $(document).on('click', '.cancel-inquiry', function() {
+                $(this).closest('.b2b-inquiry-form').slideUp();
             });
         },
 
         // Bulk pricing calculator functionality
         initBulkPricing: function() {
-            $('.calculate-bulk-price').on('click', function() {
+            // Prevent multiple event bindings
+            if (this.bulkPricingInitialized) return;
+            this.bulkPricingInitialized = true;
+            
+            $(document).on('click', '.calculate-bulk-price', function() {
                 var calculator = $(this).closest('.b2b-bulk-calculator');
                 var quantity = calculator.find('.bulk-qty-input').val();
                 // Prefer product id on calculator container, fallback to theme button data attribute
@@ -390,6 +439,10 @@
 
     // Initialize when document is ready
     $(document).ready(function() {
+        // Prevent multiple initializations
+        if (window.B2BCommerceProInitialized) return;
+        window.B2BCommerceProInitialized = true;
+        
         B2BCommercePro.init();
     });
 

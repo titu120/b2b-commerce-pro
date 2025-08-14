@@ -20,10 +20,13 @@ class AdvancedFeatures {
         add_filter( 'woocommerce_currency', [ $this, 'handle_multi_currency' ], 5 );
         // REST API endpoints
         add_action( 'rest_api_init', [ $this, 'register_rest_endpoints' ] );
-        // Quote request system
-        add_action( 'woocommerce_single_product_summary', [ $this, 'quote_request_button' ], 35 );
+        // Quote request system - now handled by b2b_buttons_container
+        add_action( 'woocommerce_single_product_summary', [ $this, 'b2b_buttons_container' ], 35 );
         add_action( 'wp_ajax_b2b_quote_request', [ $this, 'handle_quote_request' ] );
         add_action( 'wp_ajax_nopriv_b2b_quote_request', [ $this, 'handle_quote_request' ] );
+        add_action( 'wp_ajax_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
+        add_action( 'wp_ajax_nopriv_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
+        // JavaScript is handled by b2b-commerce-pro.js file
         // Bulk pricing calculator
         add_action( 'woocommerce_single_product_summary', [ $this, 'bulk_pricing_calculator' ], 30 );
         add_action( 'wp_ajax_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
@@ -41,6 +44,8 @@ class AdvancedFeatures {
         // VAT validation (simple VIES check if SOAP present)
         add_action( 'woocommerce_after_checkout_validation', [ $this, 'maybe_validate_vat' ], 5, 2 );
     }
+
+    
 
     // Admin UI for credit, payment terms, tax exemption
     public function user_advanced_fields( $user ) {
@@ -424,10 +429,39 @@ class AdvancedFeatures {
         ]);
     }
     
+    // B2B Buttons Container - displays quote and inquiry buttons horizontally
+    public function b2b_buttons_container() {
+        global $product;
+        if (!$product) return;
+        
+        // Prevent duplicate containers
+        static $buttons_container_rendered = false;
+        if ($buttons_container_rendered) return;
+        $buttons_container_rendered = true;
+        
+        // Use helper function to check if buttons should be shown
+        if (class_exists('B2B\\ProductManager')) {
+            $product_manager = new ProductManager();
+            if (!$product_manager->should_show_b2b_buttons($product->get_id())) {
+                return;
+            }
+        }
+        
+        echo '<div class="b2b-buttons-container">';
+        $this->quote_request_button();
+        $this->product_inquiry_button();
+        echo '</div>';
+    }
+    
     // Quote request button
     public function quote_request_button() {
         global $product;
         if (!$product) return;
+        
+        // Prevent duplicate buttons
+        static $quote_button_rendered = false;
+        if ($quote_button_rendered) return;
+        $quote_button_rendered = true;
         
         // Use helper function to check if buttons should be shown
         if (class_exists('B2B\\ProductManager')) {
@@ -438,7 +472,6 @@ class AdvancedFeatures {
         }
         
         $user = wp_get_current_user();
-        echo '<div class="b2b-quote-request">';
         echo '<button type="button" class="button b2b-quote-btn" data-product-id="' . $product->get_id() . '">';
         echo '<span class="dashicons dashicons-email-alt"></span> ' . __('Request Quote', 'b2b-commerce-pro');
         echo '</button>';
@@ -450,8 +483,34 @@ class AdvancedFeatures {
         echo '<button type="button" class="button button-primary submit-quote">' . __('Submit Quote Request', 'b2b-commerce-pro') . '</button>';
         echo '<button type="button" class="button cancel-quote">' . __('Cancel', 'b2b-commerce-pro') . '</button>';
         echo '</div>';
+    }
+    
+    // Product inquiry button
+    public function product_inquiry_button() {
+        global $product;
+        
+        // Use helper function to check if buttons should be shown
+        if (class_exists('B2B\\ProductManager')) {
+            $product_manager = new ProductManager();
+            if (!$product_manager->should_show_b2b_buttons($product->get_id())) {
+                return;
+            }
+        }
+        
+        $user = wp_get_current_user();
+        echo '<button class="button b2b-inquiry-btn" data-product-id="' . esc_attr( $product->get_id() ) . '">';
+        echo '<span class="dashicons dashicons-format-chat"></span> ' . __('Product Inquiry', 'b2b-commerce-pro');
+        echo '</button>';
+        echo '<div class="b2b-inquiry-form" style="display: none;">';
+        echo '<h4>' . __('Product Inquiry', 'b2b-commerce-pro') . '</h4>';
+        echo '<p><label>' . __('Your Email:', 'b2b-commerce-pro') . ' <input type="email" name="inquiry_email" value="' . esc_attr($user->user_email) . '" required></label></p>';
+        echo '<p><label>' . __('Message:', 'b2b-commerce-pro') . ' <textarea name="inquiry_message" placeholder="' . __('Tell us about your inquiry...', 'b2b-commerce-pro') . '" required></textarea></label></p>';
+        echo '<button type="button" class="button button-primary submit-inquiry">' . __('Send Inquiry', 'b2b-commerce-pro') . '</button>';
+        echo '<button type="button" class="button cancel-inquiry">' . __('Cancel', 'b2b-commerce-pro') . '</button>';
         echo '</div>';
     }
+    
+    // JavaScript functionality is handled by b2b-commerce-pro.js file
     
     // Handle quote request
     public function handle_quote_request() {
@@ -518,6 +577,59 @@ class AdvancedFeatures {
         wp_mail($admin_email, $subject, $message_body);
         
         wp_send_json_success('Quote request submitted successfully');
+    }
+    
+    // Handle product inquiry
+    public function handle_product_inquiry() {
+        // CSRF protection
+        $nonce = isset($_POST['nonce']) ? $_POST['nonce'] : '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'b2b_ajax_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Please log in to submit inquiries', 'b2b-commerce-pro'));
+            return;
+        }
+        
+        $product_id = intval($_POST['product_id']);
+        $email = sanitize_email($_POST['email']);
+        $message = sanitize_textarea_field($_POST['message']);
+        $user_id = get_current_user_id();
+        
+        if (!$product_id || !$email || !$message) {
+            wp_send_json_error('Invalid request data');
+            return;
+        }
+        
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            wp_send_json_error('Product not found');
+            return;
+        }
+        
+        // Save inquiry to database
+        $inquiry_data = [
+            'product_id' => $product_id,
+            'email' => $email,
+            'message' => $message,
+            'status' => 'pending',
+            'date' => current_time('mysql'),
+            'user_id' => $user_id
+        ];
+        
+        $inquiries = get_option('b2b_product_inquiries', []);
+        $inquiries[] = $inquiry_data;
+        update_option('b2b_product_inquiries', $inquiries);
+        
+        // Send email notification to admin
+        $admin_email = get_option('admin_email');
+        $subject = 'B2B Product Inquiry for ' . $product->get_name();
+        $body = "Product: " . $product->get_name() . "\nEmail: $email\nMessage: $message";
+        wp_mail($admin_email, $subject, $body);
+        
+        wp_send_json_success('Inquiry submitted successfully');
     }
 
     // Catalog Mode: hide prices and disable add-to-cart
@@ -616,6 +728,11 @@ class AdvancedFeatures {
     // Bulk pricing calculator
     public function bulk_pricing_calculator() {
         if (!is_user_logged_in()) return;
+        
+        // Prevent duplicate calculators
+        static $bulk_calculator_rendered = false;
+        if ($bulk_calculator_rendered) return;
+        $bulk_calculator_rendered = true;
         
         $user = wp_get_current_user();
         $user_roles = $user->roles;
