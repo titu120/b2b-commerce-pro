@@ -723,8 +723,8 @@ class PricingManager {
         if (!$rule) return '';
         
         $output = '<div class="b2b-geo-pricing">';
-        $output .= '<h4>Regional Pricing</h4>';
-        $output .= '<p>Price for ' . esc_html($user_country) . ': ' . wc_price($rule->price) . '</p>';
+        $output .= '<h4>' . __('Regional Pricing', 'b2b-commerce-pro') . '</h4>';
+        $output .= '<p>' . sprintf(__('Price for %s: %s', 'b2b-commerce-pro'), esc_html($user_country), wc_price($rule->price)) . '</p>';
         $output .= '</div>';
         
         return $output;
@@ -744,9 +744,9 @@ class PricingManager {
         if (!$rule) return '';
         
         $output = '<div class="b2b-time-pricing">';
-        $output .= '<h4>Limited Time Offer</h4>';
-        $output .= '<p>Special price: ' . wc_price($rule->price) . '</p>';
-        $output .= '<p>Valid until: ' . esc_html($rule->end_date) . '</p>';
+        $output .= '<h4>' . __('Limited Time Offer', 'b2b-commerce-pro') . '</h4>';
+        $output .= '<p>' . sprintf(__('Special price: %s', 'b2b-commerce-pro'), wc_price($rule->price)) . '</p>';
+        $output .= '<p>' . sprintf(__('Valid until: %s', 'b2b-commerce-pro'), esc_html($rule->end_date)) . '</p>';
         $output .= '</div>';
         
         return $output;
@@ -787,10 +787,10 @@ class PricingManager {
         
         $output = '<div class="b2b-quantity-limits">';
         if ($rule->min_qty > 1) {
-            $output .= '<p><strong>Minimum Order:</strong> ' . esc_html($rule->min_qty) . ' units</p>';
+            $output .= '<p><strong>' . __('Minimum Order:', 'b2b-commerce-pro') . '</strong> ' . sprintf(__('%s units', 'b2b-commerce-pro'), esc_html($rule->min_qty)) . '</p>';
         }
         if ($rule->max_qty > 0) {
-            $output .= '<p><strong>Maximum Order:</strong> ' . esc_html($rule->max_qty) . ' units</p>';
+            $output .= '<p><strong>' . __('Maximum Order:', 'b2b-commerce-pro') . '</strong> ' . sprintf(__('%s units', 'b2b-commerce-pro'), esc_html($rule->max_qty)) . '</p>';
         }
         $output .= '</div>';
         
@@ -801,13 +801,13 @@ class PricingManager {
         if (!is_user_logged_in()) return '';
         
         $output = '<div class="b2b-price-request">';
-        $output .= '<h4>Need a Quote?</h4>';
+        $output .= '<h4>' . __('Need a Quote?', 'b2b-commerce-pro') . '</h4>';
         $output .= '<form class="b2b-quote-form" method="post">';
         $output .= wp_nonce_field('b2b_price_request', 'b2b_nonce', true, false);
         $output .= '<input type="hidden" name="product_id" value="' . get_the_ID() . '">';
-        $output .= '<p><label>Quantity: <input type="number" name="quantity" min="1" value="1" required></label></p>';
-        $output .= '<p><label>Special Requirements: <textarea name="requirements" rows="3"></textarea></label></p>';
-        $output .= '<button type="submit" class="button">Request Quote</button>';
+        $output .= '<p><label>' . __('Quantity:', 'b2b-commerce-pro') . ' <input type="number" name="quantity" min="1" value="1" required></label></p>';
+        $output .= '<p><label>' . __('Special Requirements:', 'b2b-commerce-pro') . ' <textarea name="requirements" rows="3"></textarea></label></p>';
+        $output .= '<button type="submit" class="button">' . __('Request Quote', 'b2b-commerce-pro') . '</button>';
         $output .= '</form></div>';
         
         return $output;

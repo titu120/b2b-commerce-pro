@@ -23,18 +23,18 @@ class Frontend {
         echo '<div class="b2b-dashboard">';
         echo '<h2>Welcome, ' . esc_html( $user->display_name ) . '</h2>';
         echo '<ul class="b2b-dashboard-links">';
-        echo '<li><a href="' . esc_url( wc_get_account_endpoint_url( 'orders' ) ) . '">Order History</a></li>';
-        echo '<li><a href="' . esc_url( wc_get_account_endpoint_url( 'edit-account' ) ) . '">Account Management</a></li>';
-        echo '<li><a href="' . esc_url( wc_get_cart_url() ) . '">Cart</a></li>';
-        echo '<li><a href="' . esc_url( wc_get_page_permalink( 'shop' ) ) . '">Shop</a></li>';
-        echo '<li><a href="#b2b-quick-order">Quick Order</a></li>';
-        echo '<li><a href="#b2b-wishlist">Wishlist</a></li>';
+        echo '<li><a href="' . esc_url( wc_get_account_endpoint_url( 'orders' ) ) . '">' . __('Order History', 'b2b-commerce-pro') . '</a></li>';
+        echo '<li><a href="' . esc_url( wc_get_account_endpoint_url( 'edit-account' ) ) . '">' . __('Account Management', 'b2b-commerce-pro') . '</a></li>';
+        echo '<li><a href="' . esc_url( wc_get_cart_url() ) . '">' . __('Cart', 'b2b-commerce-pro') . '</a></li>';
+        echo '<li><a href="' . esc_url( wc_get_page_permalink( 'shop' ) ) . '">' . __('Shop', 'b2b-commerce-pro') . '</a></li>';
+        echo '<li><a href="#b2b-quick-order">' . __('Quick Order', 'b2b-commerce-pro') . '</a></li>';
+        echo '<li><a href="#b2b-wishlist">' . __('Wishlist', 'b2b-commerce-pro') . '</a></li>';
         echo '</ul>';
-        echo '<hr><h3>Order History</h3>';
+        echo '<hr><h3>' . __('Order History', 'b2b-commerce-pro') . '</h3>';
         echo do_shortcode('[b2b_order_history]');
-        echo '<hr><h3>Account Management</h3>';
+        echo '<hr><h3>' . __('Account Management', 'b2b-commerce-pro') . '</h3>';
         echo do_shortcode('[b2b_account]');
-        echo '<hr><h3 id="b2b-wishlist">Wishlist</h3>';
+        echo '<hr><h3 id="b2b-wishlist">' . __('Wishlist', 'b2b-commerce-pro') . '</h3>';
         echo do_shortcode('[b2b_wishlist]');
         echo '</div>';
         return ob_get_clean();
@@ -45,20 +45,20 @@ class Frontend {
         if ( ! is_user_logged_in() ) return '';
         
         if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
-            return '<p>WooCommerce is required for order history.</p>';
+            return '<p>' . __('WooCommerce is required for order history.', 'b2b-commerce-pro') . '</p>';
         }
         
         $user_id = get_current_user_id();
         $orders = wc_get_orders( [ 'customer_id' => $user_id, 'limit' => 20, 'orderby' => 'date', 'order' => 'DESC' ] );
         ob_start();
-        echo '<table class="b2b-order-history"><thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Total</th><th>Invoice</th></tr></thead><tbody>';
+        echo '<table class="b2b-order-history"><thead><tr><th>' . __('Order', 'b2b-commerce-pro') . '</th><th>' . __('Date', 'b2b-commerce-pro') . '</th><th>' . __('Status', 'b2b-commerce-pro') . '</th><th>' . __('Total', 'b2b-commerce-pro') . '</th><th>' . __('Invoice', 'b2b-commerce-pro') . '</th></tr></thead><tbody>';
         foreach ( $orders as $order ) {
             echo '<tr>';
             echo '<td>#' . $order->get_id() . '</td>';
             echo '<td>' . esc_html( $order->get_date_created()->date( 'Y-m-d' ) ) . '</td>';
             echo '<td>' . esc_html( wc_get_order_status_name( $order->get_status() ) ) . '</td>';
             echo '<td>' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</td>';
-            echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank">Download</a></td>';
+            echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank">' . __('Download', 'b2b-commerce-pro') . '</a></td>';
             echo '</tr>';
         }
         echo '</tbody></table>';
@@ -69,17 +69,17 @@ class Frontend {
     public function handle_invoice_download() {
         if ( isset( $_GET['b2b_invoice'] ) && is_user_logged_in() ) {
             if (!class_exists('WooCommerce') || !function_exists('wc_get_order')) {
-                wp_die('WooCommerce is required for invoice functionality.');
+                wp_die(__('WooCommerce is required for invoice functionality.', 'b2b-commerce-pro'));
             }
             
             $order_id = intval( $_GET['b2b_invoice'] );
             $order = wc_get_order( $order_id );
             if ( $order && $order->get_user_id() == get_current_user_id() ) {
                 header( 'Content-Type: text/html' );
-                echo '<h2>Invoice for Order #' . $order->get_id() . '</h2>';
-                echo '<p>Date: ' . esc_html( $order->get_date_created()->date( 'Y-m-d' ) ) . '</p>';
-                echo '<p>Total: ' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</p>';
-                echo '<h3>Items</h3><ul>';
+                echo '<h2>' . sprintf(__('Invoice for Order #%s', 'b2b-commerce-pro'), $order->get_id()) . '</h2>';
+                echo '<p>' . sprintf(__('Date: %s', 'b2b-commerce-pro'), esc_html( $order->get_date_created()->date( 'Y-m-d' ) )) . '</p>';
+                echo '<p>' . sprintf(__('Total: %s', 'b2b-commerce-pro'), esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) )) . '</p>';
+                echo '<h3>' . __('Items', 'b2b-commerce-pro') . '</h3><ul>';
                 foreach ( $order->get_items() as $item ) {
                     echo '<li>' . esc_html( $item->get_name() ) . ' x ' . esc_html( $item->get_quantity() ) . '</li>';
                 }
@@ -96,16 +96,16 @@ class Frontend {
         ob_start();
         echo '<form method="post">';
         wp_nonce_field( 'b2b_account_update', 'b2b_account_nonce' );
-        echo '<p><label>Company Name<br><input type="text" name="company_name" value="' . esc_attr( get_user_meta( $user->ID, 'company_name', true ) ) . '"></label></p>';
-        echo '<p><label>Business Type<br><input type="text" name="business_type" value="' . esc_attr( get_user_meta( $user->ID, 'business_type', true ) ) . '"></label></p>';
-        echo '<p><label>Tax ID<br><input type="text" name="tax_id" value="' . esc_attr( get_user_meta( $user->ID, 'tax_id', true ) ) . '"></label></p>';
-        echo '<p><button type="submit" class="button">Update</button></p>';
+        echo '<p><label>' . __('Company Name', 'b2b-commerce-pro') . '<br><input type="text" name="company_name" value="' . esc_attr( get_user_meta( $user->ID, 'company_name', true ) ) . '"></label></p>';
+        echo '<p><label>' . __('Business Type', 'b2b-commerce-pro') . '<br><input type="text" name="business_type" value="' . esc_attr( get_user_meta( $user->ID, 'business_type', true ) ) . '"></label></p>';
+        echo '<p><label>' . __('Tax ID', 'b2b-commerce-pro') . '<br><input type="text" name="tax_id" value="' . esc_attr( get_user_meta( $user->ID, 'tax_id', true ) ) . '"></label></p>';
+        echo '<p><button type="submit" class="button">' . __('Update', 'b2b-commerce-pro') . '</button></p>';
         echo '</form>';
         if ( isset( $_POST['b2b_account_nonce'] ) && wp_verify_nonce( $_POST['b2b_account_nonce'], 'b2b_account_update' ) ) {
             update_user_meta( $user->ID, 'company_name', sanitize_text_field( $_POST['company_name'] ) );
             update_user_meta( $user->ID, 'business_type', sanitize_text_field( $_POST['business_type'] ) );
             update_user_meta( $user->ID, 'tax_id', sanitize_text_field( $_POST['tax_id'] ) );
-            echo '<div class="notice notice-success"><p>Account updated.</p></div>';
+            echo '<div class="notice notice-success"><p>' . __('Account updated.', 'b2b-commerce-pro') . '</p></div>';
         }
         return ob_get_clean();
     }
@@ -117,7 +117,7 @@ class Frontend {
         } elseif ( function_exists( 'woosw_init' ) ) {
             return do_shortcode('[woosw]');
         } else {
-            return '<p>No wishlist plugin detected.</p>';
+            return '<p>' . __('No wishlist plugin detected.', 'b2b-commerce-pro') . '</p>';
         }
     }
 
@@ -137,8 +137,8 @@ class Frontend {
         ob_start();
         ?>
         <div class="b2b-registration-form">
-            <h2>B2B Account Registration</h2>
-            <p>Register for a B2B account to access wholesale pricing and bulk ordering.</p>
+            <h2><?php _e('B2B Account Registration', 'b2b-commerce-pro'); ?></h2>
+            <p><?php _e('Register for a B2B account to access wholesale pricing and bulk ordering.', 'b2b-commerce-pro'); ?></p>
             
             <?php if ($message): ?>
                 <div class="b2b-message"><?php echo $message; ?></div>
@@ -149,90 +149,90 @@ class Frontend {
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="user_login">Username *</label>
+                        <label for="user_login"><?php _e('Username', 'b2b-commerce-pro'); ?> *</label>
                         <input type="text" name="user_login" id="user_login" value="<?php echo isset($_POST['user_login']) ? esc_attr($_POST['user_login']) : ''; ?>" required>
                     </div>
                     <div class="form-group">
-                        <label for="user_email">Email *</label>
+                        <label for="user_email"><?php _e('Email', 'b2b-commerce-pro'); ?> *</label>
                         <input type="email" name="user_email" id="user_email" value="<?php echo isset($_POST['user_email']) ? esc_attr($_POST['user_email']) : ''; ?>" required>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="user_password">Password *</label>
+                        <label for="user_password"><?php _e('Password', 'b2b-commerce-pro'); ?> *</label>
                         <input type="password" name="user_password" id="user_password" required>
                     </div>
                     <div class="form-group">
-                        <label for="user_password_confirm">Confirm Password *</label>
+                        <label for="user_password_confirm"><?php _e('Confirm Password', 'b2b-commerce-pro'); ?> *</label>
                         <input type="password" name="user_password_confirm" id="user_password_confirm" required>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="first_name">First Name *</label>
+                        <label for="first_name"><?php _e('First Name', 'b2b-commerce-pro'); ?> *</label>
                         <input type="text" name="first_name" id="first_name" value="<?php echo isset($_POST['first_name']) ? esc_attr($_POST['first_name']) : ''; ?>" required>
                     </div>
                     <div class="form-group">
-                        <label for="last_name">Last Name *</label>
+                        <label for="last_name"><?php _e('Last Name', 'b2b-commerce-pro'); ?> *</label>
                         <input type="text" name="last_name" id="last_name" value="<?php echo isset($_POST['last_name']) ? esc_attr($_POST['last_name']) : ''; ?>" required>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="company_name">Company Name *</label>
+                        <label for="company_name"><?php _e('Company Name', 'b2b-commerce-pro'); ?> *</label>
                         <input type="text" name="company_name" id="company_name" value="<?php echo isset($_POST['company_name']) ? esc_attr($_POST['company_name']) : ''; ?>" required>
                     </div>
                     <div class="form-group">
-                        <label for="business_type">Business Type *</label>
+                        <label for="business_type"><?php _e('Business Type', 'b2b-commerce-pro'); ?> *</label>
                         <select name="business_type" id="business_type" required>
-                            <option value="">Select Business Type</option>
-                            <option value="wholesale" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'wholesale') ? 'selected' : ''; ?>>Wholesale</option>
-                            <option value="retail" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'retail') ? 'selected' : ''; ?>>Retail</option>
-                            <option value="distributor" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'distributor') ? 'selected' : ''; ?>>Distributor</option>
-                            <option value="manufacturer" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'manufacturer') ? 'selected' : ''; ?>>Manufacturer</option>
-                            <option value="other" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                            <option value=""><?php _e('Select Business Type', 'b2b-commerce-pro'); ?></option>
+                            <option value="wholesale" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'wholesale') ? 'selected' : ''; ?>><?php _e('Wholesale', 'b2b-commerce-pro'); ?></option>
+                            <option value="retail" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'retail') ? 'selected' : ''; ?>><?php _e('Retail', 'b2b-commerce-pro'); ?></option>
+                            <option value="distributor" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'distributor') ? 'selected' : ''; ?>><?php _e('Distributor', 'b2b-commerce-pro'); ?></option>
+                            <option value="manufacturer" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'manufacturer') ? 'selected' : ''; ?>><?php _e('Manufacturer', 'b2b-commerce-pro'); ?></option>
+                            <option value="other" <?php echo (isset($_POST['business_type']) && $_POST['business_type'] === 'other') ? 'selected' : ''; ?>><?php _e('Other', 'b2b-commerce-pro'); ?></option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="tax_id">Tax ID / VAT Number</label>
+                        <label for="tax_id"><?php _e('Tax ID / VAT Number', 'b2b-commerce-pro'); ?></label>
                         <input type="text" name="tax_id" id="tax_id" value="<?php echo isset($_POST['tax_id']) ? esc_attr($_POST['tax_id']) : ''; ?>">
                     </div>
                     <div class="form-group">
-                        <label for="user_role">Account Type *</label>
+                        <label for="user_role"><?php _e('Account Type', 'b2b-commerce-pro'); ?> *</label>
                         <select name="user_role" id="user_role" required>
-                            <option value="">Select Account Type</option>
-                            <option value="wholesale_customer" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'wholesale_customer') ? 'selected' : ''; ?>>Wholesale Customer</option>
-                            <option value="distributor" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'distributor') ? 'selected' : ''; ?>>Distributor</option>
-                            <option value="retailer" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'retailer') ? 'selected' : ''; ?>>Retailer</option>
+                            <option value=""><?php _e('Select Account Type', 'b2b-commerce-pro'); ?></option>
+                            <option value="wholesale_customer" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'wholesale_customer') ? 'selected' : ''; ?>><?php _e('Wholesale Customer', 'b2b-commerce-pro'); ?></option>
+                            <option value="distributor" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'distributor') ? 'selected' : ''; ?>><?php _e('Distributor', 'b2b-commerce-pro'); ?></option>
+                            <option value="retailer" <?php echo (isset($_POST['user_role']) && $_POST['user_role'] === 'retailer') ? 'selected' : ''; ?>><?php _e('Retailer', 'b2b-commerce-pro'); ?></option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="phone">Phone Number</label>
+                    <label for="phone"><?php _e('Phone Number', 'b2b-commerce-pro'); ?></label>
                     <input type="tel" name="phone" id="phone" value="<?php echo isset($_POST['phone']) ? esc_attr($_POST['phone']) : ''; ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="address">Business Address</label>
+                    <label for="address"><?php _e('Business Address', 'b2b-commerce-pro'); ?></label>
                     <textarea name="address" id="address" rows="3"><?php echo isset($_POST['address']) ? esc_textarea($_POST['address']) : ''; ?></textarea>
                 </div>
                 
                 <div class="form-group">
                     <label>
                         <input type="checkbox" name="terms_agreement" required>
-                        I agree to the <a href="#" target="_blank">Terms and Conditions</a> and <a href="#" target="_blank">Privacy Policy</a>
+                        <?php printf(__('I agree to the %sTerms and Conditions%s and %sPrivacy Policy%s', 'b2b-commerce-pro'), '<a href="#" target="_blank">', '</a>', '<a href="#" target="_blank">', '</a>'); ?>
                     </label>
                 </div>
                 
                 <div class="form-group">
-                    <button type="submit" class="b2b-submit-btn">Register B2B Account</button>
+                    <button type="submit" class="b2b-submit-btn"><?php _e('Register B2B Account', 'b2b-commerce-pro'); ?></button>
                 </div>
             </form>
         </div>
@@ -314,12 +314,12 @@ class Frontend {
     private function process_registration_form() {
         // Check if user is already logged in
         if (is_user_logged_in()) {
-            return '<div class="b2b-message notice-error"><p>❌ You are already logged in. Please logout to register a new account.</p></div>';
+            return '<div class="b2b-message notice-error"><p>❌ ' . __('You are already logged in. Please logout to register a new account.', 'b2b-commerce-pro') . '</p></div>';
         }
 
         // Verify nonce
         if (!isset($_POST['b2b_registration_nonce']) || !wp_verify_nonce($_POST['b2b_registration_nonce'], 'b2b_registration')) {
-            return '<div class="b2b-message notice-error"><p>❌ Security check failed. Please try again.</p></div>';
+            return '<div class="b2b-message notice-error"><p>❌ ' . __('Security check failed. Please try again.', 'b2b-commerce-pro') . '</p></div>';
         }
 
         // Sanitize input data
@@ -341,73 +341,73 @@ class Frontend {
         
         // Required field validation
         if (empty($user_login)) {
-            $errors[] = 'Username is required.';
+            $errors[] = __('Username is required.', 'b2b-commerce-pro');
         }
         
         if (empty($user_email)) {
-            $errors[] = 'Email is required.';
+            $errors[] = __('Email is required.', 'b2b-commerce-pro');
         }
         
         if (empty($user_password)) {
-            $errors[] = 'Password is required.';
+            $errors[] = __('Password is required.', 'b2b-commerce-pro');
         }
         
         if (empty($user_password_confirm)) {
-            $errors[] = 'Password confirmation is required.';
+            $errors[] = __('Password confirmation is required.', 'b2b-commerce-pro');
         }
         
         if (empty($first_name)) {
-            $errors[] = 'First name is required.';
+            $errors[] = __('First name is required.', 'b2b-commerce-pro');
         }
         
         if (empty($last_name)) {
-            $errors[] = 'Last name is required.';
+            $errors[] = __('Last name is required.', 'b2b-commerce-pro');
         }
         
         if (empty($company_name)) {
-            $errors[] = 'Company name is required.';
+            $errors[] = __('Company name is required.', 'b2b-commerce-pro');
         }
         
         if (empty($business_type)) {
-            $errors[] = 'Business type is required.';
+            $errors[] = __('Business type is required.', 'b2b-commerce-pro');
         }
         
         if (empty($user_role)) {
-            $errors[] = 'Account type is required.';
+            $errors[] = __('Account type is required.', 'b2b-commerce-pro');
         }
 
         // Email validation
         if (!empty($user_email) && !is_email($user_email)) {
-            $errors[] = 'Please enter a valid email address.';
+            $errors[] = __('Please enter a valid email address.', 'b2b-commerce-pro');
         }
 
         // Password validation
         if (!empty($user_password) && strlen($user_password) < 6) {
-            $errors[] = 'Password must be at least 6 characters long.';
+            $errors[] = __('Password must be at least 6 characters long.', 'b2b-commerce-pro');
         }
         
         if (!empty($user_password) && !empty($user_password_confirm) && $user_password !== $user_password_confirm) {
-            $errors[] = 'Passwords do not match.';
+            $errors[] = __('Passwords do not match.', 'b2b-commerce-pro');
         }
 
         // Username validation
         if (!empty($user_login) && !validate_username($user_login)) {
-            $errors[] = 'Username contains invalid characters.';
+            $errors[] = __('Username contains invalid characters.', 'b2b-commerce-pro');
         }
 
         // Check if user already exists
         if (!empty($user_login) && username_exists($user_login)) {
-            $errors[] = 'Username already exists. Please choose a different username.';
+            $errors[] = __('Username already exists. Please choose a different username.', 'b2b-commerce-pro');
         }
         
         if (!empty($user_email) && email_exists($user_email)) {
-            $errors[] = 'Email already exists. Please use a different email address.';
+            $errors[] = __('Email already exists. Please use a different email address.', 'b2b-commerce-pro');
         }
 
         // Role validation
         $valid_roles = ['wholesale_customer', 'distributor', 'retailer'];
         if (!empty($user_role) && !in_array($user_role, $valid_roles)) {
-            $errors[] = 'Invalid account type selected.';
+            $errors[] = __('Invalid account type selected.', 'b2b-commerce-pro');
         }
 
 
@@ -451,37 +451,37 @@ class Frontend {
             update_user_meta($user_id, 'address', $address);
             update_user_meta($user_id, 'b2b_approval_status', 'pending');
             
-            return '<div class="b2b-message notice-success"><p>✅ Registration successful! Your account is pending approval. You will receive an email once your account is approved.</p></div>';
+            return '<div class="b2b-message notice-success"><p>✅ ' . __('Registration successful! Your account is pending approval. You will receive an email once your account is approved.', 'b2b-commerce-pro') . '</p></div>';
             
         } catch (Exception $e) {
-            return '<div class="b2b-message notice-error"><p>❌ Registration failed: ' . esc_html($e->getMessage()) . '</p></div>';
+            return '<div class="b2b-message notice-error"><p>❌ ' . sprintf(__('Registration failed: %s', 'b2b-commerce-pro'), esc_html($e->getMessage())) . '</p></div>';
         }
     }
 
     // Bulk order shortcode
     public function bulk_order_shortcode() {
         if (!is_user_logged_in()) {
-            return '<p>Please log in to access bulk ordering.</p>';
+            return '<p>' . __('Please log in to access bulk ordering.', 'b2b-commerce-pro') . '</p>';
         }
 
         ob_start();
         ?>
         <div class="b2b-bulk-order">
-            <h3>Bulk Order</h3>
+            <h3><?php _e('Bulk Order', 'b2b-commerce-pro'); ?></h3>
             <form id="b2b-bulk-order-form" method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field('b2b_bulk_order', 'b2b_bulk_order_nonce'); ?>
                 <div id="b2b-bulk-products">
                     <div class="b2b-bulk-row">
-                        <input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off">
-                        <input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity">
+                        <input type="text" class="b2b-product-search" name="product_search[]" placeholder="<?php _e('Search product by name or SKU', 'b2b-commerce-pro'); ?>" autocomplete="off">
+                        <input type="number" name="product_qty[]" min="1" value="1" placeholder="<?php _e('Quantity', 'b2b-commerce-pro'); ?>">
                     </div>
                 </div>
-                <button type="button" id="b2b-add-row" class="button">Add Another Product</button>
+                <button type="button" id="b2b-add-row" class="button"><?php _e('Add Another Product', 'b2b-commerce-pro'); ?></button>
                 <hr>
-                <h4>Or Import from CSV</h4>
+                <h4><?php _e('Or Import from CSV', 'b2b-commerce-pro'); ?></h4>
                 <input type="file" name="b2b_bulk_csv" accept=".csv">
                 <hr>
-                <button type="submit" class="button button-primary">Add to Cart</button>
+                <button type="submit" class="button button-primary"><?php _e('Add to Cart', 'b2b-commerce-pro'); ?></button>
                 <div class="b2b-bulk-order-response"></div>
             </form>
         </div>
