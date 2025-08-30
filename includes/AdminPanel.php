@@ -119,15 +119,6 @@ class AdminPanel {
         // VAT Settings
         add_submenu_page(
             'b2b-dashboard',
-            'VAT Settings',
-            'VAT Settings',
-            'manage_options',
-            'b2b-vat',
-            [ $this, 'vat_settings_page' ]
-        );
-        
-        add_submenu_page(
-            'b2b-dashboard',
             'Email Templates',
             'Email Templates',
             'manage_options',
@@ -214,7 +205,6 @@ class AdminPanel {
             'b2b-settings' => ['Settings', 'dashicons-admin-generic', 0],
             'b2b-catalog' => ['Catalog Mode', 'dashicons-visibility', 0],
             'b2b-checkout-controls' => ['Checkout Controls', 'dashicons-admin-settings', 0],
-            'b2b-vat' => ['VAT Settings', 'dashicons-universal-access-alt', 0],
             'b2b-emails' => ['Email Templates', 'dashicons-email', 0],
             'b2b-analytics' => ['Analytics', 'dashicons-chart-line', 0],
             'b2b-import-export' => ['Import/Export', 'dashicons-upload', 0],
@@ -863,31 +853,6 @@ class AdminPanel {
         $this->render_admin_wrapper('b2b-checkout-controls', $content);
     }
 
-    public function vat_settings_page() {
-        if (!current_user_can('manage_options')) return;
-        $opts = get_option('b2b_vat_settings', []);
-        if (isset($_POST['b2b_vat_nonce']) && wp_verify_nonce($_POST['b2b_vat_nonce'], 'b2b_vat_settings')) {
-            $opts = [
-                'enable_vat_validation' => isset($_POST['b2b_vat_settings']['enable_vat_validation']) ? 1 : 0,
-                'auto_tax_exempt' => isset($_POST['b2b_vat_settings']['auto_tax_exempt']) ? 1 : 0,
-            ];
-            update_option('b2b_vat_settings', $opts);
-            echo '<div class="b2b-admin-card" style="color:#2196f3;">VAT settings saved.</div>';
-        }
-        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-universal-access-alt"></span>VAT Settings</h1><p>Validate EU VAT numbers and auto-set exemptions.</p></div>';
-        $content .= '<div class="b2b-admin-card" style="max-width: 720px;"><form method="post" class="b2b-admin-form">' . wp_nonce_field('b2b_vat_settings', 'b2b_vat_nonce', true, false);
-        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px; margin-bottom:12px;">'
-                 . '<div><label style="margin:0; font-weight:600; color:#23272f;">Enable EU VAT validation (VIES)</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Checks VAT numbers using the European Commission VIES service.</p></div>'
-                 . '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_vat_settings[enable_vat_validation]" value="1" ' . checked($opts['enable_vat_validation'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>'
-                 . '</div>';
-        $content .= '<div style="display:flex; align-items:center; justify-content:space-between; padding:15px; background:#f8f9fa; border-radius:8px;">'
-                 . '<div><label style="margin:0; font-weight:600; color:#23272f;">Auto set Tax Exempt on valid VAT</label><p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">When validation passes, mark the user as tax exempt automatically.</p></div>'
-                 . '<label class="b2b-admin-toggle"><input type="checkbox" name="b2b_vat_settings[auto_tax_exempt]" value="1" ' . checked($opts['auto_tax_exempt'] ?? '', 1, false) . '><span class="b2b-admin-toggle-slider"></span></label>'
-                 . '</div>';
-        $content .= '<div style="margin-top:18px;"><button class="b2b-admin-btn" type="submit"><span class="icon dashicons dashicons-saved"></span>Save</button></div></form></div>';
-        $this->render_admin_wrapper('b2b-vat', $content);
-    }
-
     // Add B2B User page
     public function add_b2b_user_page() {
         $success_message = '';
@@ -992,13 +957,84 @@ class AdminPanel {
 
     // Order management page
     public function order_management_page() {
+        // Get recent orders
+        $recent_orders = [];
+        if (class_exists('WooCommerce') && function_exists('wc_get_orders')) {
+            try {
+                $recent_orders = wc_get_orders(['limit' => 20, 'orderby' => 'date', 'order' => 'DESC']);
+                
+                // Debug: Log the number of orders found
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('B2B Order Management: Found ' . count($recent_orders) . ' orders');
+                }
+                
+                // Fallback: If no orders found, check if there are any orders in the database
+                if (empty($recent_orders)) {
+                    global $wpdb;
+                    $order_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'shop_order' AND post_status != 'trash'");
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log('B2B Order Management: Database shows ' . $order_count . ' orders');
+                    }
+                }
+            } catch (Exception $e) {
+                // Log error but don't break the page
+                error_log('B2B Order Management Error: ' . $e->getMessage());
+            }
+        }
+        
         $content = '
 <div class="b2b-admin-header">
     <h1><span class="icon dashicons dashicons-cart"></span>Order Management</h1>
     <p>Monitor and manage B2B orders, track status, and view order details.</p>
 </div>
 <div class="b2b-admin-card">
-    <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-list-view"></span>Recent Orders (0)</div>
+    <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-list-view"></span>Recent Orders (' . count($recent_orders) . ')</div>';
+        
+        if (!empty($recent_orders)) {
+            $content .= '
+    <table class="b2b-admin-table">
+        <thead>
+            <tr>
+                <th>Order</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>';
+            
+            foreach ($recent_orders as $order) {
+                $customer = $order->get_customer_id() ? get_userdata($order->get_customer_id()) : null;
+                $customer_name = $customer ? $customer->display_name : ($order->get_billing_first_name() . ' ' . $order->get_billing_last_name());
+                if (empty(trim($customer_name))) {
+                    $customer_name = $order->get_billing_email();
+                }
+                
+                $status_class = $order->get_status() === 'completed' ? 'success' : ($order->get_status() === 'processing' ? 'warning' : 'danger');
+                
+                $content .= '
+            <tr>
+                <td><strong><a href="' . admin_url('post.php?post=' . $order->get_id() . '&action=edit') . '">#' . $order->get_id() . '</a></strong></td>
+                <td>' . esc_html($order->get_date_created()->date('Y-m-d H:i')) . '</td>
+                <td>' . esc_html($customer_name) . '</td>
+                <td><strong>' . esc_html(get_woocommerce_currency_symbol() . number_format($order->get_total(), 2)) . '</strong></td>
+                <td><span class="b2b-badge b2b-badge-' . $status_class . '">' . esc_html(wc_get_order_status_name($order->get_status())) . '</span></td>
+                <td>
+                    <a href="' . admin_url('post.php?post=' . $order->get_id() . '&action=edit') . '" class="b2b-admin-btn" style="padding: 4px 8px; font-size: 0.8em;"><span class="icon dashicons dashicons-edit"></span>View</a>
+                </td>
+            </tr>';
+            }
+            
+            $content .= '
+        </tbody>
+    </table>
+    <div style="margin-top: 15px; text-align: center;">
+        <a href="' . admin_url('edit.php?post_type=shop_order') . '" class="b2b-admin-btn">View All Orders</a>
+    </div>';
+        } else {
+            $content .= '
     <table class="b2b-admin-table">
         <thead>
             <tr>
@@ -1017,7 +1053,10 @@ class AdminPanel {
                 </td>
             </tr>
         </tbody>
-    </table>
+    </table>';
+        }
+        
+        $content .= '
 </div>';
         $this->render_admin_wrapper('b2b-orders', $content);
     }
@@ -2054,8 +2093,9 @@ Best regards,
         $content .= wp_nonce_field('b2b_update_inquiry', '_wpnonce', true, false);
         $content .= '<input type="hidden" name="inquiry_index" id="inquiry_index">';
         $content .= '<input type="hidden" name="status" id="inquiry_status" value="responded">';
-        $content .= '<p><label>Your Response:<br><textarea name="admin_response" rows="5" style="width:100%;" required></textarea></label></p>';
-        $content .= '<p><button type="submit" class="b2b-admin-btn">Send Response</button></p>';
+        $content .= '<p><label>Your Response:<br><textarea class="b2b-admin-textarea" name="admin_response" rows="5" style="width:100%;" required></textarea></label></p>';
+        $content .= '<p><small style="color: #666; font-style: italic;">Note: Email notifications are disabled on localhost. Response will be saved but not sent via email.</small></p>';
+        $content .= '<p><button type="submit" class="b2b-admin-btn">Save Response</button></p>';
         $content .= '</form>';
         $content .= '</div>';
         $content .= '</div>';
@@ -2253,10 +2293,8 @@ Best regards,
             
             update_option('b2b_product_inquiries', $inquiries);
             
-            // Send email response to customer if provided
-            if (!empty($admin_response) && !empty($inquiries[$inquiry_index]['email'])) {
-                $this->send_inquiry_response_email($inquiries[$inquiry_index]);
-            }
+            // Email functionality removed for localhost compatibility
+            // If you need email functionality, configure SMTP settings
             
             wp_redirect(admin_url('admin.php?page=b2b-inquiries&updated=1'));
             exit;
@@ -2266,6 +2304,8 @@ Best regards,
         exit;
     }
     
+    // Email function kept for future use but commented out
+    /*
     private function send_inquiry_response_email($inquiry) {
         $product = wc_get_product($inquiry['product_id']);
         $subject = 'Response to your inquiry about ' . ($product ? $product->get_name() : 'Product');
@@ -2277,6 +2317,7 @@ Best regards,
         
         wp_mail($inquiry['email'], $subject, $message);
     }
+    */
     
     // Handle inquiry deletion
     public function handle_delete_inquiry() {
@@ -2828,7 +2869,171 @@ Best regards,
     
     // Import/Export page
     public function import_export_page() {
+        // Handle import form submission
+        if (isset($_POST['b2b_import']) && isset($_FILES['import_file'])) {
+            $this->handle_import_data();
+        }
+        
         $this->render_admin_wrapper('b2b-import-export', $this->get_import_export_content());
+    }
+    
+    private function handle_import_data() {
+        if (!wp_verify_nonce($_POST['b2b_import_nonce'], 'b2b_import_export')) {
+            wp_die('Security check failed');
+        }
+        
+        if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_die('File upload failed');
+        }
+        
+        $import_type = sanitize_text_field($_POST['import_type']);
+        $file = $_FILES['import_file']['tmp_name'];
+        
+        switch ($import_type) {
+            case 'users':
+                $this->import_users_from_csv($file);
+                break;
+            case 'pricing':
+                $this->import_pricing_from_csv($file);
+                break;
+            default:
+                wp_die('Invalid import type');
+        }
+    }
+    
+    private function import_users_from_csv($file) {
+        $handle = fopen($file, 'r');
+        if (!$handle) {
+            wp_die('Cannot open file');
+        }
+        
+        $headers = fgetcsv($handle);
+        $imported = 0;
+        $errors = [];
+        
+        while (($data = fgetcsv($handle)) !== false) {
+            $user_data = array_combine($headers, $data);
+            
+            try {
+                $user_id = $this->create_user_from_import($user_data);
+                if ($user_id) {
+                    $imported++;
+                }
+            } catch (Exception $e) {
+                $errors[] = 'Row ' . ($imported + 1) . ': ' . $e->getMessage();
+            }
+        }
+        
+        fclose($handle);
+        
+        $message = "Imported $imported users successfully.";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-import-export&imported=' . $imported . '&errors=' . count($errors)));
+        exit;
+    }
+    
+    private function import_pricing_from_csv($file) {
+        $handle = fopen($file, 'r');
+        if (!$handle) {
+            wp_die('Cannot open file');
+        }
+        
+        $headers = fgetcsv($handle);
+        $imported = 0;
+        $errors = [];
+        
+        global $wpdb;
+        $table = $wpdb->prefix . 'b2b_pricing_rules';
+        
+        while (($data = fgetcsv($handle)) !== false) {
+            $pricing_data = array_combine($headers, $data);
+            
+            try {
+                $result = $wpdb->insert($table, [
+                    'role' => sanitize_text_field($pricing_data['Role'] ?? ''),
+                    'type' => sanitize_text_field($pricing_data['Type'] ?? ''),
+                    'price' => floatval($pricing_data['Price'] ?? 0),
+                    'min_qty' => intval($pricing_data['Min Quantity'] ?? 0),
+                    'max_qty' => intval($pricing_data['Max Quantity'] ?? 0),
+                    'product_id' => intval($pricing_data['Product ID'] ?? 0),
+                    'user_id' => 0
+                ]);
+                
+                if ($result) {
+                    $imported++;
+                }
+            } catch (Exception $e) {
+                $errors[] = 'Row ' . ($imported + 1) . ': ' . $e->getMessage();
+            }
+        }
+        
+        fclose($handle);
+        
+        $message = "Imported $imported pricing rules successfully.";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+        
+        wp_redirect(admin_url('admin.php?page=b2b-import-export&imported=' . $imported . '&errors=' . count($errors)));
+        exit;
+    }
+    
+    private function create_user_from_import($user_data) {
+        $username = sanitize_user($user_data['Username'] ?? '');
+        $email = sanitize_email($user_data['Email'] ?? '');
+        $first_name = sanitize_text_field($user_data['First Name'] ?? '');
+        $last_name = sanitize_text_field($user_data['Last Name'] ?? '');
+        $company = sanitize_text_field($user_data['Company Name'] ?? '');
+        $role = sanitize_text_field($user_data['Role'] ?? 'b2b_customer');
+        
+        if (empty($email)) {
+            throw new Exception('Email is required');
+        }
+        
+        if (empty($username)) {
+            $username = $email;
+        }
+        
+        $user = get_user_by('email', $email);
+        if ($user) {
+            // Update existing user
+            $user_id = $user->ID;
+            wp_update_user([
+                'ID' => $user_id,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'user_login' => $username
+            ]);
+        } else {
+            // Create new user
+            $user_id = wp_create_user($username, wp_generate_password(), $email);
+            if (is_wp_error($user_id)) {
+                throw new Exception($user_id->get_error_message());
+            }
+            
+            wp_update_user([
+                'ID' => $user_id,
+                'first_name' => $first_name,
+                'last_name' => $last_name
+            ]);
+        }
+        
+        // Set role
+        $user_obj = get_userdata($user_id);
+        $user_obj->set_role($role);
+        
+        // Set company name
+        if (!empty($company)) {
+            update_user_meta($user_id, 'company_name', $company);
+        }
+        
+        // Set approval status
+        update_user_meta($user_id, 'b2b_approval_status', 'approved');
+        
+        return $user_id;
     }
     
     private function get_import_export_content() {

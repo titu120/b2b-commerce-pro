@@ -126,7 +126,62 @@ class PricingManager {
         }
     }
 
-
+    // Check for product-level B2B pricing (set in product edit page)
+    public function get_product_level_b2b_price($product_id, $user_roles) {
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        foreach ($user_roles as $role) {
+            if (in_array($role, $b2b_roles)) {
+                // Check for sale price first
+                $sale_price = get_post_meta($product_id, '_b2b_' . $role . '_sale_price', true);
+                if (!empty($sale_price) && $sale_price > 0) {
+                    return floatval($sale_price);
+                }
+                
+                // Check for regular price
+                $regular_price = get_post_meta($product_id, '_b2b_' . $role . '_regular_price', true);
+                if (!empty($regular_price) && $regular_price > 0) {
+                    return floatval($regular_price);
+                }
+            }
+        }
+        
+        return false; // No product-level pricing found
+    }
+    
+    // Get B2B regular price for display purposes
+    public function get_b2b_regular_price($product_id, $user_roles) {
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        foreach ($user_roles as $role) {
+            if (in_array($role, $b2b_roles)) {
+                // Get regular price for this role
+                $regular_price = get_post_meta($product_id, '_b2b_' . $role . '_regular_price', true);
+                if (!empty($regular_price) && $regular_price > 0) {
+                    return floatval($regular_price);
+                }
+            }
+        }
+        
+        return false; // No B2B regular price found
+    }
+    
+    // Get B2B sale price for display purposes
+    public function get_b2b_sale_price($product_id, $user_roles) {
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        foreach ($user_roles as $role) {
+            if (in_array($role, $b2b_roles)) {
+                // Get sale price for this role
+                $sale_price = get_post_meta($product_id, '_b2b_' . $role . '_sale_price', true);
+                if (!empty($sale_price) && $sale_price > 0) {
+                    return floatval($sale_price);
+                }
+            }
+        }
+        
+        return false; // No B2B sale price found
+    }
 
     // Apply pricing rules to WooCommerce product price
     public function apply_pricing_rules( $price, $product ) {
@@ -136,6 +191,12 @@ class PricingManager {
         $user_id = $user->ID;
         $roles = $user->roles;
         $product_id = $product->get_id();
+        
+        // First check for product-level B2B pricing (set in product edit page)
+        $product_level_price = $this->get_product_level_b2b_price($product_id, $roles);
+        if ($product_level_price !== false) {
+            return $product_level_price;
+        }
         
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
@@ -226,6 +287,30 @@ class PricingManager {
         $user_id = $user->ID;
         $roles = $user->roles;
         $product_id = $product->get_id();
+        
+        // First check for product-level B2B pricing (set in product edit page)
+        $product_level_price = $this->get_product_level_b2b_price($product_id, $roles);
+        if ($product_level_price !== false) {
+            // Get the B2B regular price for this role to show as strikethrough
+            $b2b_regular_price = $this->get_b2b_regular_price($product_id, $roles);
+            
+            // Check if there's a B2B sale price (different from regular price)
+            $b2b_sale_price = $this->get_b2b_sale_price($product_id, $roles);
+            
+            $new_price_html = '<span class="price">';
+            
+            if ($b2b_sale_price && $b2b_sale_price < $b2b_regular_price) {
+                // There's a sale price - show regular price as strikethrough, sale price as active
+                $new_price_html .= '<del><span class="woocommerce-Price-amount amount">' . wc_price($b2b_regular_price) . '</span></del> ';
+                $new_price_html .= '<ins><span class="woocommerce-Price-amount amount">' . wc_price($b2b_sale_price) . '</span></ins>';
+            } else {
+                // No sale price - just show the B2B price without strikethrough
+                $new_price_html .= '<span class="woocommerce-Price-amount amount">' . wc_price($product_level_price) . '</span>';
+            }
+            
+            $new_price_html .= '</span>';
+            return $new_price_html;
+        }
         
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
@@ -511,22 +596,19 @@ class PricingManager {
         $user_id = get_current_user_id();
         $user_roles = is_user_logged_in() ? (array) wp_get_current_user()->roles : [];
         
-        // Get tiered pricing rules for this product and user
-        if (empty($user_roles)) {
-            // Guests or users without roles: only match generic rules (user_id = 0)
-                    $rules = $wpdb->get_results(
+        // Get tiered pricing rules for this product
+        // Show all role-based rules for the product, regardless of current user
+        $rules = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND user_id = 0 ORDER BY product_id DESC, min_qty ASC",
+                "SELECT * FROM $table WHERE product_id = %d ORDER BY role, min_qty ASC",
                 $product_id
             )
         );
-        } else {
-            $placeholders = implode(',', array_fill(0, count($user_roles), '%s'));
+        
+        // If no product-specific rules, check for global rules
+        if (empty($rules)) {
             $rules = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT * FROM $table WHERE (product_id = %d OR product_id = 0) AND (user_id = %d OR role IN ($placeholders)) ORDER BY product_id DESC, min_qty ASC",
-                    array_merge([$product_id, $user_id], $user_roles)
-                )
+                "SELECT * FROM $table WHERE product_id = 0 ORDER BY role, min_qty ASC"
             );
         }
         

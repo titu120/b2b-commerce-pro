@@ -691,12 +691,28 @@
     border-radius: 6px;
     border: 1px solid #e9ecef;
     flex-wrap: wrap;
+    position: relative;
 }
 
 .b2b-buttons-container .button {
     flex: 1;
     min-width: 150px;
     margin: 0;
+}
+
+/* Prevent forms from affecting button layout */
+.b2b-quote-form,
+.b2b-inquiry-form {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    margin-top: 10px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Quote Request Styles */
@@ -1023,6 +1039,7 @@
     border-radius: 3px;
     cursor: pointer;
     margin-right: 10px;
+    margin-bottom: 5px;
 }
 
 .submit-quote:hover {
@@ -1036,10 +1053,28 @@
     padding: 8px 15px;
     border-radius: 3px;
     cursor: pointer;
+    margin-bottom: 5px;
 }
 
 .cancel-quote:hover {
     background: #545b62;
+}
+
+/* Form button container for better spacing */
+.b2b-form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.b2b-form-buttons .submit-quote,
+.b2b-form-buttons .cancel-quote,
+.b2b-form-buttons .submit-inquiry,
+.b2b-form-buttons .cancel-inquiry {
+    margin: 0;
+    flex: 1;
 }
 
 /* Admin Styles */

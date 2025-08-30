@@ -520,6 +520,7 @@ class Frontend {
 
     // Enqueue frontend scripts
     public function enqueue_frontend_scripts() {
+        
         wp_enqueue_style(
             'b2b-commerce-pro-frontend',
             B2B_COMMERCE_PRO_URL . 'assets/css/b2b-commerce-pro.css',
@@ -534,6 +535,12 @@ class Frontend {
             B2B_COMMERCE_PRO_VERSION,
             true
         );
+        
+        // Localize script for AJAX with proper nonce
+        wp_localize_script('b2b-commerce-pro-frontend', 'b2b_ajax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('b2b_ajax_nonce')
+        ));
         
         // Add mobile-responsive features
         wp_add_inline_script('b2b-commerce-pro-frontend', '

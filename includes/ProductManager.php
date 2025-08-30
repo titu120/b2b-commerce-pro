@@ -25,9 +25,7 @@ class ProductManager {
         add_action( 'edited_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_action( 'create_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_filter( 'woocommerce_product_query_tax_query', [ $this, 'filter_category_restrictions' ] );
-        // Scripts are now handled by the main plugin file
-        add_action( 'wp_ajax_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
-        add_action( 'wp_ajax_nopriv_b2b_product_inquiry', [ $this, 'handle_product_inquiry' ] );
+        // Product inquiry AJAX handlers are now in AdvancedFeatures.php
         // Bulk order and CSV import placeholders
         // Note: b2b_bulk_order shortcode is handled by Frontend.php
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_bulk_order_scripts' ] );
@@ -374,81 +372,8 @@ class ProductManager {
         return $tax_query;
     }
 
-    // Product inquiry button and modal
-    public function product_inquiry_button() {
-        global $product;
-        
-        // Prevent duplicate buttons
-        static $inquiry_button_rendered = false;
-        if ($inquiry_button_rendered) return;
-        $inquiry_button_rendered = true;
-        
-        // Use helper function to check if buttons should be shown
-        if (!$this->should_show_b2b_buttons($product->get_id())) {
-            return;
-        }
-        
-        echo '<button class="button b2b-inquiry-btn" data-product="' . esc_attr( $product->get_id() ) . '">' . __('Product Inquiry', 'b2b-commerce-pro') . '</button>';
-        echo '<div id="b2b-inquiry-modal" style="display:none;"><form id="b2b-inquiry-form"><h3>' . __('Product Inquiry', 'b2b-commerce-pro') . '</h3>';
-        echo '<input type="hidden" name="product_id" value="' . esc_attr( $product->get_id() ) . '">';
-        echo '<p><label>' . __('Your Email', 'b2b-commerce-pro') . '<br><input type="email" name="email" required></label></p>';
-        echo '<p><label>' . __('Message', 'b2b-commerce-pro') . '<br><textarea name="message" required></textarea></label></p>';
-        echo '<p><button type="submit" class="button">' . __('Send Inquiry', 'b2b-commerce-pro') . '</button></p>';
-        echo '<div class="b2b-inquiry-response"></div>';
-        echo '</form></div>';
-        ?>
-        <script>
-        jQuery(function($){
-            $('.b2b-inquiry-btn').on('click', function(e){
-                e.preventDefault();
-                $('#b2b-inquiry-modal').show();
-            });
-            $('#b2b-inquiry-form').on('submit', function(e){
-                e.preventDefault();
-                var data = $(this).serialize();
-                $.post(b2bQuote.ajax_url, data + '&action=b2b_product_inquiry&nonce=' + b2bQuote.nonce, function(response){
-                    $('.b2b-inquiry-response').html(response.data ? response.data : response);
-                });
-            });
-        });
-        </script>
-        <?php
-    }
-    // Scripts are now handled by the main plugin file
-    public function handle_product_inquiry() {
-        check_ajax_referer('b2b_quote_request', 'nonce');
-        $product_id = intval($_POST['product_id']);
-        $email = sanitize_email($_POST['email']);
-        $message = sanitize_textarea_field($_POST['message']);
-        $product = wc_get_product($product_id);
-        
-        if (!$product) {
-            wp_send_json_error('Product not found');
-            return;
-        }
-        
-        // Save inquiry to database
-        $inquiry_data = [
-            'product_id' => $product_id,
-            'email' => $email,
-            'message' => $message,
-            'status' => 'pending',
-            'date' => current_time('mysql'),
-            'user_id' => get_current_user_id() ?: 0
-        ];
-        
-        $inquiries = get_option('b2b_product_inquiries', []);
-        $inquiries[] = $inquiry_data;
-        update_option('b2b_product_inquiries', $inquiries);
-        
-        // Send email notification to admin
-        $admin_email = get_option('admin_email');
-        $subject = 'B2B Product Inquiry for ' . $product->get_name();
-        $body = "Product: " . $product->get_name() . "\nEmail: $email\nMessage: $message";
-        wp_mail($admin_email, $subject, $body);
-        
-        wp_send_json_success('Your inquiry has been sent!');
-    }
+    // Product inquiry button is now handled by AdvancedFeatures.php to avoid duplication
+    // Product inquiry handler is now in AdvancedFeatures.php to avoid duplication
 
     // Bulk order shortcode
     public function bulk_order_shortcode() {

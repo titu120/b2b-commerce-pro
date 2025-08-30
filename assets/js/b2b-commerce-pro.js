@@ -326,8 +326,14 @@
             $(document).on('click', '.submit-quote', function() {
                 var form = $(this).closest('.b2b-quote-form');
                 var productId = form.siblings('.b2b-quote-btn').data('product-id');
+                var email = form.find('input[name="quote_email"]').val();
                 var quantity = form.find('input[name="quote_qty"]').val();
                 var message = form.find('textarea[name="quote_message"]').val();
+
+                if (!email) {
+                    alert('Please enter your email address');
+                    return;
+                }
 
                 if (!quantity || quantity < 1) {
                     alert('Please enter a valid quantity');
@@ -337,6 +343,7 @@
                 var data = {
                     action: 'b2b_quote_request',
                     product_id: productId,
+                    email: email,
                     quantity: quantity,
                     message: message,
                     nonce: b2b_ajax.nonce
@@ -374,6 +381,12 @@
                     return;
                 }
 
+                // Debug: Check if b2b_ajax is available
+                if (typeof b2b_ajax === 'undefined') {
+                    alert('Error: AJAX configuration not loaded. Please refresh the page.');
+                    return;
+                }
+
                 var data = {
                     action: 'b2b_product_inquiry',
                     product_id: productId,
@@ -382,7 +395,11 @@
                     nonce: b2b_ajax.nonce
                 };
 
+                // Debug: Log the data being sent
+                console.log('Sending inquiry data:', data);
+
                 $.post(b2b_ajax.ajaxurl, data, function(response) {
+                    console.log('Inquiry response:', response);
                     if (response.success) {
                         alert('Inquiry submitted successfully!');
                         form.slideUp();
@@ -390,6 +407,9 @@
                     } else {
                         alert('Error: ' + response.data);
                     }
+                }).fail(function(xhr, status, error) {
+                    console.error('AJAX request failed:', status, error);
+                    alert('Request failed. Please try again.');
                 });
             });
 
@@ -442,6 +462,13 @@
         // Prevent multiple initializations
         if (window.B2BCommerceProInitialized) return;
         window.B2BCommerceProInitialized = true;
+        
+        // Debug: Check if b2b_ajax is available
+        if (typeof b2b_ajax === 'undefined') {
+            console.error('B2B Commerce Pro: b2b_ajax object not found. Script may not be properly localized.');
+        } else {
+            console.log('B2B Commerce Pro: Script initialized successfully');
+        }
         
         B2BCommercePro.init();
     });
