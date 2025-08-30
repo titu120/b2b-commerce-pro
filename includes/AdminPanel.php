@@ -2305,19 +2305,7 @@ Best regards,
     }
     
     // Email function kept for future use but commented out
-    /*
-    private function send_inquiry_response_email($inquiry) {
-        $product = wc_get_product($inquiry['product_id']);
-        $subject = 'Response to your inquiry about ' . ($product ? $product->get_name() : 'Product');
-        
-        $message = "Dear Customer,\n\n";
-        $message .= "Thank you for your inquiry about " . ($product ? $product->get_name() : 'our product') . ".\n\n";
-        $message .= "Our response:\n" . $inquiry['admin_response'] . "\n\n";
-        $message .= "Best regards,\n" . get_bloginfo('name');
-        
-        wp_mail($inquiry['email'], $subject, $message);
-    }
-    */
+
     
     // Handle inquiry deletion
     public function handle_delete_inquiry() {

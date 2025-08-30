@@ -25,8 +25,6 @@ class ProductManager {
         add_action( 'edited_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_action( 'create_product_cat', [ $this, 'save_category_restriction_fields' ] );
         add_filter( 'woocommerce_product_query_tax_query', [ $this, 'filter_category_restrictions' ] );
-        // Product inquiry AJAX handlers are now in AdvancedFeatures.php
-        // Bulk order and CSV import placeholders
         // Note: b2b_bulk_order shortcode is handled by Frontend.php
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_bulk_order_scripts' ] );
         // Note: b2b_bulk_product_search AJAX handlers are in main plugin file
@@ -371,9 +369,6 @@ class ProductManager {
         // Placeholder: could add logic to restrict categories by user role/group
         return $tax_query;
     }
-
-    // Product inquiry button is now handled by AdvancedFeatures.php to avoid duplication
-    // Product inquiry handler is now in AdvancedFeatures.php to avoid duplication
 
     // Bulk order shortcode
     public function bulk_order_shortcode() {

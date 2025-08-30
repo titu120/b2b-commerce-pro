@@ -31,9 +31,6 @@ class AdvancedFeatures {
         add_action( 'woocommerce_single_product_summary', [ $this, 'bulk_pricing_calculator' ], 30 );
         add_action( 'wp_ajax_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
         add_action( 'wp_ajax_nopriv_b2b_calculate_bulk_price', [ $this, 'calculate_bulk_price' ] );
-        // Advanced reporting - REMOVED: Duplicate menu registration
-
-        // Plugin integration hooks (placeholder)
         // Catalog mode & checkout controls
         add_filter( 'woocommerce_is_purchasable', [ $this, 'maybe_disable_purchasable' ], 5, 2 );
         add_filter( 'woocommerce_get_price_html', [ $this, 'maybe_hide_price_html' ], 5, 2 );

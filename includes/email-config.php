@@ -9,37 +9,7 @@
 // Email Configuration Options
 // Uncomment the lines below and configure them for your email service
 
-/*
-// Option 1: Gmail SMTP Configuration
-define('B2B_SMTP_HOST', 'smtp.gmail.com');
-define('B2B_SMTP_PORT', 587);
-define('B2B_SMTP_SECURE', 'tls');
-define('B2B_SMTP_USERNAME', 'your-email@gmail.com');
-define('B2B_SMTP_PASSWORD', 'your-app-password'); // Use App Password, not regular password
-define('B2B_SMTP_FROM_EMAIL', 'your-email@gmail.com');
-define('B2B_SMTP_FROM_NAME', 'Your Company Name');
 
-// Option 2: SendGrid SMTP Configuration
-// define('B2B_SMTP_HOST', 'smtp.sendgrid.net');
-// define('B2B_SMTP_PORT', 587);
-// define('B2B_SMTP_SECURE', 'tls');
-// define('B2B_SMTP_USERNAME', 'apikey');
-// define('B2B_SMTP_PASSWORD', 'your-sendgrid-api-key');
-// define('B2B_SMTP_FROM_EMAIL', 'your-verified-sender@yourdomain.com');
-// define('B2B_SMTP_FROM_NAME', 'Your Company Name');
-
-// Option 3: Mailgun SMTP Configuration
-// define('B2B_SMTP_HOST', 'smtp.mailgun.org');
-// define('B2B_SMTP_PORT', 587);
-// define('B2B_SMTP_SECURE', 'tls');
-// define('B2B_SMTP_USERNAME', 'your-mailgun-username');
-// define('B2B_SMTP_PASSWORD', 'your-mailgun-password');
-// define('B2B_SMTP_FROM_EMAIL', 'your-verified-sender@yourdomain.com');
-// define('B2B_SMTP_FROM_NAME', 'Your Company Name');
-
-// Enable SMTP
-define('B2B_ENABLE_SMTP', false); // Set to true to enable SMTP
-*/
 
 /**
  * Instructions for setting up email:

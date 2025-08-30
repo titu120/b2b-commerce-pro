@@ -583,11 +583,6 @@ class PricingManager {
         ]);
     }
 
-    // Price request button and modal
-    // REMOVED: price_request_button() - Duplicate of AdvancedFeatures quote_request_button
-
-    // REMOVED: handle_quote_request() - Duplicate of AdvancedFeatures handle_quote_request
-
     // Advanced pricing features implementation
     public function tiered_pricing() {
         global $wpdb;
