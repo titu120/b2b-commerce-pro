@@ -90,11 +90,156 @@ register_activation_hook( __FILE__, function() {
         if ( class_exists( 'B2B\\UserManager' ) ) {
             B2B\UserManager::add_roles();
         }
+        
+        // Auto-create essential B2B pages
+        create_b2b_pages();
+        
     } catch ( Exception $e ) {
         // Log activation error
         error_log( 'B2B Commerce Pro Activation Error: ' . $e->getMessage() );
     }
 } );
+
+// Function to create essential B2B pages
+function create_b2b_pages() {
+    // Check if pages already exist to avoid duplicates
+    $existing_pages = get_posts([
+        'post_type' => 'page',
+        'meta_query' => [
+            [
+                'key' => '_b2b_page_type',
+                'value' => ['registration', 'dashboard', 'bulk_order', 'account'],
+                'compare' => 'IN'
+            ]
+        ],
+        'posts_per_page' => -1
+    ]);
+    
+    $existing_page_types = wp_list_pluck($existing_pages, 'post_name');
+    
+    // B2B Registration Page
+    if (!in_array('b2b-registration', $existing_page_types)) {
+        $registration_page = wp_insert_post([
+            'post_title' => 'B2B Registration',
+            'post_name' => 'b2b-registration',
+            'post_content' => '[b2b_registration]',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+            'post_author' => 1,
+            'meta_input' => [
+                '_b2b_page_type' => 'registration'
+            ]
+        ]);
+        
+        if ($registration_page) {
+            update_option('b2b_registration_page_id', $registration_page);
+        }
+    }
+    
+    // B2B Dashboard Page
+    if (!in_array('b2b-dashboard', $existing_page_types)) {
+        $dashboard_page = wp_insert_post([
+            'post_title' => 'B2B Dashboard',
+            'post_name' => 'b2b-dashboard',
+            'post_content' => '[b2b_dashboard]',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+            'post_author' => 1,
+            'meta_input' => [
+                '_b2b_page_type' => 'dashboard'
+            ]
+        ]);
+        
+        if ($dashboard_page) {
+            update_option('b2b_dashboard_page_id', $dashboard_page);
+        }
+    }
+    
+    // Bulk Order Page
+    if (!in_array('bulk-order', $existing_page_types)) {
+        $bulk_order_page = wp_insert_post([
+            'post_title' => 'Bulk Order',
+            'post_name' => 'bulk-order',
+            'post_content' => '[b2b_bulk_order]',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+            'post_author' => 1,
+            'meta_input' => [
+                '_b2b_page_type' => 'bulk_order'
+            ]
+        ]);
+        
+        if ($bulk_order_page) {
+            update_option('b2b_bulk_order_page_id', $bulk_order_page);
+        }
+    }
+    
+    // Account Settings Page
+    if (!in_array('account-settings', $existing_page_types)) {
+        $account_page = wp_insert_post([
+            'post_title' => 'Account Settings',
+            'post_name' => 'account-settings',
+            'post_content' => '[b2b_account]',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+            'post_author' => 1,
+            'meta_input' => [
+                '_b2b_page_type' => 'account'
+            ]
+        ]);
+        
+        if ($account_page) {
+            update_option('b2b_account_page_id', $account_page);
+        }
+    }
+    
+    // Add admin notice about created pages
+    add_option('b2b_pages_created_notice', true);
+    
+    // Try to add B2B Registration to main menu
+    add_b2b_registration_to_menu();
+}
+
+// Function to add B2B Registration to main menu
+function add_b2b_registration_to_menu() {
+    $registration_page_id = get_option('b2b_registration_page_id');
+    if (!$registration_page_id) return;
+    
+    // Get the primary menu
+    $primary_menu = get_nav_menu_locations();
+    $primary_menu_id = $primary_menu['primary'] ?? null;
+    
+    if (!$primary_menu_id) {
+        // Try to find any menu
+        $menus = wp_get_nav_menus();
+        if (!empty($menus)) {
+            $primary_menu_id = $menus[0]->term_id;
+        }
+    }
+    
+    if ($primary_menu_id) {
+        // Check if menu item already exists
+        $menu_items = wp_get_nav_menu_items($primary_menu_id);
+        $registration_exists = false;
+        
+        foreach ($menu_items as $item) {
+            if ($item->object_id == $registration_page_id) {
+                $registration_exists = true;
+                break;
+            }
+        }
+        
+        if (!$registration_exists) {
+            wp_update_nav_menu_item($primary_menu_id, 0, [
+                'menu-item-title' => 'B2B Registration',
+                'menu-item-object-id' => $registration_page_id,
+                'menu-item-object' => 'page',
+                'menu-item-status' => 'publish',
+                'menu-item-type' => 'post_type'
+            ]);
+        }
+    }
+}
 
 register_deactivation_hook( __FILE__, function() {
     try {
@@ -325,7 +470,7 @@ add_action('wp_ajax_b2b_delete_pricing_rule', function() {
 
 add_action('wp_ajax_b2b_export_data', function() {
     if (!current_user_can('manage_options')) {
-        wp_die('Unauthorized');
+        wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
     }
     
     $type = sanitize_text_field($_POST['type']);
@@ -456,14 +601,14 @@ add_action('wp_ajax_nopriv_b2b_bulk_product_search', function() {
 // Import/Export AJAX handlers
 add_action('wp_ajax_b2b_download_template', function() {
     if (!current_user_can('manage_options')) {
-        wp_die('Unauthorized');
+        wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
     }
     
     $type = sanitize_text_field($_GET['type']);
     $nonce = $_GET['nonce'];
     
     if (!wp_verify_nonce($nonce, 'b2b_template_nonce')) {
-        wp_die('Security check failed');
+        wp_die(__('Security check failed.', 'b2b-commerce-pro'));
     }
     
     switch ($type) {
@@ -479,7 +624,7 @@ add_action('wp_ajax_b2b_download_template', function() {
             break;
             
         default:
-            wp_die('Invalid template type');
+            wp_die(__('Invalid template type.', 'b2b-commerce-pro'));
     }
     
     header('Content-Type: text/csv');
@@ -712,5 +857,49 @@ add_action('wp_ajax_b2b_delete_quote_ajax', function() {
         wp_send_json_success('Quote deleted successfully');
     } else {
         wp_send_json_error('Failed to delete quote');
+    }
+});
+
+// Add admin notice about created pages
+add_action('admin_notices', function() {
+    if (get_option('b2b_pages_created_notice')) {
+        $registration_page_id = get_option('b2b_registration_page_id');
+        $dashboard_page_id = get_option('b2b_dashboard_page_id');
+        $bulk_order_page_id = get_option('b2b_bulk_order_page_id');
+        $account_page_id = get_option('b2b_account_page_id');
+        
+        echo '<div class="notice notice-success is-dismissible">';
+        echo '<h3>🎉 B2B Commerce Pro - Pages Created Successfully!</h3>';
+        echo '<p>The following B2B pages have been automatically created:</p>';
+        echo '<ul style="list-style: disc; margin-left: 20px;">';
+        
+        if ($registration_page_id) {
+            echo '<li><strong>B2B Registration:</strong> <a href="' . get_edit_post_link($registration_page_id) . '">Edit Page</a> | <a href="' . get_permalink($registration_page_id) . '" target="_blank">View Page</a></li>';
+        }
+        
+        if ($dashboard_page_id) {
+            echo '<li><strong>B2B Dashboard:</strong> <a href="' . get_edit_post_link($dashboard_page_id) . '">Edit Page</a> | <a href="' . get_permalink($dashboard_page_id) . '" target="_blank">View Page</a></li>';
+        }
+        
+        if ($bulk_order_page_id) {
+            echo '<li><strong>Bulk Order:</strong> <a href="' . get_edit_post_link($bulk_order_page_id) . '">Edit Page</a> | <a href="' . get_permalink($bulk_order_page_id) . '" target="_blank">View Page</a></li>';
+        }
+        
+        if ($account_page_id) {
+            echo '<li><strong>Account Settings:</strong> <a href="' . get_edit_post_link($account_page_id) . '">Edit Page</a> | <a href="' . get_permalink($account_page_id) . '" target="_blank">View Page</a></li>';
+        }
+        
+        echo '</ul>';
+        echo '<p><strong>Next Steps:</strong></p>';
+        echo '<ol style="list-style: decimal; margin-left: 20px;">';
+        echo '<li>✅ "B2B Registration" has been automatically added to your main navigation menu</li>';
+        echo '<li>Add "B2B Dashboard" and "Bulk Order" to your user menu (after login)</li>';
+        echo '<li>Configure B2B settings in <a href="' . admin_url('admin.php?page=b2b-commerce-pro') . '">B2B Commerce Pro Settings</a></li>';
+        echo '</ol>';
+        echo '<p><em>All pages are ready to use with the appropriate shortcodes already added!</em></p>';
+        echo '</div>';
+        
+        // Remove the notice flag
+        delete_option('b2b_pages_created_notice');
     }
 });

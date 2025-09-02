@@ -167,7 +167,7 @@ class UserManager {
     // Handle saving groups
     public function save_group() {
         if (!wp_verify_nonce($_POST['b2b_group_nonce'] ?? '', 'b2b_save_group')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         $group_id = intval($_POST['group_id'] ?? 0);
@@ -175,7 +175,7 @@ class UserManager {
         $description = sanitize_textarea_field($_POST['group_description'] ?? '');
         
         if (empty($name)) {
-            wp_die('Group name is required');
+            wp_die(__('Group name is required.', 'b2b-commerce-pro'));
         }
         
         if ($group_id) {
@@ -277,14 +277,14 @@ class UserManager {
     // Approve user
     public function approve_user() {
         if ( ! current_user_can( 'manage_options' ) || empty( $_GET['user_id'] ) ) {
-            wp_die( 'Unauthorized' );
+            wp_die( __('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro') );
         }
         
         $user_id = intval( $_GET['user_id'] );
         
         // Verify nonce for security
         if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'b2b_approve_user_' . $user_id ) ) {
-            wp_die( 'Security check failed' );
+            wp_die( __('Security check failed.', 'b2b-commerce-pro') );
         }
         
         update_user_meta( $user_id, 'b2b_approval_status', 'approved' );
@@ -297,14 +297,14 @@ class UserManager {
     // Reject user
     public function reject_user() {
         if ( ! current_user_can( 'manage_options' ) || empty( $_GET['user_id'] ) ) {
-            wp_die( 'Unauthorized' );
+            wp_die( __('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro') );
         }
         
         $user_id = intval( $_GET['user_id'] );
         
         // Verify nonce for security
         if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'b2b_reject_user_' . $user_id ) ) {
-            wp_die( 'Security check failed' );
+            wp_die( __('Security check failed.', 'b2b-commerce-pro') );
         }
         
         update_user_meta( $user_id, 'b2b_approval_status', 'rejected' );
@@ -499,7 +499,7 @@ class UserManager {
 
     private function delete_group($group_id) {
         if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'delete_group_' . $group_id)) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         wp_delete_term($group_id, 'b2b_user_group');
@@ -558,18 +558,18 @@ class UserManager {
 
     private function handle_bulk_import() {
         if (!wp_verify_nonce($_POST['b2b_import_nonce'], 'b2b_import_users')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
-            wp_die('File upload failed');
+            wp_die(__('File upload failed.', 'b2b-commerce-pro'));
         }
         
         $file = $_FILES['csv_file']['tmp_name'];
         $handle = fopen($file, 'r');
         
         if (!$handle) {
-            wp_die('Cannot open file');
+            wp_die(__('Cannot open file.', 'b2b-commerce-pro'));
         }
         
         $headers = fgetcsv($handle);
@@ -734,7 +734,7 @@ class UserManager {
         $template = get_option("b2b_email_template_$template_id");
         
         if (!$template) {
-            wp_die('Template not found');
+            wp_die(__('Template not found.', 'b2b-commerce-pro'));
         }
         
         $current_user = wp_get_current_user();

@@ -533,7 +533,7 @@ class PricingManager {
     // Save pricing rule (add/edit)
     public function save_pricing_rule() {
         if (!current_user_can('manage_woocommerce') || !isset($_POST['b2b_nonce']) || !wp_verify_nonce($_POST['b2b_nonce'], 'b2b_save_pricing_rule')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';
@@ -562,7 +562,7 @@ class PricingManager {
     // Delete pricing rule
     public function delete_pricing_rule() {
         if (!current_user_can('manage_woocommerce') || !isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'b2b_delete_pricing_rule')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         global $wpdb;
         $table = $wpdb->prefix . 'b2b_pricing_rules';

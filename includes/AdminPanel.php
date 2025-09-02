@@ -2274,7 +2274,7 @@ Best regards,
     // Handle inquiry status updates
     public function handle_update_inquiry() {
         if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         
         check_admin_referer('b2b_update_inquiry');
@@ -2310,7 +2310,7 @@ Best regards,
     // Handle inquiry deletion
     public function handle_delete_inquiry() {
         if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         
         check_admin_referer('b2b_delete_inquiry');
@@ -2336,7 +2336,7 @@ Best regards,
     // Handle quote data migration
     public function handle_migrate_quotes() {
         if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         
         check_admin_referer('b2b_migrate_quotes');
@@ -2867,11 +2867,11 @@ Best regards,
     
     private function handle_import_data() {
         if (!wp_verify_nonce($_POST['b2b_import_nonce'], 'b2b_import_export')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
-            wp_die('File upload failed');
+            wp_die(__('File upload failed.', 'b2b-commerce-pro'));
         }
         
         $import_type = sanitize_text_field($_POST['import_type']);
@@ -2885,14 +2885,14 @@ Best regards,
                 $this->import_pricing_from_csv($file);
                 break;
             default:
-                wp_die('Invalid import type');
+                wp_die(__('Invalid import type.', 'b2b-commerce-pro'));
         }
     }
     
     private function import_users_from_csv($file) {
         $handle = fopen($file, 'r');
         if (!$handle) {
-            wp_die('Cannot open file');
+            wp_die(__('Cannot open file.', 'b2b-commerce-pro'));
         }
         
         $headers = fgetcsv($handle);
@@ -2926,7 +2926,7 @@ Best regards,
     private function import_pricing_from_csv($file) {
         $handle = fopen($file, 'r');
         if (!$handle) {
-            wp_die('Cannot open file');
+            wp_die(__('Cannot open file.', 'b2b-commerce-pro'));
         }
         
         $headers = fgetcsv($handle);
@@ -3181,11 +3181,11 @@ Best regards,
     // Dismiss notification
     public function dismiss_notification() {
         if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_die(__('You do not have sufficient permissions to access this page.', 'b2b-commerce-pro'));
         }
         
         if (!wp_verify_nonce($_POST['nonce'], 'b2b_dismiss_notification')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         $notification = sanitize_text_field($_POST['notification']);

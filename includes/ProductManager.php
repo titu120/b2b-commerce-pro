@@ -94,6 +94,16 @@ class ProductManager {
             'value' => $show_quote_buttons
         ]);
 
+        // Bulk Pricing Calculator control
+        $show_bulk_calculator = get_post_meta($post->ID, '_b2b_show_bulk_calculator', true);
+        if ($show_bulk_calculator === '') $show_bulk_calculator = 'yes'; // Default to yes
+        woocommerce_wp_checkbox([
+            'id' => '_b2b_show_bulk_calculator',
+            'label' => __('Show Bulk Pricing Calculator', 'b2b-commerce-pro'),
+            'description' => __('Show bulk pricing calculator for B2B customers to calculate prices for different quantities.', 'b2b-commerce-pro'),
+            'value' => $show_bulk_calculator
+        ]);
+
         echo '</div></div>';
 
         // JS to toggle
@@ -144,6 +154,9 @@ class ProductManager {
         
         // Always save quote button setting (independent of restrictions)
         update_post_meta( $post_id, '_b2b_show_quote_buttons', isset( $_POST['_b2b_show_quote_buttons'] ) ? 'yes' : 'no' );
+        
+        // Always save bulk calculator setting (independent of restrictions)
+        update_post_meta( $post_id, '_b2b_show_bulk_calculator', isset( $_POST['_b2b_show_bulk_calculator'] ) ? 'yes' : 'no' );
     }
 
     // Filter product visibility on frontend
@@ -584,18 +597,18 @@ class ProductManager {
 
     private function handle_csv_import() {
         if (!wp_verify_nonce($_POST['b2b_csv_nonce'], 'b2b_csv_import')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
-            wp_die('File upload failed');
+            wp_die(__('File upload failed.', 'b2b-commerce-pro'));
         }
         
         $file = $_FILES['csv_file']['tmp_name'];
         $handle = fopen($file, 'r');
         
         if (!$handle) {
-            wp_die('Cannot open file');
+            wp_die(__('Cannot open file.', 'b2b-commerce-pro'));
         }
         
         $headers = fgetcsv($handle);
@@ -715,7 +728,7 @@ class ProductManager {
     // Enhanced bulk order functionality
     public function process_bulk_order() {
         if (!wp_verify_nonce($_POST['b2b_bulk_nonce'], 'b2b_bulk_order')) {
-            wp_die('Security check failed');
+            wp_die(__('Security check failed.', 'b2b-commerce-pro'));
         }
         
         $product_searches = $_POST['product_search'] ?? [];
@@ -820,6 +833,31 @@ class ProductManager {
         // Check if product has specific B2B button settings
         $show_b2b_buttons = get_post_meta($product_id, '_b2b_show_quote_buttons', true);
         if ($show_b2b_buttons === 'no') {
+            return false; // Explicitly disabled for this product
+        }
+        
+        return true;
+    }
+    
+    // Helper function to check if bulk calculator should be shown for a product
+    public function should_show_bulk_calculator($product_id) {
+        // Check if user is logged in and has B2B role
+        if (!is_user_logged_in()) return false;
+        
+        $user = wp_get_current_user();
+        $user_roles = $user->roles;
+        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        
+        if (!array_intersect($user_roles, $b2b_roles)) return false;
+        
+        // Check if user is allowed to see this product (B2B restrictions)
+        if (!$this->is_user_allowed_for_product($product_id)) {
+            return false; // Don't show calculator if user can't access this product
+        }
+        
+        // Check if product has specific bulk calculator settings
+        $show_bulk_calculator = get_post_meta($product_id, '_b2b_show_bulk_calculator', true);
+        if ($show_bulk_calculator === 'no') {
             return false; // Explicitly disabled for this product
         }
         

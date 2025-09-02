@@ -72,6 +72,65 @@
     font-size: 12px;
 }
 
+/* Helpful tooltips and placeholders */
+.b2b-tier-row input::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
+.b2b-tier-row input:focus::placeholder {
+    color: #0073aa;
+}
+
+/* Percentage input styling */
+.b2b-tier-row input[placeholder*="percentage"] {
+    background-color: #f0f8ff;
+    border-left: 3px solid #0073aa;
+}
+
+.b2b-tier-row input[placeholder*="price"] {
+    background-color: #fff8f0;
+    border-left: 3px solid #28a745;
+}
+
+/* Add percentage symbol for percentage inputs */
+.b2b-tier-row .tier-type-select option[value="percentage"] {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.b2b-tier-row .tier-type-select option[value="fixed"] {
+    font-weight: bold;
+    color: #28a745;
+}
+
+/* Percentage input styling with visual indicator */
+.b2b-tier-row .tier-price-input.percentage-input {
+    background-color: #f0f8ff;
+    border-left: 3px solid #0073aa;
+    padding-right: 25px;
+}
+
+/* Add a wrapper for percentage inputs */
+.b2b-tier-row {
+    position: relative;
+}
+
+.b2b-tier-row .percentage-indicator {
+    position: absolute;
+    right: 110px; /* Adjust based on your layout */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #0073aa;
+    font-weight: bold;
+    pointer-events: none;
+    background: #f0f8ff;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 12px;
+    z-index: 10;
+}
+
 .b2b-tier-row input:focus,
 .b2b-tier-row select:focus {
     border-color: #0073aa;

@@ -549,7 +549,7 @@ class AdvancedFeatures {
         if (!$product_id || !$quantity || !$email) {
             // Debug: Log the received data
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('B2B Quote Request Debug - Received data: ' . print_r($_POST, true));
+                error_log('B2B Quote Request Debug - Nonce verification failed');
             }
             wp_send_json_error('Invalid request data - Missing required fields');
             return;
@@ -618,7 +618,7 @@ class AdvancedFeatures {
         if (!$product_id || !$email || !$message) {
             // Debug: Log the received data
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('B2B Product Inquiry Debug - Received data: ' . print_r($_POST, true));
+                error_log('B2B Product Inquiry Debug - Nonce verification failed');
             }
             wp_send_json_error('Invalid request data - Missing required fields');
             return;
@@ -743,6 +743,14 @@ class AdvancedFeatures {
         
         global $product;
         if (!$product) return;
+        
+        // Check if bulk calculator should be shown for this product
+        if (class_exists('B2B\\ProductManager')) {
+            $product_manager = new ProductManager();
+            if (!$product_manager->should_show_bulk_calculator($product->get_id())) {
+                return;
+            }
+        }
         
         echo '<div class="b2b-bulk-calculator" data-product-id="' . esc_attr( $product->get_id() ) . '">';
         echo '<h4>' . __('Bulk Pricing Calculator', 'b2b-commerce-pro') . '</h4>';
@@ -926,14 +934,32 @@ class AdvancedFeatures {
             echo '<div class="b2b-tiers-container" data-role="' . esc_attr($role) . '">';
             if (!empty($role_tiers)) {
                 foreach ($role_tiers as $tier) {
+                    $placeholder = ($tier->type === 'percentage') ? 'Enter percentage (e.g., 5.55 for 5.55%)' : 'Enter price (e.g., 25.00)';
+                    $title = ($tier->type === 'percentage') ? 'Enter discount percentage (e.g., 5.55 for 5.55% off)' : 'Enter fixed price (e.g., 25.00)';
+                    
+                    // Format the display value based on type
+                    $display_value = '';
+                    if ($tier->type === 'percentage') {
+                        // For percentage, show with up to 2 decimal places (e.g., 5.55 for 5.55%)
+                        $display_value = number_format((float)$tier->price, 2, '.', '');
+                        // Remove trailing zeros for whole numbers (e.g., 5.00 becomes 5)
+                        $display_value = rtrim(rtrim($display_value, '0'), '.');
+                    } else {
+                        // For fixed price, format to 2 decimal places
+                        $display_value = number_format((float)$tier->price, 2, '.', '');
+                    }
+                    
                     echo '<div class="b2b-tier-row">';
-                    echo '<input type="number" name="b2b_tier_min_qty[' . esc_attr($role) . '][]" value="' . esc_attr($tier->min_qty) . '" placeholder="Min Qty" min="1" style="width: 80px;">';
-                    echo '<input type="text" name="b2b_tier_price[' . esc_attr($role) . '][]" value="' . esc_attr($tier->price) . '" placeholder="Price" class="wc_input_price" style="width: 100px;">';
-                    echo '<select name="b2b_tier_type[' . esc_attr($role) . '][]" style="width: 100px;">';
+                    echo '<input type="number" name="b2b_tier_min_qty[' . esc_attr($role) . '][]" value="' . esc_attr($tier->min_qty) . '" placeholder="Min Qty" min="1" style="width: 80px;" title="Minimum quantity for this tier">';
+                    echo '<input type="text" name="b2b_tier_price[' . esc_attr($role) . '][]" value="' . esc_attr($display_value) . '" placeholder="' . esc_attr($placeholder) . '" class="wc_input_price tier-price-input' . ($tier->type === 'percentage' ? ' percentage-input' : '') . '" style="width: 100px;" title="' . esc_attr($title) . '">';
+                    if ($tier->type === 'percentage') {
+                        echo '<span class="percentage-indicator">%</span>';
+                    }
+                    echo '<select name="b2b_tier_type[' . esc_attr($role) . '][]" class="tier-type-select" style="width: 100px;" title="Choose pricing type">';
                     echo '<option value="fixed"' . selected($tier->type, 'fixed', false) . '>Fixed Price</option>';
                     echo '<option value="percentage"' . selected($tier->type, 'percentage', false) . '>Percentage</option>';
                     echo '</select>';
-                    echo '<button type="button" class="button remove-tier" style="margin-left: 5px;">Remove</button>';
+                    echo '<button type="button" class="button remove-tier" style="margin-left: 5px;" title="Remove this tier">Remove</button>';
                     echo '</div>';
                 }
             }
@@ -976,10 +1002,7 @@ class AdvancedFeatures {
             $table = $wpdb->prefix . 'b2b_pricing_rules';
             
             // Debug: Log the POST data
-            error_log("B2B Tiered Pricing: POST data received for product $post_id");
-            error_log("B2B Tiered Pricing: b2b_tier_min_qty = " . print_r($_POST['b2b_tier_min_qty'], true));
-            error_log("B2B Tiered Pricing: b2b_tier_price = " . print_r($_POST['b2b_tier_price'], true));
-            error_log("B2B Tiered Pricing: b2b_tier_type = " . print_r($_POST['b2b_tier_type'], true));
+                    error_log("B2B Tiered Pricing: Processing tiered pricing for product $post_id");
             
             // Delete existing rules for this product
             $delete_result = $wpdb->delete($table, ['product_id' => $post_id]);
@@ -990,7 +1013,7 @@ class AdvancedFeatures {
             foreach ($_POST['b2b_tier_min_qty'] as $role => $quantities) {
                 error_log("B2B Tiered Pricing: Processing role: $role");
                 if (is_array($quantities)) {
-                    error_log("B2B Tiered Pricing: Quantities array: " . print_r($quantities, true));
+                    error_log("B2B Tiered Pricing: Processing quantities for role $role");
                     foreach ($quantities as $index => $quantity) {
                         error_log("B2B Tiered Pricing: Processing index $index, quantity $quantity");
                         if (!empty($quantity) && isset($_POST['b2b_tier_price'][$role][$index])) {
@@ -1007,7 +1030,7 @@ class AdvancedFeatures {
                                 'type' => $type
                             ];
                             
-                            error_log("B2B Tiered Pricing: Insert data: " . print_r($insert_data, true));
+                            error_log("B2B Tiered Pricing: Inserting rule for product $post_id, role $role");
                             
                             $result = $wpdb->insert($table, $insert_data);
                             
