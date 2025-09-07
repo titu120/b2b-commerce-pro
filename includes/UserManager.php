@@ -609,7 +609,7 @@ class UserManager {
         $email = sanitize_email($user_data['email']);
         
         if (username_exists($username) || email_exists($email)) {
-            throw new Exception("User already exists: $username");
+            throw new Exception(sprintf(__('User already exists: %s', 'b2b-commerce-pro'), $username));
         }
         
         $user_id = wp_create_user($username, wp_generate_password(), $email);

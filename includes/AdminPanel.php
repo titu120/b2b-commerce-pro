@@ -18,8 +18,8 @@ class AdminPanel {
     // Add main admin menu and submenus
     public function add_admin_menu() {
         add_menu_page(
-            'B2B Commerce Pro',
-            'B2B Commerce',
+            __('B2B Commerce Pro', 'b2b-commerce-pro'),
+            __('B2B Commerce', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-dashboard',
             [ $this, 'dashboard_page' ],
@@ -32,8 +32,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'User Management',
-            'User Management',
+            __('User Management', 'b2b-commerce-pro'),
+            __('User Management', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-users',
             [ $this, 'user_management_page' ]
@@ -41,8 +41,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Add B2B User',
-            'Add B2B User',
+            __('Add B2B User', 'b2b-commerce-pro'),
+            __('Add B2B User', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-add-user',
             [ $this, 'add_b2b_user_page' ]
@@ -50,8 +50,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Pricing Rules',
-            'Pricing Rules',
+            __('Pricing Rules', 'b2b-commerce-pro'),
+            __('Pricing Rules', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-pricing',
             [ $this, 'pricing_page' ]
@@ -59,8 +59,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Order Management',
-            'Order Management',
+            __('Order Management', 'b2b-commerce-pro'),
+            __('Order Management', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-orders',
             [ $this, 'order_management_page' ]
@@ -69,8 +69,8 @@ class AdminPanel {
         // Quotes Management
         add_submenu_page(
             'b2b-dashboard',
-            'Quotes',
-            'Quotes',
+            __('Quotes', 'b2b-commerce-pro'),
+            __('Quotes', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-quotes',
             [ $this, 'quotes_page' ]
@@ -79,8 +79,8 @@ class AdminPanel {
         // Product Inquiries Management
         add_submenu_page(
             'b2b-dashboard',
-            'Product Inquiries',
-            'Product Inquiries',
+            __('Product Inquiries', 'b2b-commerce-pro'),
+            __('Product Inquiries', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-inquiries',
             [ $this, 'inquiries_page' ]
@@ -89,8 +89,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Settings',
-            'Settings',
+            __('Settings', 'b2b-commerce-pro'),
+            __('Settings', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-settings',
             [ $this, 'settings_page' ]
@@ -1838,13 +1838,13 @@ Best regards,
             update_option('b2b_quote_requests', $quotes);
         }
         
-        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-email-alt"></span>Quotes</h1><p>Manage incoming quote requests.</p></div>';
+        $content = '<div class="b2b-admin-header"><h1><span class="icon dashicons dashicons-email-alt"></span>' . __('Quotes', 'b2b-commerce-pro') . '</h1><p>' . __('Manage incoming quote requests.', 'b2b-commerce-pro') . '</p></div>';
         
         // Show success message if quote was updated
         if (isset($_GET['updated']) && $_GET['updated'] == '1') {
             $status = sanitize_text_field($_GET['status'] ?? '');
             $status_text = ucfirst($status);
-            $content .= '<div class="notice notice-success is-dismissible"><p><strong>Success!</strong> Quote has been ' . esc_html($status_text) . '.</p></div>';
+            $content .= '<div class="notice notice-success is-dismissible"><p><strong>' . __('Success!', 'b2b-commerce-pro') . '</strong> ' . sprintf(__('Quote has been %s.', 'b2b-commerce-pro'), esc_html($status_text)) . '</p></div>';
         }
         
 

@@ -350,7 +350,7 @@ class Frontend {
     // B2B Registration form shortcode
     public function registration_form_shortcode() {
         if (is_user_logged_in()) {
-            return '<p>You are already logged in. <a href="' . wp_logout_url() . '">Logout</a> to register a new account.</p>';
+            return '<p>' . sprintf(__('You are already logged in. %s to register a new account.', 'b2b-commerce-pro'), '<a href="' . wp_logout_url() . '">' . __('Logout', 'b2b-commerce-pro') . '</a>') . '</p>';
         }
 
         $message = '';

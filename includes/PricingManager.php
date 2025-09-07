@@ -627,11 +627,11 @@ class PricingManager {
                 $display_price = (float) $rule->price;
                 $savings = $original_price - $display_price;
                 if ($savings > 0) {
-                    $savings_display = wc_price($savings) . ' off';
+                    $savings_display = wc_price($savings) . ' ' . __('off', 'b2b-commerce-pro');
                 } elseif ($savings < 0) {
-                    $savings_display = wc_price(abs($savings)) . ' more';
+                    $savings_display = wc_price(abs($savings)) . ' ' . __('more', 'b2b-commerce-pro');
                 } else {
-                    $savings_display = 'Same price';
+                    $savings_display = __('Same price', 'b2b-commerce-pro');
                 }
             }
             
@@ -662,14 +662,14 @@ class PricingManager {
         if (empty($rules)) return '';
         
         $output = '<div class="b2b-role-pricing">';
-        $output .= '<h4>Your Pricing</h4>';
+        $output .= '<h4>' . __('Your Pricing', 'b2b-commerce-pro') . '</h4>';
         $output .= '<ul>';
         
         foreach ($rules as $rule) {
             if ($rule->type === 'percentage') {
                 $label = abs($rule->price) . '% ' . __('discount','b2b-commerce-pro');
             } else {
-                $label = wc_price($rule->price) . ' per unit';
+                $label = wc_price($rule->price) . ' ' . __('per unit', 'b2b-commerce-pro');
             }
             $output .= '<li>' . esc_html(ucfirst(str_replace('_', ' ', $rule->role))) . ': ' . $label . '</li>';
         }
@@ -694,7 +694,7 @@ class PricingManager {
         if (!$rule) return '';
         
         $output = '<div class="b2b-customer-pricing">';
-        $output .= '<h4>Your Special Price</h4>';
+        $output .= '<h4>' . __('Your Special Price', 'b2b-commerce-pro') . '</h4>';
         $output .= '<p class="special-price">' . wc_price($rule->price) . '</p>';
         $output .= '</div>';
         
