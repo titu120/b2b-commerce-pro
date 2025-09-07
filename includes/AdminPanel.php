@@ -219,7 +219,7 @@ class AdminPanel {
             
             echo '<a href="' . esc_url( admin_url('admin.php?page=' . $page) ) . '" class="b2b-nav-item ' . $is_active . '">';
             echo '<span class="dashicons ' . $icon . '"></span>';
-            echo '<span>' . $title . '</span>';
+            echo '<span>' . esc_html($title) . '</span>';
             echo '</a>';
         }
         echo '</div>';
@@ -227,7 +227,7 @@ class AdminPanel {
         
         // Main Content Area
         echo '<div class="b2b-admin-content">';
-        echo $content;
+        echo wp_kses_post($content);
         echo '</div>';
         
         echo '</div>';

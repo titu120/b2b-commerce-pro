@@ -628,8 +628,8 @@ add_action('wp_ajax_b2b_download_template', function() {
     }
     
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="b2b_' . $type . '_template.csv"');
-    echo $csv_data;
+    header('Content-Disposition: attachment; filename="b2b_' . esc_attr($type) . '_template.csv"');
+    echo wp_kses_post($csv_data);
     exit;
 });
 

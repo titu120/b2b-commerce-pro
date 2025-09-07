@@ -863,10 +863,10 @@ class AdvancedFeatures {
                 $user = get_userdata($quote['user_id']);
                 echo '<tr>';
                 echo '<td>' . ($product ? $product->get_name() : __('Product not found', 'b2b-commerce-pro')) . '</td>';
-                echo '<td>' . $quote['quantity'] . '</td>';
-                echo '<td>' . ($user ? $user->display_name : __('User not found', 'b2b-commerce-pro')) . '</td>';
-                echo '<td>' . ucfirst($quote['status']) . '</td>';
-                echo '<td>' . $quote['date'] . '</td>';
+                echo '<td>' . esc_html($quote['quantity']) . '</td>';
+                echo '<td>' . ($user ? esc_html($user->display_name) : __('User not found', 'b2b-commerce-pro')) . '</td>';
+                echo '<td>' . esc_html(ucfirst($quote['status'])) . '</td>';
+                echo '<td>' . esc_html($quote['date']) . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';

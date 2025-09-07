@@ -1654,17 +1654,41 @@ button.button.calculate-bulk-price {
 }
 
 .b2b-welcome-icon {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    width: 88px;
-    height: 88px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    width: 96px;
+    height: 96px;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.b2b-welcome-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.b2b-welcome-icon:hover::before {
+    opacity: 1;
+}
+
+.b2b-welcome-icon:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 
 .b2b-welcome-icon:hover {
@@ -1696,58 +1720,99 @@ button.button.calculate-bulk-price {
 
 .b2b-welcome-stats {
     display: flex;
-    gap: 32px;
-    margin-top: 20px;
+    gap: 24px;
+    margin-top: 24px;
 }
 
 .b2b-stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 16px 24px;
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    min-width: 120px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 20px 28px;
+    border-radius: 20px;
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    min-width: 140px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+
+.b2b-stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.b2b-stat-item:hover::before {
+    opacity: 1;
 }
 
 .b2b-stat-number {
-    font-size: 1.8em;
-    font-weight: 800;
-    color: #10B981;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 2.2em;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-bottom: 4px;
+    line-height: 1;
 }
 
 .b2b-stat-label {
-    font-size: 0.8em;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 4px;
+    letter-spacing: 1px;
+    margin-top: 2px;
+    text-align: center;
 }
 
 .b2b-role-badge {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 14px 28px;
-    border-radius: 32px;
-    font-weight: 600;
-    font-size: 0.9em;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 16px 32px;
+    border-radius: 35px;
+    font-weight: 800;
+    font-size: 0.8em;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    letter-spacing: 1.5px;
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
     position: relative;
     z-index: 2;
-    transition: all 0.3s ease;
+    transition: all 0.4s ease;
+    overflow: hidden;
+}
+
+.b2b-role-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 35px;
+}
+
+.b2b-role-badge:hover::before {
+    opacity: 1;
 }
 
 .b2b-role-badge:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
-    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.18);
 }
 
 /* Quick Actions Section - Premium Design */
@@ -1872,9 +1937,18 @@ button.button.calculate-bulk-price {
 }
 
 .b2b-action-card:hover .b2b-card-icon {
-    transform: scale(1.15) rotate(5deg);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.2) rotate(8deg);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.b2b-action-card:hover .b2b-card-content h4 {
+    transform: translateX(4px);
+}
+
+.b2b-action-card:hover .b2b-card-content p {
+    transform: translateX(4px);
+    opacity: 1;
 }
 
 .b2b-card-content {
@@ -1929,12 +2003,30 @@ button.button.calculate-bulk-price {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    backdrop-filter: blur(20px);
+}
+
+.b2b-section-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
 }
 
 .b2b-section-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px);
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.15);
     border-color: #3B82F6;
+}
+
+.b2b-section-card:hover::before {
+    opacity: 1;
 }
 
 .b2b-section-header {
@@ -2040,16 +2132,24 @@ button.button.calculate-bulk-price {
 
 .b2b-order-history-modern th {
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    padding: 20px 24px;
+    padding: 18px 24px;
     text-align: left;
-    font-weight: 700;
+    font-weight: 800;
     color: white;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.9em;
+    font-size: 0.85em;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     position: relative;
+    backdrop-filter: blur(20px);
 }
+
+/* Optimize column widths */
+.b2b-order-history-modern th:nth-child(1) { width: 15%; } /* ORDER */
+.b2b-order-history-modern th:nth-child(2) { width: 20%; } /* DATE */
+.b2b-order-history-modern th:nth-child(3) { width: 20%; } /* STATUS */
+.b2b-order-history-modern th:nth-child(4) { width: 20%; } /* TOTAL */
+.b2b-order-history-modern th:nth-child(5) { width: 25%; } /* ACTIONS */
 
 .b2b-order-history-modern th::after {
     content: '';
@@ -2067,11 +2167,11 @@ button.button.calculate-bulk-price {
 }
 
 .b2b-order-history-modern td {
-    padding: 20px 24px;
+    padding: 16px 20px;
     border-bottom: 1px solid #f1f5f9;
     color: #475569;
     font-weight: 500;
-    font-size: 0.95em;
+    font-size: 0.9em;
     transition: all 0.3s ease;
     vertical-align: middle;
 }
@@ -2112,16 +2212,18 @@ button.button.calculate-bulk-price {
 .b2b-status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: 25px;
-    font-size: 11px;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
+    white-space: nowrap;
+    min-width: fit-content;
 }
 
 .b2b-status-badge::before {
@@ -2251,67 +2353,101 @@ button.button.calculate-bulk-price {
     transform: translateY(-1px);
 }
 
-/* Account Form - Simplified */
+/* Account Form - Premium Design */
 .b2b-account-form-modern {
-    max-width: 500px;
+    max-width: 100%;
 }
 
 .b2b-form-row {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .b2b-form-group {
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .b2b-form-group label {
-    font-weight: 600;
-    color: #333333;
-    margin-bottom: 8px;
-    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 4px;
 }
 
 .b2b-form-group input {
-    padding: 12px 16px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    background: white;
-    color: #333333;
+    padding: 16px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 1em;
+    font-weight: 500;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    color: #1e293b;
 }
 
 .b2b-form-group input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 8px 32px rgba(59, 130, 246, 0.1);
+    transform: translateY(-3px);
+    background: #ffffff;
+}
+
+.b2b-form-group input:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 
 .b2b-form-group input::placeholder {
-    color: #999999;
+    color: #94a3b8;
+    font-weight: 400;
 }
 
 .b2b-form-actions {
-    margin-top: 30px;
+    margin-top: 32px;
 }
 
 .b2b-submit-btn {
-    background: #007bff;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: 16px;
+    font-size: 1.1em;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.b2b-submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
 }
 
 .b2b-submit-btn:hover {
-    background: #0056b3;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(59, 130, 246, 0.4);
+}
+
+.b2b-submit-btn:hover::before {
+    left: 100%;
 }
 
 /* Success Message - Simplified */

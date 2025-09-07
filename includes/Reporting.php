@@ -219,7 +219,7 @@ class Reporting {
         echo '<div class="performance-metrics">';
         echo '<div class="metric-item">';
         echo '<h3>Avg Response Time</h3>';
-        echo '<p>' . $avg_response_time . ' hours</p>';
+        echo '<p>' . esc_html($avg_response_time) . ' hours</p>';
         echo '</div>';
         
         echo '<div class="metric-item">';

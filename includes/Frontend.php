@@ -19,8 +19,28 @@ class Frontend {
     public function b2b_dashboard_shortcode() {
         if ( ! is_user_logged_in() ) return '<p>' . __('Please log in to access your B2B dashboard.', 'b2b-commerce-pro') . '</p>';
         $user = wp_get_current_user();
+        
+        // Get dynamic statistics
+        $user_id = get_current_user_id();
+        $total_orders = 0;
+        $total_spent = 0;
+        
+        if (class_exists('WooCommerce') && function_exists('wc_get_orders')) {
+            $orders = wc_get_orders([
+                'customer_id' => $user_id,
+                'limit' => -1,
+                'status' => ['completed', 'processing', 'on-hold']
+            ]);
+            
+            $total_orders = count($orders);
+            foreach ($orders as $order) {
+                $total_spent += $order->get_total();
+            }
+        }
+        
         ob_start();
         ?>
+        <div class="b2b-dashboard-modern">
             <!-- Header Section -->
             <div class="b2b-dashboard-header">
                 <div class="b2b-header-background">
@@ -37,11 +57,11 @@ class Frontend {
                         <p><?php _e('Welcome to your B2B Dashboard', 'b2b-commerce-pro'); ?></p>
                         <div class="b2b-welcome-stats">
                             <div class="b2b-stat-item">
-                                <span class="b2b-stat-number">12</span>
+                                <span class="b2b-stat-number"><?php echo esc_html($total_orders); ?></span>
                                 <span class="b2b-stat-label"><?php _e('Orders', 'b2b-commerce-pro'); ?></span>
                             </div>
                             <div class="b2b-stat-item">
-                                <span class="b2b-stat-number">৳2,450</span>
+                                <span class="b2b-stat-number"><?php echo esc_html(get_woocommerce_currency_symbol() . number_format($total_spent, 2)); ?></span>
                                 <span class="b2b-stat-label"><?php _e('Total Spent', 'b2b-commerce-pro'); ?></span>
                             </div>
                         </div>
@@ -149,11 +169,11 @@ class Frontend {
                 <div class="b2b-section-card">
                     <div class="b2b-section-header">
                         <div class="b2b-section-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="#3B82F6"/>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3ZM19 19H5V5H19V19ZM17 13H7V11H17V13ZM13 17H7V15H13V17ZM7 7V9H17V7H7Z" fill="white"/>
                             </svg>
                         </div>
-                        <h3><?php _e('Recent Orders', 'b2b-commerce-pro'); ?></h3>
+                        <h3><?php _e('RECENT ORDERS', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
                         <?php echo do_shortcode('[b2b_order_history]'); ?>
@@ -164,11 +184,11 @@ class Frontend {
                 <div class="b2b-section-card">
                     <div class="b2b-section-header">
                         <div class="b2b-section-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#10B981"/>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="white"/>
                             </svg>
                         </div>
-                        <h3><?php _e('Account Information', 'b2b-commerce-pro'); ?></h3>
+                        <h3><?php _e('ACCOUNT INFORMATION', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
                         <?php echo do_shortcode('[b2b_account]'); ?>
@@ -179,11 +199,11 @@ class Frontend {
                 <div class="b2b-section-card">
                     <div class="b2b-section-header">
                         <div class="b2b-section-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.27 2 8.5C2 5.41 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.08C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.41 22 8.5C22 12.27 18.6 15.36 13.45 20.03L12 21.35Z" fill="#EF4444"/>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.27 2 8.5C2 5.41 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.08C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.41 22 8.5C22 12.27 18.6 15.36 13.45 20.03L12 21.35Z" fill="white"/>
                             </svg>
                         </div>
-                        <h3><?php _e('Wishlist', 'b2b-commerce-pro'); ?></h3>
+                        <h3><?php _e('WISHLIST', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
                         <?php echo do_shortcode('[b2b_wishlist]'); ?>
@@ -229,30 +249,30 @@ class Frontend {
                 $status_class = 'b2b-status-' . $status;
                 $status_icon = '';
                 
-                // Add status icons
+                // Add status icons with SVG
                 switch($status) {
                     case 'completed':
-                        $status_icon = '✅';
+                        $status_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="white"/></svg>';
                         break;
                     case 'processing':
-                        $status_icon = '⏳';
+                        $status_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="white"/></svg>';
                         break;
                     case 'pending':
-                        $status_icon = '⏸️';
+                        $status_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="white"/></svg>';
                         break;
                     case 'cancelled':
-                        $status_icon = '❌';
+                        $status_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="white"/></svg>';
                         break;
                     default:
-                        $status_icon = '📋';
+                        $status_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3ZM19 19H5V5H19V19ZM17 13H7V11H17V13ZM13 17H7V15H13V17ZM7 7V9H17V7H7Z" fill="white"/></svg>';
                 }
                 
                 echo '<tr>';
-                echo '<td><strong>#' . $order->get_id() . '</strong></td>';
+                echo '<td><strong>#' . esc_html($order->get_id()) . '</strong></td>';
                 echo '<td>' . esc_html( $order->get_date_created()->date( 'M j, Y' ) ) . '</td>';
                 echo '<td><span class="b2b-status-badge ' . esc_attr($status_class) . '">' . $status_icon . ' ' . esc_html( wc_get_order_status_name( $status ) ) . '</span></td>';
                 echo '<td><strong>' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</strong></td>';
-                echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank" class="b2b-invoice-link">📄 ' . __('Invoice', 'b2b-commerce-pro') . '</a></td>';
+                echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank" class="b2b-invoice-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.89 2 4 2.89 4 4V20C4 21.11 4.89 22 6 22H18C19.11 22 20 21.11 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="white"/></svg> ' . __('Invoice', 'b2b-commerce-pro') . '</a></td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';
@@ -367,7 +387,7 @@ class Frontend {
             <p><?php _e('Register for a B2B account to access wholesale pricing and bulk ordering.', 'b2b-commerce-pro'); ?></p>
             
             <?php if ($message): ?>
-                <div class="b2b-message"><?php echo $message; ?></div>
+                <div class="b2b-message"><?php echo esc_html($message); ?></div>
             <?php endif; ?>
             
             <form method="post" action="" class="b2b-registration-form">

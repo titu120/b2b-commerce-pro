@@ -487,7 +487,7 @@ class UserManager {
             echo '<tr>';
             echo '<td>' . esc_html($group->name) . '</td>';
             echo '<td>' . esc_html($group->description) . '</td>';
-            echo '<td>' . $member_count . ' ' . __('members', 'b2b-commerce-pro') . '</td>';
+            echo '<td>' . esc_html($member_count) . ' ' . __('members', 'b2b-commerce-pro') . '</td>';
             echo '<td>';
             echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=edit&group_id=' . $group->term_id) . '" class="button">' . __('Edit', 'b2b-commerce-pro') . '</a> ';
             echo '<a href="' . admin_url('admin.php?page=b2b-customer-groups&action=delete&group_id=' . $group->term_id) . '" class="button" onclick="return confirm(\'' . __('Delete this group?', 'b2b-commerce-pro') . '\')">' . __('Delete', 'b2b-commerce-pro') . '</a>';

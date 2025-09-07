@@ -749,9 +749,9 @@ class PricingManager {
 
     // Render pricing-related widgets on product page
     public function render_pricing_widgets() {
-        echo $this->tiered_pricing();
-        echo $this->role_based_pricing();
-        echo $this->min_max_quantity();
+        echo wp_kses_post($this->tiered_pricing());
+        echo wp_kses_post($this->role_based_pricing());
+        echo wp_kses_post($this->min_max_quantity());
     }
 
     public function min_max_quantity() {
