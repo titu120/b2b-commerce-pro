@@ -70,13 +70,13 @@ class PricingManager {
             dbDelta( $sql );
         } else {
     
-            error_log("B2B Commerce Pro: Using fallback table creation");
+            error_log(__('B2B Commerce Pro: Using fallback table creation', 'b2b-commerce-pro'));
         }
         
 
         $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
         if ($exists !== $table) {
-            error_log("B2B Commerce Pro: Failed to create pricing table: $table");
+            error_log(sprintf(__('B2B Commerce Pro: Failed to create pricing table: %s', 'b2b-commerce-pro'), $table));
             return false;
         }
         
@@ -92,10 +92,10 @@ class PricingManager {
             $result = self::create_pricing_table();
             if ( !$result ) {
                 update_option( 'b2b_pricing_table_error', 1 );
-                error_log("B2B Commerce Pro: Failed to create pricing table during self-healing");
+                error_log(__('B2B Commerce Pro: Failed to create pricing table during self-healing', 'b2b-commerce-pro'));
             } else {
                 delete_option( 'b2b_pricing_table_error' );
-                error_log("B2B Commerce Pro: Successfully created pricing table during self-healing");
+                error_log(__('B2B Commerce Pro: Successfully created pricing table during self-healing', 'b2b-commerce-pro'));
             }
         } else {
             delete_option( 'b2b_pricing_table_error' );
@@ -110,13 +110,13 @@ class PricingManager {
         
 
         if ($exists != $table) {
-            error_log("B2B Pricing: Table does not exist");
+            error_log(__('B2B Pricing: Table does not exist', 'b2b-commerce-pro'));
             return false;
         }
         
         
         $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $table));
-        error_log("B2B Pricing: Table exists with $count rules");
+        error_log(sprintf(__('B2B Pricing: Table exists with %d rules', 'b2b-commerce-pro'), $count));
         return true;
     }
 

@@ -289,7 +289,7 @@ class UserManager {
         
         update_user_meta( $user_id, 'b2b_approval_status', 'approved' );
         // Send approval email
-        wp_mail( get_userdata( $user_id )->user_email, 'Your B2B Account Approved', 'Congratulations! Your account has been approved.' );
+        wp_mail( get_userdata( $user_id )->user_email, __('Your B2B Account Approved', 'b2b-commerce-pro'), __('Congratulations! Your account has been approved.', 'b2b-commerce-pro') );
         wp_redirect( admin_url( 'admin.php?page=b2b-users&approved=1' ) );
         exit;
     }
@@ -309,7 +309,7 @@ class UserManager {
         
         update_user_meta( $user_id, 'b2b_approval_status', 'rejected' );
         // Send rejection email
-        wp_mail( get_userdata( $user_id )->user_email, 'Your B2B Account Rejected', 'Sorry, your account has been rejected.' );
+        wp_mail( get_userdata( $user_id )->user_email, __('Your B2B Account Rejected', 'b2b-commerce-pro'), __('Sorry, your account has been rejected.', 'b2b-commerce-pro') );
         wp_redirect( admin_url( 'admin.php?page=b2b-users&rejected=1' ) );
         exit;
     }

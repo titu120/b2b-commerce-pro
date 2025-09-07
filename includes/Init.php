@@ -39,7 +39,7 @@ class Init {
         // Check if WooCommerce is active
         if (!class_exists('WooCommerce')) {
             add_action('admin_notices', function() {
-                echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro:</strong> WooCommerce is required for this plugin to work properly. Please install and activate WooCommerce.</p></div>';
+                echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro:', 'b2b-commerce-pro') . '</strong> ' . __('WooCommerce is required for this plugin to work properly. Please install and activate WooCommerce.', 'b2b-commerce-pro') . '</p></div>';
             });
             return;
         }
@@ -79,7 +79,7 @@ class Init {
         } catch (Exception $e) {
             error_log('B2B Commerce Pro Error: ' . $e->getMessage());
             add_action('admin_notices', function() use ($e) {
-                echo '<div class="notice notice-error"><p><strong>B2B Commerce Pro Error:</strong> ' . esc_html($e->getMessage()) . '</p></div>';
+                echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro Error:', 'b2b-commerce-pro') . '</strong> ' . esc_html($e->getMessage()) . '</p></div>';
             });
         }
     }

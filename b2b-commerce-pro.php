@@ -42,12 +42,13 @@ function autoload_b2b_commerce_pro() {
 // Register the autoloader
 autoload_b2b_commerce_pro();
 
-// Bootstrap the plugin and load text domain
-add_action( 'plugins_loaded', function() {
-    // i18n support
+// Load text domain early
+add_action( 'init', function() {
     load_plugin_textdomain( 'b2b-commerce-pro', false, dirname( B2B_COMMERCE_PRO_BASENAME ) . '/languages' );
-    
+});
 
+// Bootstrap the plugin
+add_action( 'plugins_loaded', function() {
     if ( !class_exists( 'WooCommerce' ) ) {
         add_action( 'admin_notices', function() {
             echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro:', 'b2b-commerce-pro') . '</strong> ' . __('WooCommerce is required for this plugin to work.', 'b2b-commerce-pro') . '</p></div>';

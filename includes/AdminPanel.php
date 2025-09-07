@@ -652,12 +652,12 @@ class AdminPanel {
         <thead>
             <tr>
                 <th style="width: 30px;"><input type="checkbox" id="select-all-users"></th>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Company</th>
-                <th>Approval Status</th>
-                <th>Actions</th>
+                <th>' . __('User', 'b2b-commerce-pro') . '</th>
+                <th>' . __('Email', 'b2b-commerce-pro') . '</th>
+                <th>' . __('Role', 'b2b-commerce-pro') . '</th>
+                <th>' . __('Company', 'b2b-commerce-pro') . '</th>
+                <th>' . __('Approval Status', 'b2b-commerce-pro') . '</th>
+                <th>' . __('Actions', 'b2b-commerce-pro') . '</th>
             </tr>
         </thead>
         <tbody>';
@@ -673,13 +673,13 @@ class AdminPanel {
                 <td>' . esc_html( get_user_meta( $user->ID, 'company_name', true ) ) . '</td>
                 <td><span class="b2b-badge b2b-badge-' . $badge_class . '">' . esc_html( $approval_status ) . '</span></td>
                 <td>
-                    <a href="' . admin_url('user-edit.php?user_id=' . $user->ID) . '" class="b2b-admin-btn" style="padding: 6px 12px; font-size: 0.9em;"><span class="icon dashicons dashicons-edit"></span>Edit</a>';
+                    <a href="' . admin_url('user-edit.php?user_id=' . $user->ID) . '" class="b2b-admin-btn" style="padding: 6px 12px; font-size: 0.9em;"><span class="icon dashicons dashicons-edit"></span>' . __('Edit', 'b2b-commerce-pro') . '</a>';
             
             // Add approval/rejection buttons for pending users
             if ($approval_status === 'pending') {
                 $content .= '
-                    <a href="' . admin_url('admin-post.php?action=b2b_approve_user&user_id=' . $user->ID . '&_wpnonce=' . wp_create_nonce('b2b_approve_user_' . $user->ID)) . '" class="b2b-admin-btn b2b-admin-btn-success" style="padding: 6px 12px; font-size: 0.9em; margin-left: 5px;"><span class="icon dashicons dashicons-yes-alt"></span>Approve</a>
-                    <a href="' . admin_url('admin-post.php?action=b2b_reject_user&user_id=' . $user->ID . '&_wpnonce=' . wp_create_nonce('b2b_reject_user_' . $user->ID)) . '" class="b2b-admin-btn b2b-admin-btn-danger" style="padding: 6px 12px; font-size: 0.9em; margin-left: 5px;"><span class="icon dashicons dashicons-no-alt"></span>Reject</a>';
+                    <a href="' . admin_url('admin-post.php?action=b2b_approve_user&user_id=' . $user->ID . '&_wpnonce=' . wp_create_nonce('b2b_approve_user_' . $user->ID)) . '" class="b2b-admin-btn b2b-admin-btn-success" style="padding: 6px 12px; font-size: 0.9em; margin-left: 5px;"><span class="icon dashicons dashicons-yes-alt"></span>' . __('Approve', 'b2b-commerce-pro') . '</a>
+                    <a href="' . admin_url('admin-post.php?action=b2b_reject_user&user_id=' . $user->ID . '&_wpnonce=' . wp_create_nonce('b2b_reject_user_' . $user->ID)) . '" class="b2b-admin-btn b2b-admin-btn-danger" style="padding: 6px 12px; font-size: 0.9em; margin-left: 5px;"><span class="icon dashicons dashicons-no-alt"></span>' . __('Reject', 'b2b-commerce-pro') . '</a>';
             }
             
             $content .= '
@@ -1828,7 +1828,7 @@ Best regards,
         foreach ($quotes as $index => $quote) {
             if (!isset($quote['user_email']) && isset($quote['user_id'])) {
                 $user = get_userdata($quote['user_id']);
-                $quotes[$index]['user_email'] = $user ? $user->user_email : 'User not found';
+                $quotes[$index]['user_email'] = $user ? $user->user_email : __('User not found', 'b2b-commerce-pro');
                 $quotes_updated = true;
             }
         }
@@ -2347,7 +2347,7 @@ Best regards,
         foreach ($quotes as $index => $quote) {
             if (!isset($quote['user_email']) && isset($quote['user_id'])) {
                 $user = get_userdata($quote['user_id']);
-                $quotes[$index]['user_email'] = $user ? $user->user_email : 'User not found';
+                $quotes[$index]['user_email'] = $user ? $user->user_email : __('User not found', 'b2b-commerce-pro');
                 $migrated_count++;
             }
         }
@@ -2594,22 +2594,22 @@ Best regards,
 
 <!-- Quick Actions -->
 <div class="b2b-admin-card">
-    <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-admin-tools"></span>Quick Actions</div>
+    <div class="b2b-admin-card-title"><span class="icon dashicons dashicons-admin-tools"></span>' . __('Quick Actions', 'b2b-commerce-pro') . '</div>
     <div class="b2b-quick-actions">
         <a href="' . admin_url('admin.php?page=b2b-add-user') . '" class="b2b-admin-btn">
-            <span class="icon dashicons dashicons-plus"></span>Add B2B User
+            <span class="icon dashicons dashicons-plus"></span>' . __('Add B2B User', 'b2b-commerce-pro') . '
         </a>
         <a href="' . admin_url('admin.php?page=b2b-pricing') . '" class="b2b-admin-btn">
-            <span class="icon dashicons dashicons-tag"></span>Manage Pricing
+            <span class="icon dashicons dashicons-tag"></span>' . __('Manage Pricing', 'b2b-commerce-pro') . '
         </a>
         <a href="' . admin_url('admin.php?page=b2b-orders') . '" class="b2b-admin-btn">
-            <span class="icon dashicons dashicons-cart"></span>View Orders
+            <span class="icon dashicons dashicons-cart"></span>' . __('View Orders', 'b2b-commerce-pro') . '
         </a>
         <a href="' . admin_url('admin.php?page=b2b-analytics') . '" class="b2b-admin-btn">
-            <span class="icon dashicons dashicons-chart-line"></span>Analytics
+            <span class="icon dashicons dashicons-chart-line"></span>' . __('Analytics', 'b2b-commerce-pro') . '
         </a>
         <button onclick="importDemoData()" class="b2b-admin-btn b2b-admin-btn-success">
-            <span class="icon dashicons dashicons-download"></span>Import Demo Data
+            <span class="icon dashicons dashicons-download"></span>' . __('Import Demo Data', 'b2b-commerce-pro') . '
         </button>
     </div>
     

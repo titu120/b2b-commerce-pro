@@ -91,7 +91,7 @@ class AdvancedFeatures {
             $remaining = $limit - $current_balance;
             wc_add_notice(
                 sprintf(
-                    'Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.',
+                    __('Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.', 'b2b-commerce-pro'),
                     wc_price($limit),
                     wc_price($current_balance),
                     wc_price($remaining)
@@ -881,7 +881,7 @@ class AdvancedFeatures {
         global $post;
         
         echo '<div class="options_group b2b-pricing-section">';
-        echo '<h4 style="margin: 0 0 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #0073aa;">B2B Pricing</h4>';
+        echo '<h4 style="margin: 0 0 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #0073aa;">' . __('B2B Pricing', 'b2b-commerce-pro') . '</h4>';
         
         // Get existing B2B pricing rules for this product
         global $wpdb;
@@ -904,9 +904,9 @@ class AdvancedFeatures {
             $regular_price = get_post_meta($post->ID, '_b2b_' . $role . '_regular_price', true);
             woocommerce_wp_text_input([
                 'id' => '_b2b_' . $role . '_regular_price',
-                'label' => 'Regular Price (' . get_woocommerce_currency_symbol() . ')',
+                'label' => sprintf(__('Regular Price (%s)', 'b2b-commerce-pro'), get_woocommerce_currency_symbol()),
                 'desc_tip' => true,
-                'description' => 'Regular price for ' . $role_display_name . ' customers',
+                'description' => sprintf(__('Regular price for %s customers', 'b2b-commerce-pro'), $role_display_name),
                 'data_type' => 'price',
                 'value' => $regular_price
             ]);
@@ -915,16 +915,16 @@ class AdvancedFeatures {
             $sale_price = get_post_meta($post->ID, '_b2b_' . $role . '_sale_price', true);
             woocommerce_wp_text_input([
                 'id' => '_b2b_' . $role . '_sale_price',
-                'label' => 'Sale Price (' . get_woocommerce_currency_symbol() . ')',
+                'label' => sprintf(__('Sale Price (%s)', 'b2b-commerce-pro'), get_woocommerce_currency_symbol()),
                 'desc_tip' => true,
-                'description' => 'Sale price for ' . $role_display_name . ' customers',
+                'description' => sprintf(__('Sale price for %s customers', 'b2b-commerce-pro'), $role_display_name),
                 'data_type' => 'price',
                 'value' => $sale_price
             ]);
             
             // Tiered pricing for this role
             echo '<div class="b2b-tiered-pricing" data-role="' . esc_attr($role) . '">';
-            echo '<h6 style="margin: 10px 0 5px 0;">Tiered Pricing</h6>';
+            echo '<h6 style="margin: 10px 0 5px 0;">' . __('Tiered Pricing', 'b2b-commerce-pro') . '</h6>';
             
             // Get existing tiers for this role
             $role_tiers = array_filter($existing_rules, function($rule) use ($role) {
@@ -934,8 +934,8 @@ class AdvancedFeatures {
             echo '<div class="b2b-tiers-container" data-role="' . esc_attr($role) . '">';
             if (!empty($role_tiers)) {
                 foreach ($role_tiers as $tier) {
-                    $placeholder = ($tier->type === 'percentage') ? 'Enter percentage (e.g., 5.55 for 5.55%)' : 'Enter price (e.g., 25.00)';
-                    $title = ($tier->type === 'percentage') ? 'Enter discount percentage (e.g., 5.55 for 5.55% off)' : 'Enter fixed price (e.g., 25.00)';
+                    $placeholder = ($tier->type === 'percentage') ? __('Enter percentage (e.g., 5.55 for 5.55%)', 'b2b-commerce-pro') : __('Enter price (e.g., 25.00)', 'b2b-commerce-pro');
+                    $title = ($tier->type === 'percentage') ? __('Enter discount percentage (e.g., 5.55 for 5.55% off)', 'b2b-commerce-pro') : __('Enter fixed price (e.g., 25.00)', 'b2b-commerce-pro');
                     
                     // Format the display value based on type
                     $display_value = '';
@@ -950,16 +950,16 @@ class AdvancedFeatures {
                     }
                     
                     echo '<div class="b2b-tier-row">';
-                    echo '<input type="number" name="b2b_tier_min_qty[' . esc_attr($role) . '][]" value="' . esc_attr($tier->min_qty) . '" placeholder="Min Qty" min="1" style="width: 80px;" title="Minimum quantity for this tier">';
+                    echo '<input type="number" name="b2b_tier_min_qty[' . esc_attr($role) . '][]" value="' . esc_attr($tier->min_qty) . '" placeholder="' . esc_attr(__('Min Qty', 'b2b-commerce-pro')) . '" min="1" style="width: 80px;" title="' . esc_attr(__('Minimum quantity for this tier', 'b2b-commerce-pro')) . '">';
                     echo '<input type="text" name="b2b_tier_price[' . esc_attr($role) . '][]" value="' . esc_attr($display_value) . '" placeholder="' . esc_attr($placeholder) . '" class="wc_input_price tier-price-input' . ($tier->type === 'percentage' ? ' percentage-input' : '') . '" style="width: 100px;" title="' . esc_attr($title) . '">';
                     if ($tier->type === 'percentage') {
                         echo '<span class="percentage-indicator">%</span>';
                     }
-                    echo '<select name="b2b_tier_type[' . esc_attr($role) . '][]" class="tier-type-select" style="width: 100px;" title="Choose pricing type">';
-                    echo '<option value="fixed"' . selected($tier->type, 'fixed', false) . '>Fixed Price</option>';
-                    echo '<option value="percentage"' . selected($tier->type, 'percentage', false) . '>Percentage</option>';
+                    echo '<select name="b2b_tier_type[' . esc_attr($role) . '][]" class="tier-type-select" style="width: 100px;" title="' . esc_attr(__('Choose pricing type', 'b2b-commerce-pro')) . '">';
+                    echo '<option value="fixed"' . selected($tier->type, 'fixed', false) . '>' . __('Fixed Price', 'b2b-commerce-pro') . '</option>';
+                    echo '<option value="percentage"' . selected($tier->type, 'percentage', false) . '>' . __('Percentage', 'b2b-commerce-pro') . '</option>';
                     echo '</select>';
-                    echo '<button type="button" class="button remove-tier" style="margin-left: 5px;" title="Remove this tier">Remove</button>';
+                    echo '<button type="button" class="button remove-tier" style="margin-left: 5px;" title="' . esc_attr(__('Remove this tier', 'b2b-commerce-pro')) . '">' . __('Remove', 'b2b-commerce-pro') . '</button>';
                     echo '</div>';
                 }
             }
