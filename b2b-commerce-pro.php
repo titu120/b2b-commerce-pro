@@ -120,7 +120,7 @@ function create_b2b_pages() {
     // B2B Registration Page
     if (!in_array('b2b-registration', $existing_page_types)) {
         $registration_page = wp_insert_post([
-            'post_title' => 'B2B Registration',
+            'post_title' => __('B2B Registration', 'b2b-commerce-pro'),
             'post_name' => 'b2b-registration',
             'post_content' => '[b2b_registration]',
             'post_status' => 'publish',
@@ -139,7 +139,7 @@ function create_b2b_pages() {
     // B2B Dashboard Page
     if (!in_array('b2b-dashboard', $existing_page_types)) {
         $dashboard_page = wp_insert_post([
-            'post_title' => 'B2B Dashboard',
+            'post_title' => __('B2B Dashboard', 'b2b-commerce-pro'),
             'post_name' => 'b2b-dashboard',
             'post_content' => '[b2b_dashboard]',
             'post_status' => 'publish',
@@ -231,7 +231,7 @@ function add_b2b_registration_to_menu() {
         
         if (!$registration_exists) {
             wp_update_nav_menu_item($primary_menu_id, 0, [
-                'menu-item-title' => 'B2B Registration',
+                'menu-item-title' => __('B2B Registration', 'b2b-commerce-pro'),
                 'menu-item-object-id' => $registration_page_id,
                 'menu-item-object' => 'page',
                 'menu-item-status' => 'publish',
@@ -291,8 +291,8 @@ add_action('wp_ajax_b2b_approve_user', function() {
         $user = get_userdata($user_id);
         $templates = get_option('b2b_email_templates', []);
         
-        $subject = $templates['user_approval_subject'] ?? 'Your B2B Account Approved';
-        $message = $templates['user_approval_message'] ?? 'Congratulations! Your B2B account has been approved. You can now log in and access wholesale pricing.';
+        $subject = $templates['user_approval_subject'] ?? __('Your B2B Account Approved', 'b2b-commerce-pro');
+        $message = $templates['user_approval_message'] ?? __('Congratulations! Your B2B account has been approved. You can now log in and access wholesale pricing.', 'b2b-commerce-pro');
         
         // Replace variables
         $subject = str_replace(['{user_name}', '{login_url}', '{site_name}'], 
@@ -307,7 +307,7 @@ add_action('wp_ajax_b2b_approve_user', function() {
         wp_send_json_success(__('User approved successfully', 'b2b-commerce-pro'));
         
     } catch (Exception $e) {
-        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
+        wp_send_json_error('Error: ' . $e->getMessage());
     }
 });
 
@@ -343,8 +343,8 @@ add_action('wp_ajax_b2b_reject_user', function() {
         $user = get_userdata($user_id);
         $templates = get_option('b2b_email_templates', []);
         
-        $subject = $templates['user_rejection_subject'] ?? 'B2B Account Application Status';
-        $message = $templates['user_rejection_message'] ?? 'We regret to inform you that your B2B account application has been rejected. Please contact us for more information.';
+        $subject = $templates['user_rejection_subject'] ?? __('B2B Account Application Status', 'b2b-commerce-pro');
+        $message = $templates['user_rejection_message'] ?? __('We regret to inform you that your B2B account application has been rejected. Please contact us for more information.', 'b2b-commerce-pro');
         
         // Replace variables
         $subject = str_replace(['{user_name}', '{site_name}'], 
@@ -356,10 +356,10 @@ add_action('wp_ajax_b2b_reject_user', function() {
         
         wp_mail($user->user_email, $subject, $message, $headers);
         
-        wp_send_json_success('User rejected successfully');
+        wp_send_json_success(__('User rejected successfully', 'b2b-commerce-pro'));
         
     } catch (Exception $e) {
-        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
+        wp_send_json_error('Error: ' . $e->getMessage());
     }
 });
 
@@ -382,7 +382,7 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         $required_fields = ['role', 'type', 'price', 'min_qty'];
         foreach ($required_fields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {
-                wp_send_json_error(__('Missing required field: ', 'b2b-commerce-pro') . $field);
+                wp_send_json_error(sprintf(__('Missing required field: %s', 'b2b-commerce-pro'), $field));
                 return;
             }
         }
@@ -423,13 +423,13 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         $result = $wpdb->insert($table, $data);
         
         if ($result === false) {
-            wp_send_json_error(__('Database error: ', 'b2b-commerce-pro') . $wpdb->last_error);
+            wp_send_json_error(sprintf(__('Database error: %s', 'b2b-commerce-pro'), $wpdb->last_error));
         } else {
-            wp_send_json_success('Pricing rule saved successfully');
+            wp_send_json_success(__('Pricing rule saved successfully', 'b2b-commerce-pro'));
         }
         
     } catch (Exception $e) {
-        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
+        wp_send_json_error('Error: ' . $e->getMessage());
     }
 });
 
@@ -458,13 +458,13 @@ add_action('wp_ajax_b2b_delete_pricing_rule', function() {
         $result = $wpdb->delete($table, array('id' => $rule_id), array('%d'));
         
         if ($result === false) {
-            wp_send_json_error(__('Database error: ', 'b2b-commerce-pro') . $wpdb->last_error);
+            wp_send_json_error(sprintf(__('Database error: %s', 'b2b-commerce-pro'), $wpdb->last_error));
         } else {
-            wp_send_json_success('Pricing rule deleted successfully');
+            wp_send_json_success(__('Pricing rule deleted successfully', 'b2b-commerce-pro'));
         }
         
     } catch (Exception $e) {
-        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
+        wp_send_json_error('Error: ' . $e->getMessage());
     }
 });
 
@@ -483,10 +483,10 @@ add_action('wp_ajax_b2b_export_data', function() {
     switch ($type) {
         case 'users':
             $users = get_users(['role__in' => ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer']]);
-            $csv_data = "User,Email,Role,Company,Approval Status\n";
+            $csv_data = __("User,Email,Role,Company,Approval Status", 'b2b-commerce-pro') . "\n";
             
             if (empty($users)) {
-                $csv_data .= "No B2B users found\n";
+                $csv_data .= __("No B2B users found", 'b2b-commerce-pro') . "\n";
             } else {
                 foreach ($users as $user) {
                     $csv_data .= sprintf(
@@ -505,10 +505,10 @@ add_action('wp_ajax_b2b_export_data', function() {
             global $wpdb;
             $table = $wpdb->prefix . 'b2b_pricing_rules';
             $rules = $wpdb->get_results("SELECT * FROM $table");
-            $csv_data = "Customer Type,Pricing Type,Value,Min Quantity\n";
+            $csv_data = __("Customer Type,Pricing Type,Value,Min Quantity", 'b2b-commerce-pro') . "\n";
             
             if (empty($rules)) {
-                $csv_data .= "No pricing rules found\n";
+                $csv_data .= __("No pricing rules found", 'b2b-commerce-pro') . "\n";
             } else {
                 foreach ($rules as $rule) {
                     $csv_data .= sprintf(
@@ -524,15 +524,15 @@ add_action('wp_ajax_b2b_export_data', function() {
             
         case 'orders':
             if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
-                wp_send_json_error(__('WooCommerce is required for order export', 'b2b-commerce-pro'));
+                wp_send_json_error('WooCommerce is required for order export');
                 return;
             }
             
             $orders = wc_get_orders(['limit' => -1]);
-            $csv_data = "Order ID,Date,Status,Customer,Total,Payment Method\n";
+            $csv_data = __("Order ID,Date,Status,Customer,Total,Payment Method", 'b2b-commerce-pro') . "\n";
             
             if (empty($orders)) {
-                $csv_data .= "No orders found\n";
+                $csv_data .= __("No orders found", 'b2b-commerce-pro') . "\n";
             } else {
                 foreach ($orders as $order) {
                     $customer = $order->get_customer_id() ? get_userdata($order->get_customer_id()) : null;
@@ -613,12 +613,12 @@ add_action('wp_ajax_b2b_download_template', function() {
     
     switch ($type) {
         case 'users':
-            $csv_data = "Username,Email,First Name,Last Name,Company Name,Business Type,Phone,Role,Approval Status\n";
+            $csv_data = __("Username,Email,First Name,Last Name,Company Name,Business Type,Phone,Role,Approval Status", 'b2b-commerce-pro') . "\n";
             $csv_data .= "john_doe,john@example.com,John,Doe,ABC Company,Retail,555-0123,wholesale_customer,approved\n";
             break;
             
         case 'pricing':
-            $csv_data = "Role,Type,Price,Min Quantity,Max Quantity,Product ID\n";
+            $csv_data = __("Role,Type,Price,Min Quantity,Max Quantity,Product ID", 'b2b-commerce-pro') . "\n";
             $csv_data .= "wholesale_customer,percentage,10,10,0,0\n";
             $csv_data .= "distributor,fixed,5,50,0,0\n";
             break;
@@ -628,8 +628,8 @@ add_action('wp_ajax_b2b_download_template', function() {
     }
     
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="b2b_' . esc_attr($type) . '_template.csv"');
-    echo wp_kses_post($csv_data);
+    header('Content-Disposition: attachment; filename="b2b_' . $type . '_template.csv"');
+    echo $csv_data;
     exit;
 });
 
@@ -655,7 +655,7 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
                 'first_name' => 'John',
                 'last_name' => 'Wholesale',
                 'role' => 'wholesale_customer',
-                'company' => 'Demo Wholesale Co.',
+                'company' => __('Demo Wholesale Co.', 'b2b-commerce-pro'),
                 'phone' => '555-0101'
             ],
             [
@@ -665,7 +665,7 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
                 'first_name' => 'Jane',
                 'last_name' => 'Distributor',
                 'role' => 'distributor',
-                'company' => 'Demo Distributor Inc.',
+                'company' => __('Demo Distributor Inc.', 'b2b-commerce-pro'),
                 'phone' => '555-0102'
             ],
             [
@@ -675,7 +675,7 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
                 'first_name' => 'Mike',
                 'last_name' => 'Retailer',
                 'role' => 'retailer',
-                'company' => 'Demo Retail Store',
+                'company' => __('Demo Retail Store', 'b2b-commerce-pro'),
                 'phone' => '555-0103'
             ]
         ];
@@ -739,10 +739,10 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
             }
         }
         
-        wp_send_json_success('Demo data imported successfully! Created ' . count($demo_users) . ' users and ' . count($demo_rules) . ' pricing rules.');
+        wp_send_json_success(sprintf(__('Demo data imported successfully! Created %d users and %d pricing rules.', 'b2b-commerce-pro'), count($demo_users), count($demo_rules)));
         
     } catch (Exception $e) {
-        wp_send_json_error(__('Error importing demo data: ', 'b2b-commerce-pro') . $e->getMessage());
+        wp_send_json_error(sprintf(__('Error importing demo data: %s', 'b2b-commerce-pro'), $e->getMessage()));
     }
 });
 
@@ -854,7 +854,7 @@ add_action('wp_ajax_b2b_delete_quote_ajax', function() {
     $result = update_option('b2b_quote_requests', $quotes);
     
     if ($result) {
-        wp_send_json_success('Quote deleted successfully');
+        wp_send_json_success(__('Quote deleted successfully', 'b2b-commerce-pro'));
     } else {
         wp_send_json_error(__('Failed to delete quote', 'b2b-commerce-pro'));
     }
@@ -869,34 +869,34 @@ add_action('admin_notices', function() {
         $account_page_id = get_option('b2b_account_page_id');
         
         echo '<div class="notice notice-success is-dismissible">';
-        echo '<h3>🎉 B2B Commerce Pro - Pages Created Successfully!</h3>';
-        echo '<p>The following B2B pages have been automatically created:</p>';
+        echo '<h3>🎉 ' . esc_html__('B2B Commerce Pro - Pages Created Successfully!', 'b2b-commerce-pro') . '</h3>';
+        echo '<p>' . esc_html__('The following B2B pages have been automatically created:', 'b2b-commerce-pro') . '</p>';
         echo '<ul style="list-style: disc; margin-left: 20px;">';
         
         if ($registration_page_id) {
-            echo '<li><strong>B2B Registration:</strong> <a href="' . get_edit_post_link($registration_page_id) . '">Edit Page</a> | <a href="' . get_permalink($registration_page_id) . '" target="_blank">View Page</a></li>';
+            echo '<li><strong>' . esc_html__('B2B Registration:', 'b2b-commerce-pro') . '</strong> <a href="' . esc_url(get_edit_post_link($registration_page_id)) . '">' . esc_html__('Edit Page', 'b2b-commerce-pro') . '</a> | <a href="' . esc_url(get_permalink($registration_page_id)) . '" target="_blank">' . esc_html__('View Page', 'b2b-commerce-pro') . '</a></li>';
         }
         
         if ($dashboard_page_id) {
-            echo '<li><strong>B2B Dashboard:</strong> <a href="' . get_edit_post_link($dashboard_page_id) . '">Edit Page</a> | <a href="' . get_permalink($dashboard_page_id) . '" target="_blank">View Page</a></li>';
+            echo '<li><strong>' . esc_html__('B2B Dashboard:', 'b2b-commerce-pro') . '</strong> <a href="' . esc_url(get_edit_post_link($dashboard_page_id)) . '">' . esc_html__('Edit Page', 'b2b-commerce-pro') . '</a> | <a href="' . esc_url(get_permalink($dashboard_page_id)) . '" target="_blank">' . esc_html__('View Page', 'b2b-commerce-pro') . '</a></li>';
         }
         
         if ($bulk_order_page_id) {
-            echo '<li><strong>Bulk Order:</strong> <a href="' . get_edit_post_link($bulk_order_page_id) . '">Edit Page</a> | <a href="' . get_permalink($bulk_order_page_id) . '" target="_blank">View Page</a></li>';
+            echo '<li><strong>' . esc_html__('Bulk Order:', 'b2b-commerce-pro') . '</strong> <a href="' . esc_url(get_edit_post_link($bulk_order_page_id)) . '">' . esc_html__('Edit Page', 'b2b-commerce-pro') . '</a> | <a href="' . esc_url(get_permalink($bulk_order_page_id)) . '" target="_blank">' . esc_html__('View Page', 'b2b-commerce-pro') . '</a></li>';
         }
         
         if ($account_page_id) {
-            echo '<li><strong>Account Settings:</strong> <a href="' . get_edit_post_link($account_page_id) . '">Edit Page</a> | <a href="' . get_permalink($account_page_id) . '" target="_blank">View Page</a></li>';
+            echo '<li><strong>' . esc_html__('Account Settings:', 'b2b-commerce-pro') . '</strong> <a href="' . esc_url(get_edit_post_link($account_page_id)) . '">' . esc_html__('Edit Page', 'b2b-commerce-pro') . '</a> | <a href="' . esc_url(get_permalink($account_page_id)) . '" target="_blank">' . esc_html__('View Page', 'b2b-commerce-pro') . '</a></li>';
         }
         
         echo '</ul>';
-        echo '<p><strong>Next Steps:</strong></p>';
+        echo '<p><strong>' . esc_html__('Next Steps:', 'b2b-commerce-pro') . '</strong></p>';
         echo '<ol style="list-style: decimal; margin-left: 20px;">';
-        echo '<li>✅ "B2B Registration" has been automatically added to your main navigation menu</li>';
-        echo '<li>Add "B2B Dashboard" and "Bulk Order" to your user menu (after login)</li>';
-        echo '<li>Configure B2B settings in <a href="' . admin_url('admin.php?page=b2b-commerce-pro') . '">B2B Commerce Pro Settings</a></li>';
+        echo '<li>✅ ' . esc_html__('"B2B Registration" has been automatically added to your main navigation menu', 'b2b-commerce-pro') . '</li>';
+        echo '<li>' . esc_html__('Add "B2B Dashboard" and "Bulk Order" to your user menu (after login)', 'b2b-commerce-pro') . '</li>';
+        echo '<li>' . sprintf(esc_html__('Configure B2B settings in %s', 'b2b-commerce-pro'), '<a href="' . admin_url('admin.php?page=b2b-commerce-pro') . '">' . esc_html__('B2B Commerce Pro Settings', 'b2b-commerce-pro') . '</a>') . '</li>';
         echo '</ol>';
-        echo '<p><em>All pages are ready to use with the appropriate shortcodes already added!</em></p>';
+        echo '<p><em>' . esc_html__('All pages are ready to use with the appropriate shortcodes already added!', 'b2b-commerce-pro') . '</em></p>';
         echo '</div>';
         
         // Remove the notice flag

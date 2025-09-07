@@ -91,7 +91,7 @@ class AdvancedFeatures {
             $remaining = $limit - $current_balance;
             wc_add_notice(
                 sprintf(
-                    __('Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.', 'b2b-commerce-pro'),
+                    'Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.',
                     wc_price($limit),
                     wc_price($current_balance),
                     wc_price($remaining)
@@ -532,7 +532,7 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Quote Request Debug - Nonce verification failed. Received nonce: ' . $nonce);
             }
-            wp_send_json_error( __('Security check failed', 'b2b-commerce-pro') );
+            wp_send_json_error( 'Security check failed' );
             return;
         }
         if (!is_user_logged_in()) {
@@ -551,18 +551,13 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Quote Request Debug - Nonce verification failed');
             }
-            wp_send_json_error(__('Invalid request data - Missing required fields', 'b2b-commerce-pro'));
-            return;
-        }
-        
-        if (!function_exists('wc_get_product')) {
-            wp_send_json_error(__('WooCommerce is required for this functionality.', 'b2b-commerce-pro'));
+            wp_send_json_error('Invalid request data - Missing required fields');
             return;
         }
         
         $product = wc_get_product($product_id);
-        if (!$product || !$product->exists()) {
-            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
+        if (!$product) {
+            wp_send_json_error('Product not found');
             return;
         }
         
@@ -606,7 +601,7 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Product Inquiry Debug - Nonce verification failed. Received nonce: ' . $nonce);
             }
-            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
+            wp_send_json_error('Security check failed');
             return;
         }
         
@@ -625,13 +620,13 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Product Inquiry Debug - Nonce verification failed');
             }
-            wp_send_json_error(__('Invalid request data - Missing required fields', 'b2b-commerce-pro'));
+            wp_send_json_error('Invalid request data - Missing required fields');
             return;
         }
         
         $product = wc_get_product($product_id);
         if (!$product) {
-            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
+            wp_send_json_error('Product not found');
             return;
         }
         
@@ -769,12 +764,12 @@ class AdvancedFeatures {
     public function calculate_bulk_price() {
         // Security check
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'b2b_ajax_nonce')) {
-            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
+            wp_send_json_error('Security check failed');
             return;
         }
 
         if (!is_user_logged_in()) {
-            wp_send_json_error(__('Please log in to calculate bulk prices', 'b2b-commerce-pro'));
+            wp_send_json_error('Please log in to calculate bulk prices');
             return;
         }
         
@@ -783,13 +778,13 @@ class AdvancedFeatures {
         $user_id = get_current_user_id();
         
         if (!$product_id || !$quantity) {
-            wp_send_json_error(__('Invalid request data', 'b2b-commerce-pro'));
+            wp_send_json_error('Invalid request data');
             return;
         }
         
         $product = wc_get_product($product_id);
         if (!$product) {
-            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
+            wp_send_json_error('Product not found');
             return;
         }
         
@@ -868,10 +863,10 @@ class AdvancedFeatures {
                 $user = get_userdata($quote['user_id']);
                 echo '<tr>';
                 echo '<td>' . ($product ? $product->get_name() : __('Product not found', 'b2b-commerce-pro')) . '</td>';
-                echo '<td>' . esc_html($quote['quantity']) . '</td>';
-                echo '<td>' . ($user ? esc_html($user->display_name) : __('User not found', 'b2b-commerce-pro')) . '</td>';
-                echo '<td>' . esc_html(ucfirst($quote['status'])) . '</td>';
-                echo '<td>' . esc_html($quote['date']) . '</td>';
+                echo '<td>' . $quote['quantity'] . '</td>';
+                echo '<td>' . ($user ? $user->display_name : __('User not found', 'b2b-commerce-pro')) . '</td>';
+                echo '<td>' . ucfirst($quote['status']) . '</td>';
+                echo '<td>' . $quote['date'] . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';

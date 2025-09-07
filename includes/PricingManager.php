@@ -69,11 +69,8 @@ class PricingManager {
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
             dbDelta( $sql );
         } else {
-            // Fallback: Direct table creation
-            $wpdb->query( $sql );
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("B2B Commerce Pro: Using fallback table creation");
-            }
+    
+            error_log("B2B Commerce Pro: Using fallback table creation");
         }
         
 
@@ -95,14 +92,10 @@ class PricingManager {
             $result = self::create_pricing_table();
             if ( !$result ) {
                 update_option( 'b2b_pricing_table_error', 1 );
-                if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log("B2B Commerce Pro: Failed to create pricing table during self-healing");
-            }
             } else {
                 delete_option( 'b2b_pricing_table_error' );
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("B2B Commerce Pro: Successfully created pricing table during self-healing");
-                }
+                error_log("B2B Commerce Pro: Successfully created pricing table during self-healing");
             }
         } else {
             delete_option( 'b2b_pricing_table_error' );
@@ -122,7 +115,7 @@ class PricingManager {
         }
         
         
-        $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table}"));
+        $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $table));
         error_log("B2B Pricing: Table exists with $count rules");
         return true;
     }
@@ -470,7 +463,7 @@ class PricingManager {
                         $processed_products[] = $notice_key;
                         
                         if ($enforce_min_qty && $min_qty_behavior === 'error') {
-                            $notices[] = sprintf(__('Minimum quantity for wholesale pricing is %d items.', 'b2b-commerce-pro'), $rule->min_qty);
+                            $notices[] = 'Minimum quantity for wholesale pricing is ' . $rule->min_qty . ' items.';
                         } elseif ($enforce_min_qty && $min_qty_behavior === 'warning') {
                             $notices[] = 'Note: Minimum quantity for wholesale pricing is ' . $rule->min_qty . ' items. You may not receive wholesale pricing for quantities below this threshold.';
                         }
@@ -478,7 +471,7 @@ class PricingManager {
                     }
                 }
                 if ( $rule->max_qty && $quantity > $rule->max_qty ) {
-                    $notices[] = sprintf(__('Maximum quantity for this product is %d items.', 'b2b-commerce-pro'), $rule->max_qty);
+                    $notices[] = 'Maximum quantity for this product is ' . $rule->max_qty . ' items.';
                 }
 
                 // Check matching conditions
@@ -520,7 +513,7 @@ class PricingManager {
         // Display collected notices (only once)
         if (!empty($notices)) {
             foreach ($notices as $notice) {
-                wc_add_notice(esc_html($notice), 'notice');
+                wc_add_notice($notice, 'notice');
             }
         }
         
@@ -638,7 +631,7 @@ class PricingManager {
                 } elseif ($savings < 0) {
                     $savings_display = wc_price(abs($savings)) . ' more';
                 } else {
-                    $savings_display = __('Same price', 'b2b-commerce-pro');
+                    $savings_display = 'Same price';
                 }
             }
             
@@ -756,9 +749,9 @@ class PricingManager {
 
     // Render pricing-related widgets on product page
     public function render_pricing_widgets() {
-        echo wp_kses_post($this->tiered_pricing());
-        echo wp_kses_post($this->role_based_pricing());
-        echo wp_kses_post($this->min_max_quantity());
+        echo $this->tiered_pricing();
+        echo $this->role_based_pricing();
+        echo $this->min_max_quantity();
     }
 
     public function min_max_quantity() {

@@ -772,17 +772,17 @@ class ProductManager {
             if ($cart_item_key) {
                 $added_to_cart++;
             } else {
-                $errors[] = sprintf(__("Failed to add to cart: %s", 'b2b-commerce-pro'), $product->get_name());
+                $errors[] = "Failed to add to cart: " . $product->get_name();
             }
         }
         
         if ($added_to_cart > 0) {
-            wc_add_notice(sprintf(__("Added %d products to cart successfully.", 'b2b-commerce-pro'), $added_to_cart), 'success');
+            wc_add_notice("Added $added_to_cart products to cart successfully.", 'success');
         }
         
         if (!empty($errors)) {
             foreach ($errors as $error) {
-                wc_add_notice(esc_html($error), 'error');
+                wc_add_notice($error, 'error');
             }
         }
         
