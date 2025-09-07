@@ -158,7 +158,7 @@ function create_b2b_pages() {
     // Bulk Order Page
     if (!in_array('bulk-order', $existing_page_types)) {
         $bulk_order_page = wp_insert_post([
-            'post_title' => 'Bulk Order',
+            'post_title' => __('Bulk Order', 'b2b-commerce-pro'),
             'post_name' => 'bulk-order',
             'post_content' => '[b2b_bulk_order]',
             'post_status' => 'publish',
@@ -177,7 +177,7 @@ function create_b2b_pages() {
     // Account Settings Page
     if (!in_array('account-settings', $existing_page_types)) {
         $account_page = wp_insert_post([
-            'post_title' => 'Account Settings',
+            'post_title' => __('Account Settings', 'b2b-commerce-pro'),
             'post_name' => 'account-settings',
             'post_content' => '[b2b_account]',
             'post_status' => 'publish',
@@ -261,12 +261,12 @@ register_deactivation_hook( __FILE__, function() {
 add_action('wp_ajax_b2b_approve_user', function() {
     try {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized access');
+            wp_send_json_error(__('Unauthorized access', 'b2b-commerce-pro'));
             return;
         }
         
         if (!isset($_POST['user_id']) || !isset($_POST['nonce'])) {
-            wp_send_json_error('Missing required parameters');
+            wp_send_json_error(__('Missing required parameters', 'b2b-commerce-pro'));
             return;
         }
         
@@ -275,13 +275,13 @@ add_action('wp_ajax_b2b_approve_user', function() {
         
         // Accept either per-user nonce or a generic approve nonce for flexibility
         if (!wp_verify_nonce($nonce, 'b2b_approve_user_' . $user_id) && !wp_verify_nonce($nonce, 'b2b_approve_user_nonce')) {
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
         
         $user = get_userdata($user_id);
         if (!$user) {
-            wp_send_json_error('User not found');
+            wp_send_json_error(__('User not found', 'b2b-commerce-pro'));
             return;
         }
         
@@ -304,22 +304,22 @@ add_action('wp_ajax_b2b_approve_user', function() {
         
         wp_mail($user->user_email, $subject, $message, $headers);
         
-        wp_send_json_success('User approved successfully');
+        wp_send_json_success(__('User approved successfully', 'b2b-commerce-pro'));
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
     }
 });
 
 add_action('wp_ajax_b2b_reject_user', function() {
     try {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized access');
+            wp_send_json_error(__('Unauthorized access', 'b2b-commerce-pro'));
             return;
         }
         
         if (!isset($_POST['user_id']) || !isset($_POST['nonce'])) {
-            wp_send_json_error('Missing required parameters');
+            wp_send_json_error(__('Missing required parameters', 'b2b-commerce-pro'));
             return;
         }
         
@@ -327,13 +327,13 @@ add_action('wp_ajax_b2b_reject_user', function() {
         $nonce = $_POST['nonce'] ?? '';
         
         if (!wp_verify_nonce($nonce, 'b2b_reject_user_' . $user_id) && !wp_verify_nonce($nonce, 'b2b_reject_user_nonce')) {
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
         
         $user = get_userdata($user_id);
         if (!$user) {
-            wp_send_json_error('User not found');
+            wp_send_json_error(__('User not found', 'b2b-commerce-pro'));
             return;
         }
         
@@ -359,14 +359,14 @@ add_action('wp_ajax_b2b_reject_user', function() {
         wp_send_json_success('User rejected successfully');
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
     }
 });
 
 add_action('wp_ajax_b2b_save_pricing_rule', function() {
     try {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized access');
+            wp_send_json_error(__('Unauthorized access', 'b2b-commerce-pro'));
             return;
         }
         // Verify nonce (supports both form and AJAX usage)
@@ -374,7 +374,7 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         $ajax_nonce = $_POST['nonce'] ?? '';
         if (!( $form_nonce && wp_verify_nonce($form_nonce, 'b2b_pricing_action') )
             && !( $ajax_nonce && wp_verify_nonce($ajax_nonce, 'b2b_pricing_nonce') )) {
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
 
@@ -382,7 +382,7 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         $required_fields = ['role', 'type', 'price', 'min_qty'];
         foreach ($required_fields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {
-                wp_send_json_error('Missing required field: ' . $field);
+                wp_send_json_error(__('Missing required field: ', 'b2b-commerce-pro') . $field);
                 return;
             }
         }
@@ -397,11 +397,11 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
                 B2B\PricingManager::create_pricing_table();
                 $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
                 if ($exists !== $table) {
-                    wp_send_json_error('Failed to create database table');
+                    wp_send_json_error(__('Failed to create database table', 'b2b-commerce-pro'));
                     return;
                 }
             } else {
-                wp_send_json_error('PricingManager class not found');
+                wp_send_json_error(__('PricingManager class not found', 'b2b-commerce-pro'));
                 return;
             }
         }
@@ -423,31 +423,31 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         $result = $wpdb->insert($table, $data);
         
         if ($result === false) {
-            wp_send_json_error('Database error: ' . $wpdb->last_error);
+            wp_send_json_error(__('Database error: ', 'b2b-commerce-pro') . $wpdb->last_error);
         } else {
             wp_send_json_success('Pricing rule saved successfully');
         }
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
     }
 });
 
 add_action('wp_ajax_b2b_delete_pricing_rule', function() {
     try {
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized access');
+            wp_send_json_error(__('Unauthorized access', 'b2b-commerce-pro'));
             return;
         }
         // Verify nonce
         $nonce = $_POST['nonce'] ?? '';
         if (!$nonce || !wp_verify_nonce($nonce, 'b2b_pricing_nonce')) {
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
 
         if (!isset($_POST['rule_id'])) {
-            wp_send_json_error('Missing rule ID');
+            wp_send_json_error(__('Missing rule ID', 'b2b-commerce-pro'));
             return;
         }
         
@@ -458,13 +458,13 @@ add_action('wp_ajax_b2b_delete_pricing_rule', function() {
         $result = $wpdb->delete($table, array('id' => $rule_id), array('%d'));
         
         if ($result === false) {
-            wp_send_json_error('Database error: ' . $wpdb->last_error);
+            wp_send_json_error(__('Database error: ', 'b2b-commerce-pro') . $wpdb->last_error);
         } else {
             wp_send_json_success('Pricing rule deleted successfully');
         }
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
     }
 });
 
@@ -477,7 +477,7 @@ add_action('wp_ajax_b2b_export_data', function() {
     $nonce = $_POST['nonce'];
     
     if (!wp_verify_nonce($nonce, 'b2b_ajax_nonce')) {
-        wp_send_json_error('Security check failed');
+        wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
     }
     
     switch ($type) {
@@ -524,7 +524,7 @@ add_action('wp_ajax_b2b_export_data', function() {
             
         case 'orders':
             if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
-                wp_send_json_error('WooCommerce is required for order export');
+                wp_send_json_error(__('WooCommerce is required for order export', 'b2b-commerce-pro'));
                 return;
             }
             
@@ -552,7 +552,7 @@ add_action('wp_ajax_b2b_export_data', function() {
             break;
             
         default:
-            wp_send_json_error('Invalid export type');
+            wp_send_json_error(__('Invalid export type', 'b2b-commerce-pro'));
     }
     
     wp_send_json_success($csv_data);
@@ -561,7 +561,7 @@ add_action('wp_ajax_b2b_export_data', function() {
 // AJAX handler for bulk product search
 add_action('wp_ajax_b2b_bulk_product_search', function() {
     if (!is_user_logged_in()) {
-        wp_send_json_error('User not logged in');
+        wp_send_json_error(__('User not logged in', 'b2b-commerce-pro'));
         return;
     }
     
@@ -595,7 +595,7 @@ add_action('wp_ajax_b2b_bulk_product_search', function() {
 });
 
 add_action('wp_ajax_nopriv_b2b_bulk_product_search', function() {
-    wp_send_json_error('Login required');
+    wp_send_json_error(__('Login required', 'b2b-commerce-pro'));
 });
 
 // Import/Export AJAX handlers
@@ -636,12 +636,12 @@ add_action('wp_ajax_b2b_download_template', function() {
 // Demo data import handler
 add_action('wp_ajax_b2b_import_demo_data', function() {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error('Unauthorized');
+        wp_send_json_error(__('Unauthorized', 'b2b-commerce-pro'));
         return;
     }
     
     if (!wp_verify_nonce($_POST['nonce'], 'b2b_import_demo')) {
-        wp_send_json_error('Security check failed');
+        wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
         return;
     }
     
@@ -742,7 +742,7 @@ add_action('wp_ajax_b2b_import_demo_data', function() {
         wp_send_json_success('Demo data imported successfully! Created ' . count($demo_users) . ' users and ' . count($demo_rules) . ' pricing rules.');
         
     } catch (Exception $e) {
-        wp_send_json_error('Error importing demo data: ' . $e->getMessage());
+        wp_send_json_error(__('Error importing demo data: ', 'b2b-commerce-pro') . $e->getMessage());
     }
 });
 
@@ -789,17 +789,17 @@ add_action('wp_enqueue_scripts', function() {
 // Bulk user actions (approve / reject / delete)
 add_action('wp_ajax_b2b_bulk_user_action', function() {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error('Unauthorized');
+        wp_send_json_error(__('Unauthorized', 'b2b-commerce-pro'));
     }
     $nonce = $_POST['nonce'] ?? '';
     if (!$nonce || !wp_verify_nonce($nonce, 'b2b_bulk_user_action')) {
-        wp_send_json_error('Security check failed');
+        wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
     }
 
     $operation = isset($_POST['operation']) ? sanitize_text_field($_POST['operation']) : '';
     $user_ids = isset($_POST['user_ids']) && is_array($_POST['user_ids']) ? array_map('intval', $_POST['user_ids']) : [];
     if (!$operation || empty($user_ids)) {
-        wp_send_json_error('Missing data');
+        wp_send_json_error(__('Missing data', 'b2b-commerce-pro'));
     }
 
     $affected = 0;
@@ -827,22 +827,22 @@ add_action('wp_ajax_b2b_bulk_user_action', function() {
 // AJAX handler for quote deletion
 add_action('wp_ajax_b2b_delete_quote_ajax', function() {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error('Unauthorized');
+        wp_send_json_error(__('Unauthorized', 'b2b-commerce-pro'));
     }
     
     $nonce = $_POST['nonce'] ?? '';
     if (!$nonce || !wp_verify_nonce($nonce, 'b2b_delete_quote_ajax')) {
-        wp_send_json_error('Security check failed');
+        wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
     }
     
     $index = isset($_POST['quote_index']) ? absint($_POST['quote_index']) : -1;
     if ($index < 0) {
-        wp_send_json_error('Invalid quote index');
+        wp_send_json_error(__('Invalid quote index', 'b2b-commerce-pro'));
     }
     
     $quotes = get_option('b2b_quote_requests', []);
     if (!isset($quotes[$index])) {
-        wp_send_json_error('Quote not found');
+        wp_send_json_error(__('Quote not found', 'b2b-commerce-pro'));
     }
     
     // Remove the quote from the array
@@ -856,7 +856,7 @@ add_action('wp_ajax_b2b_delete_quote_ajax', function() {
     if ($result) {
         wp_send_json_success('Quote deleted successfully');
     } else {
-        wp_send_json_error('Failed to delete quote');
+        wp_send_json_error(__('Failed to delete quote', 'b2b-commerce-pro'));
     }
 });
 

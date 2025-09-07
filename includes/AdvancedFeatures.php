@@ -91,7 +91,7 @@ class AdvancedFeatures {
             $remaining = $limit - $current_balance;
             wc_add_notice(
                 sprintf(
-                    'Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.',
+                    __('Your order exceeds your credit limit. Maximum order amount: %s. Current balance: %s. Remaining credit: %s.', 'b2b-commerce-pro'),
                     wc_price($limit),
                     wc_price($current_balance),
                     wc_price($remaining)
@@ -532,7 +532,7 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Quote Request Debug - Nonce verification failed. Received nonce: ' . $nonce);
             }
-            wp_send_json_error( 'Security check failed' );
+            wp_send_json_error( __('Security check failed', 'b2b-commerce-pro') );
             return;
         }
         if (!is_user_logged_in()) {
@@ -551,13 +551,18 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Quote Request Debug - Nonce verification failed');
             }
-            wp_send_json_error('Invalid request data - Missing required fields');
+            wp_send_json_error(__('Invalid request data - Missing required fields', 'b2b-commerce-pro'));
+            return;
+        }
+        
+        if (!function_exists('wc_get_product')) {
+            wp_send_json_error(__('WooCommerce is required for this functionality.', 'b2b-commerce-pro'));
             return;
         }
         
         $product = wc_get_product($product_id);
-        if (!$product) {
-            wp_send_json_error('Product not found');
+        if (!$product || !$product->exists()) {
+            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
             return;
         }
         
@@ -601,7 +606,7 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Product Inquiry Debug - Nonce verification failed. Received nonce: ' . $nonce);
             }
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
         
@@ -620,13 +625,13 @@ class AdvancedFeatures {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('B2B Product Inquiry Debug - Nonce verification failed');
             }
-            wp_send_json_error('Invalid request data - Missing required fields');
+            wp_send_json_error(__('Invalid request data - Missing required fields', 'b2b-commerce-pro'));
             return;
         }
         
         $product = wc_get_product($product_id);
         if (!$product) {
-            wp_send_json_error('Product not found');
+            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
             return;
         }
         
@@ -764,12 +769,12 @@ class AdvancedFeatures {
     public function calculate_bulk_price() {
         // Security check
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'b2b_ajax_nonce')) {
-            wp_send_json_error('Security check failed');
+            wp_send_json_error(__('Security check failed', 'b2b-commerce-pro'));
             return;
         }
 
         if (!is_user_logged_in()) {
-            wp_send_json_error('Please log in to calculate bulk prices');
+            wp_send_json_error(__('Please log in to calculate bulk prices', 'b2b-commerce-pro'));
             return;
         }
         
@@ -778,13 +783,13 @@ class AdvancedFeatures {
         $user_id = get_current_user_id();
         
         if (!$product_id || !$quantity) {
-            wp_send_json_error('Invalid request data');
+            wp_send_json_error(__('Invalid request data', 'b2b-commerce-pro'));
             return;
         }
         
         $product = wc_get_product($product_id);
         if (!$product) {
-            wp_send_json_error('Product not found');
+            wp_send_json_error(__('Product not found', 'b2b-commerce-pro'));
             return;
         }
         

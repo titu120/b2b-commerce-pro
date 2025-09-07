@@ -32,8 +32,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'User Management',
-            'User Management',
+            __('User Management', 'b2b-commerce-pro'),
+            __('User Management', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-users',
             [ $this, 'user_management_page' ]
@@ -50,8 +50,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Pricing Rules',
-            'Pricing Rules',
+            __('Pricing Rules', 'b2b-commerce-pro'),
+            __('Pricing Rules', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-pricing',
             [ $this, 'pricing_page' ]
@@ -59,8 +59,8 @@ class AdminPanel {
         
         add_submenu_page(
             'b2b-dashboard',
-            'Order Management',
-            'Order Management',
+            __('Order Management', 'b2b-commerce-pro'),
+            __('Order Management', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-orders',
             [ $this, 'order_management_page' ]
@@ -69,8 +69,8 @@ class AdminPanel {
         // Quotes Management
         add_submenu_page(
             'b2b-dashboard',
-            'Quotes',
-            'Quotes',
+            __('Quotes', 'b2b-commerce-pro'),
+            __('Quotes', 'b2b-commerce-pro'),
             'manage_options',
             'b2b-quotes',
             [ $this, 'quotes_page' ]
@@ -266,7 +266,9 @@ class AdminPanel {
                 $total_orders = count($all_orders);
                 
                 foreach ($all_orders as $order) {
-                    $total_revenue += $order->get_total();
+                    if ($order && method_exists($order, 'get_total')) {
+                        $total_revenue += $order->get_total();
+                    }
                 }
                 
                 // Get monthly revenue
@@ -278,7 +280,9 @@ class AdminPanel {
                 ]);
                 
                 foreach ($monthly_orders as $order) {
-                    $monthly_revenue += $order->get_total();
+                    if ($order && method_exists($order, 'get_total')) {
+                        $monthly_revenue += $order->get_total();
+                    }
                 }
             } catch (Exception $e) {
                 // Log error but don't break the dashboard
@@ -1067,7 +1071,7 @@ class AdminPanel {
         $table = $wpdb->prefix . 'b2b_pricing_rules';
         
         // Get existing rules
-        $rules = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC", $table));
+        $rules = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY id DESC"));
         
         // Handle form submission
         if (isset($_POST['b2b_pricing_nonce']) && wp_verify_nonce($_POST['b2b_pricing_nonce'], 'b2b_pricing_action')) {
@@ -2404,7 +2408,9 @@ Best regards,
                 $total_orders = count($all_orders);
                 
                 foreach ($all_orders as $order) {
-                    $total_revenue += $order->get_total();
+                    if ($order && method_exists($order, 'get_total')) {
+                        $total_revenue += $order->get_total();
+                    }
                 }
                 
                 // Get monthly revenue
@@ -2416,7 +2422,9 @@ Best regards,
                 ]);
                 
                 foreach ($monthly_orders as $order) {
-                    $monthly_revenue += $order->get_total();
+                    if ($order && method_exists($order, 'get_total')) {
+                        $monthly_revenue += $order->get_total();
+                    }
                 }
                 
                 // Get recent orders

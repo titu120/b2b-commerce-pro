@@ -26,15 +26,23 @@ class Frontend {
         $total_spent = 0;
         
         if (class_exists('WooCommerce') && function_exists('wc_get_orders')) {
-            $orders = wc_get_orders([
-                'customer_id' => $user_id,
-                'limit' => -1,
-                'status' => ['completed', 'processing', 'on-hold']
-            ]);
-            
-            $total_orders = count($orders);
-            foreach ($orders as $order) {
-                $total_spent += $order->get_total();
+            try {
+                $orders = wc_get_orders([
+                    'customer_id' => $user_id,
+                    'limit' => -1,
+                    'status' => ['completed', 'processing', 'on-hold']
+                ]);
+                
+                $total_orders = count($orders);
+                foreach ($orders as $order) {
+                    if ($order && method_exists($order, 'get_total')) {
+                        $total_spent += $order->get_total();
+                    }
+                }
+            } catch (Exception $e) {
+                error_log('B2B Frontend: WooCommerce order retrieval failed - ' . $e->getMessage());
+                $total_orders = 0;
+                $total_spent = 0;
             }
         }
         
@@ -224,7 +232,15 @@ class Frontend {
         }
         
         $user_id = get_current_user_id();
-        $orders = wc_get_orders( [ 'customer_id' => $user_id, 'limit' => 20, 'orderby' => 'date', 'order' => 'DESC' ] );
+        try {
+            $orders = wc_get_orders( [ 'customer_id' => $user_id, 'limit' => 20, 'orderby' => 'date', 'order' => 'DESC' ] );
+            if (!is_array($orders)) {
+                $orders = [];
+            }
+        } catch (Exception $e) {
+            error_log('B2B Frontend: Order history retrieval failed - ' . $e->getMessage());
+            $orders = [];
+        }
         ob_start();
         if (empty($orders)) {
             echo '<div class="b2b-empty-state">';

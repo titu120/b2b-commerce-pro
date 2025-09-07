@@ -63,17 +63,17 @@ class UserManager {
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'wholesale_customer', 'Wholesale Customer', [
+        add_role( 'wholesale_customer', __('Wholesale Customer', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'distributor', 'Distributor', [
+        add_role( 'distributor', __('Distributor', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'retailer', 'Retailer', [
+        add_role( 'retailer', __('Retailer', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
