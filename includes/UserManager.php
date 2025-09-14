@@ -58,22 +58,22 @@ class UserManager {
 
     // Add B2B user roles
     public static function add_roles() {
-        add_role( 'b2b_customer', 'B2B Customer', [
+        add_role( 'b2b_customer', __('B2B Customer', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'wholesale_customer', 'Wholesale Customer', [
+        add_role( 'wholesale_customer', __('Wholesale Customer', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'distributor', 'Distributor', [
+        add_role( 'distributor', __('Distributor', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
         ] );
-        add_role( 'retailer', 'Retailer', [
+        add_role( 'retailer', __('Retailer', 'b2b-commerce-pro'), [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
@@ -109,13 +109,13 @@ class UserManager {
                 'show_in_rest' => false,
                 'hierarchical' => false,
                 'labels' => [
-                    'name' => 'Customer Groups',
-                    'singular_name' => 'Customer Group',
-                    'add_new_item' => 'Add New Group',
-                    'edit_item' => 'Edit Group',
-                    'search_items' => 'Search Groups',
-                    'not_found' => 'No groups found',
-                    'not_found_in_trash' => 'No groups found in trash',
+                    'name' => __('Customer Groups', 'b2b-commerce-pro'),
+                    'singular_name' => __('Customer Group', 'b2b-commerce-pro'),
+                    'add_new_item' => __('Add New Group', 'b2b-commerce-pro'),
+                    'edit_item' => __('Edit Group', 'b2b-commerce-pro'),
+                    'search_items' => __('Search Groups', 'b2b-commerce-pro'),
+                    'not_found' => __('No groups found', 'b2b-commerce-pro'),
+                    'not_found_in_trash' => __('No groups found in trash', 'b2b-commerce-pro'),
                 ],
                 'rewrite' => false,
                 'capabilities' => [
@@ -130,7 +130,7 @@ class UserManager {
 
     // Add group management to admin menu
     public function add_group_menu() {
-        add_users_page( 'Customer Groups', 'Customer Groups', 'manage_options', 'b2b-customer-groups', [ $this, 'customer_groups_page' ] );
+        add_users_page( __('Customer Groups', 'b2b-commerce-pro'), __('Customer Groups', 'b2b-commerce-pro'), 'manage_options', 'b2b-customer-groups', [ $this, 'customer_groups_page' ] );
     }
 
     // Custom customer groups page to avoid WordPress terms table issues
@@ -199,24 +199,24 @@ class UserManager {
     public function registration_form() {
         ?>
         <p>
-            <label for="company_name">Company Name<br/>
+            <label for="company_name"><?php _e('Company Name', 'b2b-commerce-pro'); ?><br/>
                 <input type="text" name="company_name" id="company_name" class="input" value="<?php echo esc_attr( $_POST['company_name'] ?? '' ); ?>" size="25" /></label>
         </p>
         <p>
-            <label for="business_type">Business Type<br/>
+            <label for="business_type"><?php _e('Business Type', 'b2b-commerce-pro'); ?><br/>
                 <input type="text" name="business_type" id="business_type" class="input" value="<?php echo esc_attr( $_POST['business_type'] ?? '' ); ?>" size="25" /></label>
         </p>
         <p>
-            <label for="tax_id">Tax ID<br/>
+            <label for="tax_id"><?php _e('Tax ID', 'b2b-commerce-pro'); ?><br/>
                 <input type="text" name="tax_id" id="tax_id" class="input" value="<?php echo esc_attr( $_POST['tax_id'] ?? '' ); ?>" size="25" /></label>
         </p>
         <p>
-            <label for="user_role">Register as<br/>
+            <label for="user_role"><?php _e('Register as', 'b2b-commerce-pro'); ?><br/>
                 <select name="user_role" id="user_role">
-                    <option value="b2b_customer">B2B Customer</option>
-                    <option value="wholesale_customer">Wholesale Customer</option>
-                    <option value="distributor">Distributor</option>
-                    <option value="retailer">Retailer</option>
+                    <option value="b2b_customer"><?php _e('B2B Customer', 'b2b-commerce-pro'); ?></option>
+                    <option value="wholesale_customer"><?php _e('Wholesale Customer', 'b2b-commerce-pro'); ?></option>
+                    <option value="distributor"><?php _e('Distributor', 'b2b-commerce-pro'); ?></option>
+                    <option value="retailer"><?php _e('Retailer', 'b2b-commerce-pro'); ?></option>
                 </select>
             </label>
         </p>
@@ -245,7 +245,7 @@ class UserManager {
 
     // Add approval menu in admin
     public function add_approval_menu() {
-        add_users_page( 'B2B Approvals', 'B2B Approvals', 'manage_options', 'b2b-approvals', [ $this, 'approval_page' ] );
+        add_users_page( __('B2B Approvals', 'b2b-commerce-pro'), __('B2B Approvals', 'b2b-commerce-pro'), 'manage_options', 'b2b-approvals', [ $this, 'approval_page' ] );
     }
 
     // Render approval page
@@ -319,13 +319,13 @@ class UserManager {
         $groups = get_terms( [ 'taxonomy' => 'b2b_user_group', 'hide_empty' => false ] );
         $user_groups = wp_get_object_terms( $user->ID, 'b2b_user_group', [ 'fields' => 'ids' ] );
         ?>
-        <h3>Customer Group</h3>
+        <h3><?php _e('Customer Group', 'b2b-commerce-pro'); ?></h3>
         <table class="form-table">
             <tr>
-                <th><label for="b2b_user_group">Group</label></th>
+                <th><label for="b2b_user_group"><?php _e('Group', 'b2b-commerce-pro'); ?></label></th>
                 <td>
                     <select name="b2b_user_group" id="b2b_user_group">
-                        <option value="">None</option>
+                        <option value=""><?php _e('None', 'b2b-commerce-pro'); ?></option>
                         <?php foreach ( $groups as $group ) : ?>
                             <option value="<?php echo esc_attr( $group->term_id ); ?>" <?php selected( in_array( $group->term_id, $user_groups ) ); ?>><?php echo esc_html( $group->name ); ?></option>
                         <?php endforeach; ?>
@@ -345,7 +345,7 @@ class UserManager {
 
     // Add import/export menu
     public function add_import_export_menu() {
-        add_users_page( 'Import/Export Users', 'Import/Export Users', 'manage_options', 'b2b-import-export', [ $this, 'import_export_page' ] );
+        add_users_page( __('Import/Export Users', 'b2b-commerce-pro'), __('Import/Export Users', 'b2b-commerce-pro'), 'manage_options', 'b2b-import-export', [ $this, 'import_export_page' ] );
     }
 
     // Render import/export page

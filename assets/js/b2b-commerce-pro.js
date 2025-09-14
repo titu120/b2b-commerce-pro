@@ -25,7 +25,7 @@
                 var userId = $(this).data('user-id');
                 var nonce = $(this).data('nonce');
                 
-                if (confirm('Are you sure you want to approve this user?')) {
+                if (confirm(b2b_ajax.strings.confirm_approve_user)) {
                     B2BCommercePro.approveUser(userId, nonce);
                 }
             });
@@ -35,7 +35,7 @@
                 var userId = $(this).data('user-id');
                 var nonce = $(this).data('nonce');
                 
-                if (confirm('Are you sure you want to reject this user?')) {
+                if (confirm(b2b_ajax.strings.confirm_reject_user)) {
                     B2BCommercePro.rejectUser(userId, nonce);
                 }
             });
@@ -52,7 +52,7 @@
                 var ruleId = $(this).data('rule-id');
                 var nonce = (typeof b2b_ajax !== 'undefined' && b2b_ajax.pricing_nonce) ? b2b_ajax.pricing_nonce : '';
                 
-                if (confirm('Are you sure you want to delete this pricing rule?')) {
+                if (confirm(b2b_ajax.strings.confirm_delete_pricing)) {
                     B2BCommercePro.deletePricingRule(ruleId, nonce);
                 }
             });
@@ -66,9 +66,9 @@
             $(document).on('change', '#bulk-action-selector', function() {
                 var action = $(this).val();
                 if (action) {
-                    $('.bulk-action-btn').removeClass('disabled').text('Apply ' + action);
+                    $('.bulk-action-btn').removeClass('disabled').text(b2b_ajax.strings.apply + ' ' + action);
                 } else {
-                    $('.bulk-action-btn').addClass('disabled').text('Apply');
+                    $('.bulk-action-btn').addClass('disabled').text(b2b_ajax.strings.apply);
                 }
             });
 
@@ -78,7 +78,7 @@
                 var operation = $('#bulk-action-selector').val();
                 var ids = $('.user-checkbox:checked').map(function(){ return $(this).val(); }).get();
                 if (!operation || ids.length === 0) return;
-                if (!confirm('Are you sure you want to ' + operation + ' ' + ids.length + ' users?')) return;
+                if (!confirm(b2b_ajax.strings.confirm_bulk_action.replace('{operation}', operation).replace('{count}', ids.length))) return;
                 $.ajax({
                     url: b2b_ajax.ajaxurl,
                     type: 'POST',
@@ -92,11 +92,11 @@
                         if (res && res.success) {
                             location.reload();
                         } else {
-                            alert('Bulk action failed: ' + (res && res.data ? res.data : 'Unknown error'));
+                            alert(b2b_ajax.strings.bulk_action_failed + ': ' + (res && res.data ? res.data : b2b_ajax.strings.unknown_error));
                         }
                     },
                     error: function(){
-                        alert('Request failed.');
+                        alert(b2b_ajax.strings.request_failed);
                     }
                 });
             });
@@ -125,11 +125,11 @@
                     if (response.success) {
                         location.reload();
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 },
                 error: function() {
-                    alert('An error occurred. Please try again.');
+                    alert(b2b_ajax.strings.error_occurred);
                 }
             });
         },
@@ -147,11 +147,11 @@
                     if (response.success) {
                         location.reload();
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 },
                 error: function() {
-                    alert('An error occurred. Please try again.');
+                    alert(b2b_ajax.strings.error_occurred);
                 }
             });
         },
@@ -170,11 +170,11 @@
                     if (response.success) {
                         location.reload();
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 },
                 error: function() {
-                    alert('An error occurred. Please try again.');
+                    alert(b2b_ajax.strings.error_occurred);
                 }
             });
         },
@@ -192,11 +192,11 @@
                     if (response.success) {
                         location.reload();
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 },
                 error: function() {
-                    alert('An error occurred. Please try again.');
+                    alert(b2b_ajax.strings.error_occurred);
                 }
             });
         },
@@ -227,11 +227,11 @@
                     pageLength: 25,
                     order: [[0, 'asc']],
                     language: {
-                        search: "Search:",
-                        lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        infoEmpty: "Showing 0 to 0 of 0 entries",
-                        infoFiltered: "(filtered from _MAX_ total entries)"
+                        search: b2b_ajax.strings.search,
+                        lengthMenu: b2b_ajax.strings.show_entries,
+                        info: b2b_ajax.strings.showing_entries,
+                        infoEmpty: b2b_ajax.strings.showing_empty,
+                        infoFiltered: b2b_ajax.strings.filtered_entries
                     }
                 });
             }
@@ -355,7 +355,7 @@
                         form.slideUp();
                         form.find('input, textarea').val('');
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 });
             });
@@ -405,7 +405,7 @@
                         form.slideUp();
                         form.find('input, textarea').val('');
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 }).fail(function(xhr, status, error) {
                     console.error('AJAX request failed:', status, error);
@@ -450,7 +450,7 @@
                             'Discount: ' + response.data.discount
                         );
                     } else {
-                        alert('Error: ' + response.data);
+                        alert(b2b_ajax.strings.error + ': ' + response.data);
                     }
                 });
             });

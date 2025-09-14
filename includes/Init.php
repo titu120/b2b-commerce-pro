@@ -76,8 +76,8 @@ class Init {
                 $this->reporting = new Reporting();
             }
             
-        } catch (Exception $e) {
-            error_log('B2B Commerce Pro Error: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log(__('B2B Commerce Pro Error:', 'b2b-commerce-pro') . ' ' . $e->getMessage());
             add_action('admin_notices', function() use ($e) {
                 echo '<div class="notice notice-error"><p><strong>' . __('B2B Commerce Pro Error:', 'b2b-commerce-pro') . '</strong> ' . esc_html($e->getMessage()) . '</p></div>';
             });

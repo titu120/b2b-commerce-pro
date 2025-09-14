@@ -36,14 +36,14 @@
 
 // Email Templates
 if (!defined('B2B_INQUIRY_RESPONSE_SUBJECT')) {
-    define('B2B_INQUIRY_RESPONSE_SUBJECT', 'Response to your inquiry about {product_name}');
+    define('B2B_INQUIRY_RESPONSE_SUBJECT', __('Response to your inquiry about {product_name}', 'b2b-commerce-pro'));
 }
 
 if (!defined('B2B_INQUIRY_RESPONSE_TEMPLATE')) {
     define('B2B_INQUIRY_RESPONSE_TEMPLATE', 
-        "Dear Customer,\n\n" .
-        "Thank you for your inquiry about {product_name}.\n\n" .
-        "Our response:\n{admin_response}\n\n" .
-        "Best regards,\n{site_name}"
+        __("Dear Customer,\n\n", 'b2b-commerce-pro') .
+        __("Thank you for your inquiry about {product_name}.\n\n", 'b2b-commerce-pro') .
+        __("Our response:\n{admin_response}\n\n", 'b2b-commerce-pro') .
+        __("Best regards,\n{site_name}", 'b2b-commerce-pro')
     );
 }

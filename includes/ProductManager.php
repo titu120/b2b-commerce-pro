@@ -46,9 +46,10 @@ class ProductManager {
         $has_restrictions = ! empty( $saved_roles ) || ! empty( $saved_groups ) || $wholesale_only;
 
         // Toggle
-        echo '<style>#b2b_visibility_fields .form-field{margin:12px 0}#b2b_visibility_box{border:1px solid #e2e8f0;padding:12px 14px;border-radius:6px;background:#fafbfc}#b2b_visibility_fields select{min-width:280px;min-height:120px;width:100%}#b2b_visibility_summary{margin-left:8px;color:#666}</style>';
+        $css_styles = '#b2b_visibility_fields .form-field{margin:12px 0}#b2b_visibility_box{border:1px solid #e2e8f0;padding:12px 14px;border-radius:6px;background:#fafbfc}#b2b_visibility_fields select{min-width:280px;min-height:120px;width:100%}#b2b_visibility_summary{margin-left:8px;color:#666}';
+        echo '<style>' . esc_html($css_styles) . '</style>';
         echo '<p class="form-field"><label for="_b2b_restrict_visibility">' . __('Restrict visibility', 'b2b-commerce-pro') . '</label>';
-        echo '<input type="checkbox" id="_b2b_restrict_visibility" name="_b2b_restrict_visibility" value="yes" ' . checked( $has_restrictions, true, false ) . ' />';
+        echo '<input type="checkbox" id="_b2b_restrict_visibility" name="_b2b_restrict_visibility" value="' . esc_attr(apply_filters('b2b_restrict_visibility_value', 'yes')) . '" ' . checked( $has_restrictions, true, false ) . ' />';
         echo ' <span class="description">' . __('Enable to limit who can see/purchase this product.', 'b2b-commerce-pro') . '</span><span id="b2b_visibility_summary"></span></p>';
 
         echo '<div id="b2b_visibility_box"><div id="b2b_visibility_fields">';
@@ -56,7 +57,7 @@ class ProductManager {
         // User roles (multi-select)
         $all_roles = function_exists('wp_roles') ? array_keys( wp_roles()->roles ) : [];
         echo '<p class="form-field"><label for="_b2b_visible_roles">' . __('Visible to Roles', 'b2b-commerce-pro') . '</label>';
-        echo '<select id="_b2b_visible_roles" name="_b2b_visible_roles[]" multiple>'; 
+        echo '<select id="_b2b_visible_roles" name="_b2b_visible_roles[]" multiple="multiple">'; 
         foreach ( $all_roles as $role_key ) {
             $selected = in_array( $role_key, $saved_roles, true ) ? 'selected' : '';
             echo '<option value="' . esc_attr( $role_key ) . '" ' . $selected . '>' . esc_html( $role_key ) . '</option>';
@@ -65,9 +66,9 @@ class ProductManager {
 
         // User groups (multi-select of taxonomy terms if present)
         echo '<p class="form-field"><label for="_b2b_visible_groups">' . __('Visible to Groups', 'b2b-commerce-pro') . '</label>';
-        echo '<select id="_b2b_visible_groups" name="_b2b_visible_groups[]" multiple>';
-        if ( taxonomy_exists( 'b2b_user_group' ) ) {
-            $terms = get_terms( [ 'taxonomy' => 'b2b_user_group', 'hide_empty' => false ] );
+        echo '<select id="_b2b_visible_groups" name="_b2b_visible_groups[]" multiple="multiple">';
+        if ( taxonomy_exists( apply_filters('b2b_user_group_taxonomy', 'b2b_user_group') ) ) {
+            $terms = get_terms( [ 'taxonomy' => apply_filters('b2b_user_group_taxonomy', 'b2b_user_group'), 'hide_empty' => false ] );
             if ( ! is_wp_error( $terms ) ) {
                 foreach ( $terms as $term ) {
                     $selected = in_array( (int) $term->term_id, $saved_groups, true ) ? 'selected' : '';
@@ -86,7 +87,7 @@ class ProductManager {
 
         // Quote/Inquiry buttons control
         $show_quote_buttons = get_post_meta($post->ID, '_b2b_show_quote_buttons', true);
-        if ($show_quote_buttons === '') $show_quote_buttons = 'yes'; // Default to yes
+        if ($show_quote_buttons === '') $show_quote_buttons = apply_filters('b2b_default_show_quote_buttons', 'yes'); // Default to yes
         woocommerce_wp_checkbox([
             'id' => '_b2b_show_quote_buttons',
             'label' => __('Show Quote/Inquiry Buttons', 'b2b-commerce-pro'),
@@ -96,7 +97,7 @@ class ProductManager {
 
         // Bulk Pricing Calculator control
         $show_bulk_calculator = get_post_meta($post->ID, '_b2b_show_bulk_calculator', true);
-        if ($show_bulk_calculator === '') $show_bulk_calculator = 'yes'; // Default to yes
+        if ($show_bulk_calculator === '') $show_bulk_calculator = apply_filters('b2b_default_show_bulk_calculator', 'yes'); // Default to yes
         woocommerce_wp_checkbox([
             'id' => '_b2b_show_bulk_calculator',
             'label' => __('Show Bulk Pricing Calculator', 'b2b-commerce-pro'),
@@ -114,14 +115,14 @@ class ProductManager {
                 if ($.fn.selectWoo) { $el.selectWoo({placeholder: placeholder, width:"100%", allowClear:true}); }
                 else if ($.fn.select2) { $el.select2({placeholder: placeholder, width:"100%", allowClear:true}); }
             }
-            initSelect($("#_b2b_visible_roles"), "Choose roles...");
-            initSelect($("#_b2b_visible_groups"), "Choose groups...");
+            initSelect($("#_b2b_visible_roles"), "' . esc_js(__('Choose roles...', 'b2b-commerce-pro')) . '");
+            initSelect($("#_b2b_visible_groups"), "' . esc_js(__('Choose groups...', 'b2b-commerce-pro')) . '");
             function updateSummary(){
                 var roles = $("#_b2b_visible_roles option:selected").map(function(){return $(this).text();}).get();
                 var groupsCount = $("#_b2b_visible_groups option:selected").length; 
-                var text = roles.length ? ("Roles: " + roles.join(", ")) : ""; 
-                if (groupsCount>0) text += (text?" | ":"") + ("Groups: " + groupsCount); 
-                $summary.text(text || "No restrictions");
+                var text = roles.length ? ("' . esc_js(__('Roles:', 'b2b-commerce-pro')) . ' " + roles.join(", ")) : ""; 
+                if (groupsCount>0) text += (text?" | ":"") + ("' . esc_js(__('Groups:', 'b2b-commerce-pro')) . ' " + groupsCount); 
+                $summary.text(text || "' . esc_js(__('No restrictions', 'b2b-commerce-pro')) . '");
             }
             updateSummary();
             $("#_b2b_visible_roles, #_b2b_visible_groups").on("change", updateSummary);
@@ -144,19 +145,19 @@ class ProductManager {
             $groups_post = isset( $_POST['_b2b_visible_groups'] ) ? (array) $_POST['_b2b_visible_groups'] : [];
             $groups_clean = array_filter( array_map( 'intval', $groups_post ) );
             update_post_meta( $post_id, '_b2b_visible_groups', implode( ',', $groups_clean ) );
-            update_post_meta( $post_id, '_b2b_wholesale_only', isset( $_POST['_b2b_wholesale_only'] ) ? 'yes' : 'no' );
+            update_post_meta( $post_id, '_b2b_wholesale_only', isset( $_POST['_b2b_wholesale_only'] ) ? apply_filters('b2b_wholesale_only_yes_value', 'yes') : apply_filters('b2b_wholesale_only_no_value', 'no') );
         } else {
             // Clear restrictions when toggle is off
             update_post_meta( $post_id, '_b2b_visible_roles', '' );
             update_post_meta( $post_id, '_b2b_visible_groups', '' );
-            update_post_meta( $post_id, '_b2b_wholesale_only', 'no' );
+            update_post_meta( $post_id, '_b2b_wholesale_only', apply_filters('b2b_wholesale_only_no_value', 'no') );
         }
         
         // Always save quote button setting (independent of restrictions)
-        update_post_meta( $post_id, '_b2b_show_quote_buttons', isset( $_POST['_b2b_show_quote_buttons'] ) ? 'yes' : 'no' );
+        update_post_meta( $post_id, '_b2b_show_quote_buttons', isset( $_POST['_b2b_show_quote_buttons'] ) ? apply_filters('b2b_show_buttons_yes_value', 'yes') : apply_filters('b2b_show_buttons_no_value', 'no') );
         
         // Always save bulk calculator setting (independent of restrictions)
-        update_post_meta( $post_id, '_b2b_show_bulk_calculator', isset( $_POST['_b2b_show_bulk_calculator'] ) ? 'yes' : 'no' );
+        update_post_meta( $post_id, '_b2b_show_bulk_calculator', isset( $_POST['_b2b_show_bulk_calculator'] ) ? apply_filters('b2b_show_calculator_yes_value', 'yes') : apply_filters('b2b_show_calculator_no_value', 'no') );
     }
 
     // Filter product visibility on frontend
@@ -191,12 +192,12 @@ class ProductManager {
             return true;
         }
         $roles = (array) ( wp_get_current_user()->roles ?? [] );
-        $groups = wp_get_object_terms( get_current_user_id(), 'b2b_user_group', [ 'fields' => 'ids' ] );
+        $groups = wp_get_object_terms( get_current_user_id(), apply_filters('b2b_user_group_taxonomy', 'b2b_user_group'), [ 'fields' => 'ids' ] );
         $allowed_roles = array_filter( array_map( 'trim', explode( ',', (string) get_post_meta( $product_id, '_b2b_visible_roles', true ) ) ) );
         $allowed_groups = array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $product_id, '_b2b_visible_groups', true ) ) ) );
-        $wholesale_only = get_post_meta( $product_id, '_b2b_wholesale_only', true ) === 'yes';
+        $wholesale_only = get_post_meta( $product_id, '_b2b_wholesale_only', true ) === apply_filters('b2b_wholesale_only_yes_value', 'yes');
 
-        if ( $wholesale_only && ! in_array( 'wholesale_customer', $roles, true ) ) return false;
+        if ( $wholesale_only && ! in_array( apply_filters('b2b_wholesale_customer_role', 'wholesale_customer'), $roles, true ) ) return false;
         if ( $allowed_roles && ! array_intersect( $roles, $allowed_roles ) ) return false;
         if ( $allowed_groups && ! array_intersect( $groups, $allowed_groups ) ) return false;
         return true;
@@ -225,7 +226,7 @@ class ProductManager {
         $all = wc_get_notices();
         if ( empty( $all ) || empty( $all['error'] ) ) return;
         $error_notices = $all['error'];
-        $pattern = 'has been removed from your cart because it can no longer be purchased';
+        $pattern = __('has been removed from your cart because it can no longer be purchased', 'b2b-commerce-pro');
         $kept = [];
         $removed_count = 0;
         foreach ( $error_notices as $item ) {
@@ -251,7 +252,7 @@ class ProductManager {
 
     // Only suppress the stock WC message that matches the non-purchasable pattern
     public function suppress_wc_removed_message( $message, $product ) {
-        $pattern = 'has been removed from your cart because it can no longer be purchased';
+        $pattern = __('has been removed from your cart because it can no longer be purchased', 'b2b-commerce-pro');
         if ( is_string( $message ) && strpos( $message, $pattern ) !== false ) {
             return '';
         }
@@ -264,14 +265,14 @@ class ProductManager {
         
         $user = wp_get_current_user();
         $roles = (array) ( $user->roles ?? [] );
-        $groups = wp_get_object_terms( $user->ID, 'b2b_user_group', [ 'fields' => 'ids' ] );
+        $groups = wp_get_object_terms( $user->ID, apply_filters('b2b_user_group_taxonomy', 'b2b_user_group'), [ 'fields' => 'ids' ] );
         
         // Skip filtering for admin users, shop managers, and users with edit_products capability
         if ( current_user_can( 'manage_options' ) || 
              current_user_can( 'manage_woocommerce' ) || 
              current_user_can( 'edit_products' ) ||
-             in_array( 'administrator', $roles, true ) ||
-             in_array( 'shop_manager', $roles, true ) ) {
+             in_array( apply_filters('b2b_administrator_role', 'administrator'), $roles, true ) ||
+             in_array( apply_filters('b2b_shop_manager_role', 'shop_manager'), $roles, true ) ) {
             return $meta_query;
         }
         
@@ -319,7 +320,7 @@ class ProductManager {
         ];
         
         // Add wholesale-only check for non-wholesale users
-        if ( ! in_array( 'wholesale_customer', $roles, true ) ) {
+        if ( ! in_array( apply_filters('b2b_wholesale_customer_role', 'wholesale_customer'), $roles, true ) ) {
             $visibility_query[] = [
                 'relation' => 'OR',
                 // Products that are not wholesale-only
@@ -350,11 +351,11 @@ class ProductManager {
     public function add_category_restriction_fields() {
         ?>
         <div class="form-field">
-            <label for="b2b_cat_roles">Allowed Roles (comma separated)</label>
+            <label for="b2b_cat_roles"><?php echo esc_html__('Allowed Roles (comma separated)', 'b2b-commerce-pro'); ?></label>
             <input type="text" name="b2b_cat_roles" id="b2b_cat_roles">
         </div>
         <div class="form-field">
-            <label for="b2b_cat_groups">Allowed Groups (comma separated IDs)</label>
+            <label for="b2b_cat_groups"><?php echo esc_html__('Allowed Groups (comma separated IDs)', 'b2b-commerce-pro'); ?></label>
             <input type="text" name="b2b_cat_groups" id="b2b_cat_groups">
         </div>
         <?php
@@ -364,11 +365,11 @@ class ProductManager {
         $groups = get_term_meta( $term->term_id, 'b2b_cat_groups', true );
         ?>
         <tr class="form-field">
-            <th scope="row"><label for="b2b_cat_roles">Allowed Roles</label></th>
+            <th scope="row"><label for="b2b_cat_roles"><?php echo esc_html__('Allowed Roles', 'b2b-commerce-pro'); ?></label></th>
             <td><input type="text" name="b2b_cat_roles" id="b2b_cat_roles" value="<?php echo esc_attr( $roles ); ?>"></td>
         </tr>
         <tr class="form-field">
-            <th scope="row"><label for="b2b_cat_groups">Allowed Groups</label></th>
+            <th scope="row"><label for="b2b_cat_groups"><?php echo esc_html__('Allowed Groups', 'b2b-commerce-pro'); ?></label></th>
             <td><input type="text" name="b2b_cat_groups" id="b2b_cat_groups" value="<?php echo esc_attr( $groups ); ?>"></td>
         </tr>
         <?php
@@ -389,25 +390,27 @@ class ProductManager {
         ?>
         <form id="b2b-bulk-order-form" method="post" enctype="multipart/form-data">
             <?php wp_nonce_field( 'b2b_bulk_order', 'b2b_bulk_order_nonce' ); ?>
-            <h3>Bulk Order</h3>
+            <h3><?php echo esc_html__('Bulk Order', 'b2b-commerce-pro'); ?></h3>
             <div id="b2b-bulk-products">
                 <div class="b2b-bulk-row">
-                    <input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off">
-                    <input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity">
+                    <input type="text" class="b2b-product-search" name="product_search[]" placeholder="<?php echo esc_attr__('Search product by name or SKU', 'b2b-commerce-pro'); ?>" autocomplete="off">
+                    <input type="number" name="product_qty[]" min="1" value="1" placeholder="<?php echo esc_attr__('Quantity', 'b2b-commerce-pro'); ?>">
                 </div>
             </div>
-            <button type="button" id="b2b-add-row" class="button">Add Another Product</button>
+            <button type="button" id="b2b-add-row" class="button"><?php echo esc_html__('Add Another Product', 'b2b-commerce-pro'); ?></button>
             <hr>
-            <h4>Or Import from CSV</h4>
+            <h4><?php echo esc_html__('Or Import from CSV', 'b2b-commerce-pro'); ?></h4>
             <input type="file" name="b2b_bulk_csv" accept=".csv">
             <hr>
-            <button type="submit" class="button button-primary">Add to Cart</button>
+            <button type="submit" class="button button-primary"><?php echo esc_html__('Add to Cart', 'b2b-commerce-pro'); ?></button>
             <div class="b2b-bulk-order-response"></div>
         </form>
         <script>
         jQuery(function($){
             $('#b2b-add-row').on('click', function(){
-                $('#b2b-bulk-products').append('<div class="b2b-bulk-row"><input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off"><input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity"></div>');
+                var searchPlaceholder = '<?php echo esc_js(__('Search product by name or SKU', 'b2b-commerce-pro')); ?>';
+                var qtyPlaceholder = '<?php echo esc_js(__('Quantity', 'b2b-commerce-pro')); ?>';
+                $('#b2b-bulk-products').append('<div class="b2b-bulk-row"><input type="text" class="b2b-product-search" name="product_search[]" placeholder="' + searchPlaceholder + '" autocomplete="off"><input type="number" name="product_qty[]" min="1" value="1" placeholder="' + qtyPlaceholder + '"></div>');
             });
             $(document).on('input', '.b2b-product-search', function(){
                 var input = $(this);
@@ -478,7 +481,7 @@ class ProductManager {
             // Handle CSV import
             if ( !empty($_FILES['b2b_bulk_csv']['tmp_name']) ) {
                 // Validate file type
-        $allowed_types = ['csv', 'txt'];
+        $allowed_types = apply_filters('b2b_allowed_import_file_types', ['csv', 'txt']);
         $file_extension = strtolower(pathinfo($_FILES['b2b_bulk_csv']['name'], PATHINFO_EXTENSION));
         if (!in_array($file_extension, $allowed_types)) {
             wp_die(__('Invalid file type. Only CSV and TXT files are allowed.', 'b2b-commerce-pro'));
@@ -505,40 +508,40 @@ class ProductManager {
         if (!is_user_logged_in()) return '';
         
         $output = '<div class="b2b-bulk-order">';
-        $output .= '<h3>Bulk Order System</h3>';
+        $output .= '<h3>' . esc_html__('Bulk Order System', 'b2b-commerce-pro') . '</h3>';
         $output .= '<form method="post" action="' . admin_url('admin-post.php') . '">';
         $output .= '<input type="hidden" name="action" value="b2b_process_bulk_order">';
         $output .= wp_nonce_field('b2b_bulk_order', 'b2b_bulk_nonce', true, false);
         
         $output .= '<div class="bulk-order-container">';
         $output .= '<div class="bulk-order-header">';
-        $output .= '<h4>Add Products to Order</h4>';
-        $output .= '<button type="button" id="b2b-add-row" class="button">Add Product</button>';
+        $output .= '<h4>' . esc_html__('Add Products to Order', 'b2b-commerce-pro') . '</h4>';
+        $output .= '<button type="button" id="b2b-add-row" class="button">' . esc_html__('Add Product', 'b2b-commerce-pro') . '</button>';
         $output .= '</div>';
         
         $output .= '<table class="bulk-order-table">';
-        $output .= '<thead><tr><th>Product</th><th>SKU</th><th>Quantity</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>';
+        $output .= '<thead><tr><th>' . esc_html__('Product', 'b2b-commerce-pro') . '</th><th>' . esc_html__('SKU', 'b2b-commerce-pro') . '</th><th>' . esc_html__('Quantity', 'b2b-commerce-pro') . '</th><th>' . esc_html__('Price', 'b2b-commerce-pro') . '</th><th>' . esc_html__('Total', 'b2b-commerce-pro') . '</th><th>' . esc_html__('Action', 'b2b-commerce-pro') . '</th></tr></thead>';
         $output .= '<tbody id="b2b-order-rows">';
         $output .= '<tr class="order-row">';
-        $output .= '<td><input type="text" class="b2b-product-search" name="product_search[]" placeholder="Search product by name or SKU" autocomplete="off"></td>';
+        $output .= '<td><input type="text" class="b2b-product-search" name="product_search[]" placeholder="' . esc_attr__('Search product by name or SKU', 'b2b-commerce-pro') . '" autocomplete="off"></td>';
         $output .= '<td><input type="text" name="product_sku[]" readonly></td>';
-        $output .= '<td><input type="number" name="product_qty[]" min="1" value="1" placeholder="Quantity"></td>';
+        $output .= '<td><input type="number" name="product_qty[]" min="1" value="1" placeholder="' . esc_attr__('Quantity', 'b2b-commerce-pro') . '"></td>';
         $output .= '<td><input type="text" name="product_price[]" readonly></td>';
         $output .= '<td><input type="text" name="product_total[]" readonly></td>';
-        $output .= '<td><button type="button" class="button remove-row">Remove</button></td>';
+        $output .= '<td><button type="button" class="button remove-row">' . esc_html__('Remove', 'b2b-commerce-pro') . '</button></td>';
         $output .= '</tr>';
         $output .= '</tbody>';
         $output .= '</table>';
         
         $output .= '<div class="bulk-order-summary">';
-        $output .= '<h4>Order Summary</h4>';
-        $output .= '<p><strong>Total Items:</strong> <span id="total-items">0</span></p>';
-        $output .= '<p><strong>Total Amount:</strong> <span id="total-amount">$0.00</span></p>';
+        $output .= '<h4>' . esc_html__('Order Summary', 'b2b-commerce-pro') . '</h4>';
+        $output .= '<p><strong>' . esc_html__('Total Items:', 'b2b-commerce-pro') . '</strong> <span id="total-items">0</span></p>';
+        $output .= '<p><strong>' . esc_html__('Total Amount:', 'b2b-commerce-pro') . '</strong> <span id="total-amount">$0.00</span></p>';
         $output .= '</div>';
         
         $output .= '<div class="bulk-order-actions">';
-        $output .= '<button type="submit" class="button button-primary">Add to Cart</button>';
-        $output .= '<button type="button" class="button" onclick="window.print()">Print Order</button>';
+        $output .= '<button type="submit" class="button button-primary">' . esc_html__('Add to Cart', 'b2b-commerce-pro') . '</button>';
+        $output .= '<button type="button" class="button" onclick="window.print()">' . esc_html__('Print Order', 'b2b-commerce-pro') . '</button>';
         $output .= '</div>';
         
         $output .= '</div></form></div>';
@@ -560,36 +563,36 @@ class ProductManager {
 
     private function render_csv_import_interface() {
         echo '<div class="b2b-admin-card">';
-        echo '<h2>CSV Product Import</h2>';
+        echo '<h2>' . esc_html__('CSV Product Import', 'b2b-commerce-pro') . '</h2>';
         
-        echo '<h3>Import Products</h3>';
-        echo '<p>Import products from CSV file. <a href="#" onclick="downloadProductTemplate()">Download template</a></p>';
+        echo '<h3>' . esc_html__('Import Products', 'b2b-commerce-pro') . '</h3>';
+        echo '<p>' . esc_html__('Import products from CSV file.', 'b2b-commerce-pro') . ' <a href="#" onclick="downloadProductTemplate()">' . esc_html__('Download template', 'b2b-commerce-pro') . '</a></p>';
         echo '<form method="post" enctype="multipart/form-data">';
         echo wp_nonce_field('b2b_csv_import', 'b2b_csv_nonce', true, false);
         echo '<input type="hidden" name="action" value="process">';
         echo '<p><input type="file" name="csv_file" accept=".csv" required></p>';
-        echo '<p><label><input type="checkbox" name="update_existing" value="1"> Update existing products</label></p>';
-        echo '<p><label><input type="checkbox" name="publish_products" value="1"> Publish products immediately</label></p>';
-        echo '<p><button type="submit" class="button button-primary">Import Products</button></p>';
+        echo '<p><label><input type="checkbox" name="update_existing" value="1"> ' . esc_html__('Update existing products', 'b2b-commerce-pro') . '</label></p>';
+        echo '<p><label><input type="checkbox" name="publish_products" value="1"> ' . esc_html__('Publish products immediately', 'b2b-commerce-pro') . '</label></p>';
+        echo '<p><button type="submit" class="button button-primary">' . esc_html__('Import Products', 'b2b-commerce-pro') . '</button></p>';
         echo '</form>';
         
-        echo '<h3>Export Products</h3>';
-        echo '<p>Export all products to CSV format.</p>';
+        echo '<h3>' . esc_html__('Export Products', 'b2b-commerce-pro') . '</h3>';
+        echo '<p>' . esc_html__('Export all products to CSV format.', 'b2b-commerce-pro') . '</p>';
         echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
         echo '<input type="hidden" name="action" value="b2b_export_products">';
         echo wp_nonce_field('b2b_export_products', 'b2b_export_nonce', true, false);
-        echo '<p><button type="submit" class="button">Export Products</button></p>';
+        echo '<p><button type="submit" class="button">' . esc_html__('Export Products', 'b2b-commerce-pro') . '</button></p>';
         echo '</form></div>';
         
         echo '<script>
         function downloadProductTemplate() {
             var template = "name,sku,description,short_description,regular_price,sale_price,categories,tags,stock_quantity,weight,length,width,height,image_url,visible_roles,wholesale_only\\n";
-            template += "Sample Product,SKU001,Product description,Short description,100.00,80.00,Electronics,Sample,50,1.5,10,5,2,https://example.com/image.jpg,b2b_customer,no\\n";
+            template += "' . esc_js(__('Sample Product', 'b2b-commerce-pro')) . ',SKU001,' . esc_js(__('Product description', 'b2b-commerce-pro')) . ',' . esc_js(__('Short description', 'b2b-commerce-pro')) . ',100.00,80.00,Electronics,Sample,50,1.5,10,5,2,https://example.com/image.jpg,b2b_customer,no\\n";
             var blob = new Blob([template], {type: "text/csv"});
             var url = window.URL.createObjectURL(blob);
             var a = document.createElement("a");
             a.href = url;
-            a.download = "products_template.csv";
+            a.download = "' . esc_js(__('products_template.csv', 'b2b-commerce-pro')) . '";
             a.click();
         }
         </script>';
@@ -627,15 +630,15 @@ class ProductManager {
                     $updated++;
                 }
             } catch (Exception $e) {
-                $errors[] = 'Row ' . ($imported + $updated + 1) . ': ' . $e->getMessage();
+                $errors[] = sprintf(__('Row %d: %s', 'b2b-commerce-pro'), ($imported + $updated + 1), $e->getMessage());
             }
         }
         
         fclose($handle);
         
-        $message = "Imported $imported new products and updated $updated existing products.";
+        $message = sprintf(__('Imported %d new products and updated %d existing products.', 'b2b-commerce-pro'), $imported, $updated);
         if (!empty($errors)) {
-            $message .= " Errors: " . implode(', ', $errors);
+            $message .= ' ' . __('Errors:', 'b2b-commerce-pro') . ' ' . implode(', ', $errors);
         }
         
         wp_redirect(admin_url('admin.php?page=b2b-products&imported=' . $imported . '&updated=' . $updated . '&errors=' . count($errors)));
@@ -650,7 +653,7 @@ class ProductManager {
         $existing_product_id = wc_get_product_id_by_sku($sku);
         
         if ($existing_product_id && !isset($_POST['update_existing'])) {
-            throw new Exception("Product with SKU $sku already exists");
+            throw new Exception(sprintf(__('Product with SKU %s already exists', 'b2b-commerce-pro'), $sku));
         }
         
         $product_args = [
@@ -745,25 +748,25 @@ class ProductManager {
             $qty = intval($product_qtys[$index] ?? 1);
             
             if (empty($sku)) {
-                $errors[] = "Product not found: $search";
+                $errors[] = sprintf(__('Product not found: %s', 'b2b-commerce-pro'), $search);
                 continue;
             }
             
             $product_id = wc_get_product_id_by_sku($sku);
             if (!$product_id) {
-                $errors[] = "Product with SKU $sku not found";
+                $errors[] = sprintf(__('Product with SKU %s not found', 'b2b-commerce-pro'), $sku);
                 continue;
             }
             
             $product = wc_get_product($product_id);
             if (!$product) {
-                $errors[] = "Cannot load product: $sku";
+                $errors[] = sprintf(__('Cannot load product: %s', 'b2b-commerce-pro'), $sku);
                 continue;
             }
             
             // Check if user can see this product
             if (!$this->can_user_see_product($product_id)) {
-                $errors[] = "You don't have permission to order: " . $product->get_name();
+                $errors[] = sprintf(__("You don't have permission to order: %s", 'b2b-commerce-pro'), $product->get_name());
                 continue;
             }
             
@@ -772,12 +775,12 @@ class ProductManager {
             if ($cart_item_key) {
                 $added_to_cart++;
             } else {
-                $errors[] = "Failed to add to cart: " . $product->get_name();
+                $errors[] = sprintf(__('Failed to add to cart: %s', 'b2b-commerce-pro'), $product->get_name());
             }
         }
         
         if ($added_to_cart > 0) {
-            wc_add_notice("Added $added_to_cart products to cart successfully.", 'success');
+            wc_add_notice(sprintf(__('Added %d products to cart successfully.', 'b2b-commerce-pro'), $added_to_cart), 'success');
         }
         
         if (!empty($errors)) {
@@ -793,13 +796,13 @@ class ProductManager {
     private function can_user_see_product($product_id) {
         $user = wp_get_current_user();
         $roles = $user->roles;
-        $groups = wp_get_object_terms($user->ID, 'b2b_user_group', ['fields' => 'ids']);
+        $groups = wp_get_object_terms($user->ID, apply_filters('b2b_user_group_taxonomy', 'b2b_user_group'), ['fields' => 'ids']);
         
         $allowed_roles = array_map('trim', explode(',', get_post_meta($product_id, '_b2b_visible_roles', true)));
         $allowed_groups = array_map('intval', explode(',', get_post_meta($product_id, '_b2b_visible_groups', true)));
-        $wholesale_only = get_post_meta($product_id, '_b2b_wholesale_only', true) === 'yes';
+        $wholesale_only = get_post_meta($product_id, '_b2b_wholesale_only', true) === apply_filters('b2b_wholesale_only_yes_value', 'yes');
         
-        if ($wholesale_only && !in_array('wholesale_customer', $roles)) {
+        if ($wholesale_only && !in_array(apply_filters('b2b_wholesale_customer_role', 'wholesale_customer'), $roles)) {
             return false;
         }
         
@@ -821,7 +824,7 @@ class ProductManager {
         
         $user = wp_get_current_user();
         $user_roles = $user->roles;
-        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        $b2b_roles = apply_filters('b2b_customer_roles', ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer']);
         
         if (!array_intersect($user_roles, $b2b_roles)) return false;
         
@@ -832,7 +835,7 @@ class ProductManager {
         
         // Check if product has specific B2B button settings
         $show_b2b_buttons = get_post_meta($product_id, '_b2b_show_quote_buttons', true);
-        if ($show_b2b_buttons === 'no') {
+        if ($show_b2b_buttons === apply_filters('b2b_show_buttons_no_value', 'no')) {
             return false; // Explicitly disabled for this product
         }
         
@@ -846,7 +849,7 @@ class ProductManager {
         
         $user = wp_get_current_user();
         $user_roles = $user->roles;
-        $b2b_roles = ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer'];
+        $b2b_roles = apply_filters('b2b_customer_roles', ['b2b_customer', 'wholesale_customer', 'distributor', 'retailer']);
         
         if (!array_intersect($user_roles, $b2b_roles)) return false;
         
@@ -857,7 +860,7 @@ class ProductManager {
         
         // Check if product has specific bulk calculator settings
         $show_bulk_calculator = get_post_meta($product_id, '_b2b_show_bulk_calculator', true);
-        if ($show_bulk_calculator === 'no') {
+        if ($show_bulk_calculator === apply_filters('b2b_show_calculator_no_value', 'no')) {
             return false; // Explicitly disabled for this product
         }
         

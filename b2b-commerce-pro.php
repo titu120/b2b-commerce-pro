@@ -43,7 +43,7 @@ function autoload_b2b_commerce_pro() {
 autoload_b2b_commerce_pro();
 
 // Load text domain early
-add_action( 'init', function() {
+add_action( 'plugins_loaded', function() {
     load_plugin_textdomain( 'b2b-commerce-pro', false, dirname( B2B_COMMERCE_PRO_BASENAME ) . '/languages' );
 });
 
@@ -308,7 +308,7 @@ add_action('wp_ajax_b2b_approve_user', function() {
         wp_send_json_success(__('User approved successfully', 'b2b-commerce-pro'));
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error: ', 'b2b-commerce-pro') . $e->getMessage());
     }
 });
 
@@ -360,7 +360,7 @@ add_action('wp_ajax_b2b_reject_user', function() {
         wp_send_json_success(__('User rejected successfully', 'b2b-commerce-pro'));
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error: ', 'b2b-commerce-pro') . $e->getMessage());
     }
 });
 
@@ -430,7 +430,7 @@ add_action('wp_ajax_b2b_save_pricing_rule', function() {
         }
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error: ', 'b2b-commerce-pro') . $e->getMessage());
     }
 });
 
@@ -465,7 +465,7 @@ add_action('wp_ajax_b2b_delete_pricing_rule', function() {
         }
         
     } catch (Exception $e) {
-        wp_send_json_error('Error: ' . $e->getMessage());
+        wp_send_json_error(__('Error: ', 'b2b-commerce-pro') . $e->getMessage());
     }
 });
 
@@ -525,7 +525,7 @@ add_action('wp_ajax_b2b_export_data', function() {
             
         case 'orders':
             if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
-                wp_send_json_error('WooCommerce is required for order export');
+                wp_send_json_error(__('WooCommerce is required for order export', 'b2b-commerce-pro'));
                 return;
             }
             
@@ -767,14 +767,31 @@ add_action('admin_enqueue_scripts', function($hook) {
             true
         );
         
-        // Localize script for AJAX with proper nonce
+        // Localize script for AJAX with proper nonce and translated strings
         wp_localize_script('b2b-commerce-pro-admin', 'b2b_ajax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('b2b_ajax_nonce'),
             'approve_nonce' => wp_create_nonce('b2b_approve_user_nonce'),
             'reject_nonce' => wp_create_nonce('b2b_reject_user_nonce'),
             'pricing_nonce' => wp_create_nonce('b2b_pricing_nonce'),
-            'bulk_user_nonce' => wp_create_nonce('b2b_bulk_user_action')
+            'bulk_user_nonce' => wp_create_nonce('b2b_bulk_user_action'),
+            'strings' => array(
+                'confirm_approve_user' => __('Are you sure you want to approve this user?', 'b2b-commerce-pro'),
+                'confirm_reject_user' => __('Are you sure you want to reject this user?', 'b2b-commerce-pro'),
+                'confirm_delete_pricing' => __('Are you sure you want to delete this pricing rule?', 'b2b-commerce-pro'),
+                'confirm_bulk_action' => __('Are you sure you want to {operation} {count} users?', 'b2b-commerce-pro'),
+                'apply' => __('Apply', 'b2b-commerce-pro'),
+                'search' => __('Search:', 'b2b-commerce-pro'),
+                'show_entries' => __('Show _MENU_ entries', 'b2b-commerce-pro'),
+                'showing_entries' => __('Showing _START_ to _END_ of _TOTAL_ entries', 'b2b-commerce-pro'),
+                'showing_empty' => __('Showing 0 to 0 of 0 entries', 'b2b-commerce-pro'),
+                'filtered_entries' => __('(filtered from _MAX_ total entries)', 'b2b-commerce-pro'),
+                'bulk_action_failed' => __('Bulk action failed', 'b2b-commerce-pro'),
+                'unknown_error' => __('Unknown error', 'b2b-commerce-pro'),
+                'request_failed' => __('Request failed', 'b2b-commerce-pro'),
+                'error' => __('Error', 'b2b-commerce-pro'),
+                'error_occurred' => __('An error occurred. Please try again.', 'b2b-commerce-pro')
+            )
         ));
     }
 });

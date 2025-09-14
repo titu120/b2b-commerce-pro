@@ -7,20 +7,20 @@ jQuery(document).ready(function($) {
         var container = $('.b2b-tiers-container[data-role="' + role + '"]');
         
         var tierRow = '<div class="b2b-tier-row">' +
-            '<input type="number" name="b2b_tier_min_qty[' + role + '][]" placeholder="Min Qty" min="1" style="width: 80px;" title="Minimum quantity for this tier">' +
-            '<input type="text" name="b2b_tier_price[' + role + '][]" placeholder="Price/Percentage" class="wc_input_price tier-price-input" style="width: 100px;" title="Enter price (e.g., 25.00) or percentage (e.g., 5.55)">' +
-            '<select name="b2b_tier_type[' + role + '][]" class="tier-type-select" style="width: 100px;" title="Choose pricing type">' +
-            '<option value="fixed">Fixed Price</option>' +
-            '<option value="percentage">Percentage</option>' +
+            '<input type="number" name="b2b_tier_min_qty[' + role + '][]" placeholder="' + b2b_product_edit.strings.min_qty + '" min="1" style="width: 80px;" title="' + b2b_product_edit.strings.min_qty_tooltip + '">' +
+            '<input type="text" name="b2b_tier_price[' + role + '][]" placeholder="' + b2b_product_edit.strings.price_percentage + '" class="wc_input_price tier-price-input" style="width: 100px;" title="' + b2b_product_edit.strings.price_tooltip + '">' +
+            '<select name="b2b_tier_type[' + role + '][]" class="tier-type-select" style="width: 100px;" title="' + b2b_product_edit.strings.type_tooltip + '">' +
+            '<option value="fixed">' + b2b_product_edit.strings.fixed_price + '</option>' +
+            '<option value="percentage">' + b2b_product_edit.strings.percentage + '</option>' +
             '</select>' +
-            '<button type="button" class="button remove-tier" style="margin-left: 5px;" title="Remove this tier">Remove</button>' +
+            '<button type="button" class="button remove-tier" style="margin-left: 5px;" title="' + b2b_product_edit.strings.remove_tooltip + '">' + b2b_product_edit.strings.remove + '</button>' +
             '</div>';
         
         container.append(tierRow);
         
         // Add helpful tooltip
         var newRow = container.find('.b2b-tier-row').last();
-        newRow.find('.tier-price-input').attr('placeholder', 'Enter price (e.g., 25.00)');
+        newRow.find('.tier-price-input').attr('placeholder', b2b_product_edit.strings.price_example);
     });
     
     // Remove tier functionality
@@ -43,13 +43,13 @@ jQuery(document).ready(function($) {
         var selectedType = $(this).val();
         
         if (selectedType === 'percentage') {
-            priceInput.attr('placeholder', 'Enter percentage (e.g., 5.55 for 5.55%)');
-            priceInput.attr('title', 'Enter discount percentage (e.g., 5.55 for 5.55% off)');
+            priceInput.attr('placeholder', b2b_product_edit.strings.percentage_example);
+            priceInput.attr('title', b2b_product_edit.strings.percentage_tooltip);
             // Clear the input when switching to percentage to avoid confusion
             priceInput.val('');
         } else {
-            priceInput.attr('placeholder', 'Enter price (e.g., 25.00)');
-            priceInput.attr('title', 'Enter fixed price (e.g., 25.00)');
+            priceInput.attr('placeholder', b2b_product_edit.strings.price_example);
+            priceInput.attr('title', b2b_product_edit.strings.price_tooltip);
             // Clear the input when switching to fixed price to avoid confusion
             priceInput.val('');
         }
@@ -145,7 +145,7 @@ jQuery(document).ready(function($) {
     // Warn before leaving page with unsaved changes
     $(window).on('beforeunload', function() {
         if (hasChanges) {
-            return 'You have unsaved B2B pricing changes. Are you sure you want to leave?';
+            return b2b_product_edit.strings.unsaved_changes_warning;
         }
     });
     

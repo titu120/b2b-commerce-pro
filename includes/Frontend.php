@@ -19,6 +19,16 @@ class Frontend {
     public function b2b_dashboard_shortcode() {
         if ( ! is_user_logged_in() ) return '<p>' . __('Please log in to access your B2B dashboard.', 'b2b-commerce-pro') . '</p>';
         $user = wp_get_current_user();
+        
+        // Get user's order statistics
+        $user_orders = wc_get_orders( [ 'customer_id' => $user->ID, 'limit' => -1 ] );
+        $order_count = count($user_orders);
+        $total_spent = 0;
+        
+        foreach ($user_orders as $order) {
+            $total_spent += $order->get_total();
+        }
+        
         ob_start();
         ?>
             <!-- Header Section -->
@@ -37,11 +47,11 @@ class Frontend {
                         <p><?php _e('Welcome to your B2B Dashboard', 'b2b-commerce-pro'); ?></p>
                         <div class="b2b-welcome-stats">
                             <div class="b2b-stat-item">
-                                <span class="b2b-stat-number">12</span>
+                                <span class="b2b-stat-number"><?php echo esc_html($order_count); ?></span>
                                 <span class="b2b-stat-label"><?php _e('Orders', 'b2b-commerce-pro'); ?></span>
                             </div>
                             <div class="b2b-stat-item">
-                                <span class="b2b-stat-number">৳2,450</span>
+                                <span class="b2b-stat-number"><?php echo get_woocommerce_currency_symbol() . number_format($total_spent, 2); ?></span>
                                 <span class="b2b-stat-label"><?php _e('Total Spent', 'b2b-commerce-pro'); ?></span>
                             </div>
                         </div>
@@ -208,7 +218,7 @@ class Frontend {
         ob_start();
         if (empty($orders)) {
             echo '<div class="b2b-empty-state">';
-            echo '<div class="b2b-empty-icon">📦</div>';
+            echo '<div class="b2b-empty-icon">' . __('📦', 'b2b-commerce-pro') . '</div>';
             echo '<h4>' . __('No Orders Yet', 'b2b-commerce-pro') . '</h4>';
             echo '<p>' . __('You haven\'t placed any orders yet. Start shopping to see your order history here.', 'b2b-commerce-pro') . '</p>';
             echo '<a href="' . esc_url(wc_get_page_permalink('shop')) . '" class="b2b-empty-action">' . __('Start Shopping', 'b2b-commerce-pro') . '</a>';
@@ -232,19 +242,19 @@ class Frontend {
                 // Add status icons
                 switch($status) {
                     case 'completed':
-                        $status_icon = '✅';
+                        $status_icon = __('✅', 'b2b-commerce-pro');
                         break;
                     case 'processing':
-                        $status_icon = '⏳';
+                        $status_icon = __('⏳', 'b2b-commerce-pro');
                         break;
                     case 'pending':
-                        $status_icon = '⏸️';
+                        $status_icon = __('⏸️', 'b2b-commerce-pro');
                         break;
                     case 'cancelled':
-                        $status_icon = '❌';
+                        $status_icon = __('❌', 'b2b-commerce-pro');
                         break;
                     default:
-                        $status_icon = '📋';
+                        $status_icon = __('📋', 'b2b-commerce-pro');
                 }
                 
                 echo '<tr>';
@@ -252,7 +262,7 @@ class Frontend {
                 echo '<td>' . esc_html( $order->get_date_created()->date( 'M j, Y' ) ) . '</td>';
                 echo '<td><span class="b2b-status-badge ' . esc_attr($status_class) . '">' . $status_icon . ' ' . esc_html( wc_get_order_status_name( $status ) ) . '</span></td>';
                 echo '<td><strong>' . esc_html( get_woocommerce_currency_symbol() . number_format( $order->get_total(), 2 ) ) . '</strong></td>';
-                echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank" class="b2b-invoice-link">📄 ' . __('Invoice', 'b2b-commerce-pro') . '</a></td>';
+                echo '<td><a href="' . esc_url( add_query_arg( [ 'b2b_invoice' => $order->get_id() ] ) ) . '" target="_blank" class="b2b-invoice-link">' . __('📄', 'b2b-commerce-pro') . ' ' . __('Invoice', 'b2b-commerce-pro') . '</a></td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';
@@ -327,7 +337,7 @@ class Frontend {
                 update_user_meta( $user->ID, 'tax_id', sanitize_text_field( $_POST['tax_id'] ) );
                 ?>
                 <div class="b2b-success-message">
-                    <div class="b2b-success-icon">✅</div>
+                    <div class="b2b-success-icon"><?php _e('✅', 'b2b-commerce-pro'); ?></div>
                     <p><?php _e('Account information updated successfully!', 'b2b-commerce-pro'); ?></p>
                 </div>
             <?php } ?>
@@ -540,12 +550,12 @@ class Frontend {
     private function process_registration_form() {
         // Check if user is already logged in
         if (is_user_logged_in()) {
-            return '<div class="b2b-message notice-error"><p>❌ ' . __('You are already logged in. Please logout to register a new account.', 'b2b-commerce-pro') . '</p></div>';
+            return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . __('You are already logged in. Please logout to register a new account.', 'b2b-commerce-pro') . '</p></div>';
         }
 
         // Verify nonce
         if (!isset($_POST['b2b_registration_nonce']) || !wp_verify_nonce($_POST['b2b_registration_nonce'], 'b2b_registration')) {
-            return '<div class="b2b-message notice-error"><p>❌ ' . __('Security check failed. Please try again.', 'b2b-commerce-pro') . '</p></div>';
+            return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . __('Security check failed. Please try again.', 'b2b-commerce-pro') . '</p></div>';
         }
 
         // Sanitize input data
@@ -638,7 +648,7 @@ class Frontend {
 
 
         if (!empty($errors)) {
-            return '<div class="b2b-message notice-error"><p>❌ ' . implode('<br>', $errors) . '</p></div>';
+            return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . implode('<br>', $errors) . '</p></div>';
         }
 
         // Create user with error handling
@@ -646,13 +656,13 @@ class Frontend {
             $user_id = wp_create_user($user_login, $user_password, $user_email);
             
             if (is_wp_error($user_id)) {
-                return '<div class="b2b-message notice-error"><p>❌ Registration failed: ' . esc_html($user_id->get_error_message()) . '</p></div>';
+                return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . __('Registration failed:', 'b2b-commerce-pro') . ' ' . esc_html($user_id->get_error_message()) . '</p></div>';
             }
 
             // Set user role
             $user = get_userdata($user_id);
             if (!$user) {
-                return '<div class="b2b-message notice-error"><p>❌ Failed to create user account.</p></div>';
+                return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . __('Failed to create user account.', 'b2b-commerce-pro') . '</p></div>';
             }
 
             $user->set_role($user_role);
@@ -666,7 +676,7 @@ class Frontend {
             ]);
 
             if (is_wp_error($update_result)) {
-                return '<div class="b2b-message notice-error"><p>❌ Failed to update user profile: ' . esc_html($update_result->get_error_message()) . '</p></div>';
+                return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . sprintf(__('Failed to update user profile: %s', 'b2b-commerce-pro'), esc_html($update_result->get_error_message())) . '</p></div>';
             }
             
             // Update user meta fields
@@ -677,10 +687,10 @@ class Frontend {
             update_user_meta($user_id, 'address', $address);
             update_user_meta($user_id, 'b2b_approval_status', 'pending');
             
-            return '<div class="b2b-message notice-success"><p>✅ ' . __('Registration successful! Your account is pending approval. You will receive an email once your account is approved.', 'b2b-commerce-pro') . '</p></div>';
+            return '<div class="b2b-message notice-success"><p>' . __('✅', 'b2b-commerce-pro') . ' ' . __('Registration successful! Your account is pending approval. You will receive an email once your account is approved.', 'b2b-commerce-pro') . '</p></div>';
             
         } catch (Exception $e) {
-            return '<div class="b2b-message notice-error"><p>❌ ' . sprintf(__('Registration failed: %s', 'b2b-commerce-pro'), esc_html($e->getMessage())) . '</p></div>';
+            return '<div class="b2b-message notice-error"><p>' . __('❌', 'b2b-commerce-pro') . ' ' . sprintf(__('Registration failed: %s', 'b2b-commerce-pro'), esc_html($e->getMessage())) . '</p></div>';
         }
     }
 
@@ -696,7 +706,7 @@ class Frontend {
             <!-- Header Section -->
             <div class="b2b-bulk-header">
                 <div class="b2b-bulk-header-content">
-                    <div class="b2b-bulk-icon">📦</div>
+                    <div class="b2b-bulk-icon"><?php _e('📦', 'b2b-commerce-pro'); ?></div>
                     <div class="b2b-bulk-title">
                         <h2><?php _e('Bulk Order Management', 'b2b-commerce-pro'); ?></h2>
                         <p><?php _e('Add multiple products to your cart quickly and efficiently', 'b2b-commerce-pro'); ?></p>
@@ -719,19 +729,19 @@ class Frontend {
                 <!-- CSV Import Section -->
                 <div class="b2b-section-card">
                     <div class="b2b-section-header">
-                        <div class="b2b-section-icon">📄</div>
+                        <div class="b2b-section-icon"><?php _e('📄', 'b2b-commerce-pro'); ?></div>
                         <h3><?php _e('Import from CSV', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
                         <div class="b2b-csv-import">
                             <div class="b2b-csv-info">
                                 <p><?php _e('Upload a CSV file with product SKUs and quantities to add multiple products at once.', 'b2b-commerce-pro'); ?></p>
-                                <a href="#" class="b2b-csv-template" download="bulk_order_template.csv">📥 <?php _e('Download CSV Template', 'b2b-commerce-pro'); ?></a>
+                                <a href="#" class="b2b-csv-template" download="bulk_order_template.csv"><?php _e('📥', 'b2b-commerce-pro'); ?> <?php _e('Download CSV Template', 'b2b-commerce-pro'); ?></a>
                             </div>
                             <div class="b2b-file-upload">
                                 <input type="file" name="b2b_bulk_csv" accept=".csv" id="b2b-csv-upload" class="b2b-file-input">
                                 <label for="b2b-csv-upload" class="b2b-file-label">
-                                    <div class="b2b-upload-icon">📁</div>
+                                    <div class="b2b-upload-icon"><?php _e('📁', 'b2b-commerce-pro'); ?></div>
                                     <span><?php _e('Choose CSV File', 'b2b-commerce-pro'); ?></span>
                                 </label>
                             </div>
@@ -742,7 +752,7 @@ class Frontend {
                 <!-- Product List Display -->
                 <div class="b2b-section-card" id="b2b-product-list-section" style="display: none;">
                     <div class="b2b-section-header">
-                        <div class="b2b-section-icon">📋</div>
+                        <div class="b2b-section-icon"><?php _e('📋', 'b2b-commerce-pro'); ?></div>
                         <h3><?php _e('Loaded Products', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
@@ -762,7 +772,7 @@ class Frontend {
                 <!-- Order Summary -->
                 <div class="b2b-section-card">
                     <div class="b2b-section-header">
-                        <div class="b2b-section-icon">📊</div>
+                        <div class="b2b-section-icon"><?php _e('📊', 'b2b-commerce-pro'); ?></div>
                         <h3><?php _e('Order Summary', 'b2b-commerce-pro'); ?></h3>
                     </div>
                     <div class="b2b-section-content">
@@ -783,7 +793,7 @@ class Frontend {
                         
                         <div class="b2b-bulk-actions">
                             <button type="button" class="b2b-add-to-cart-btn" disabled>
-                                <span class="b2b-cart-icon">🛒</span>
+                                <span class="b2b-cart-icon"><?php _e('🛒', 'b2b-commerce-pro'); ?></span>
                                 <?php _e('Add All to Cart', 'b2b-commerce-pro'); ?>
                             </button>
                             <button type="button" class="b2b-clear-all-btn" id="b2b-clear-all">
@@ -808,7 +818,7 @@ class Frontend {
             // Initialize interface function
             function initializeInterface() {
                 // Get currency symbol dynamically
-                const currencySymbol = '<?php echo get_woocommerce_currency_symbol(); ?>' || '৳';
+                const currencySymbol = '<?php echo get_woocommerce_currency_symbol(); ?>' || '<?php echo get_woocommerce_currency(); ?>';
                 
                 // Reset all counters to show dashes initially
                 updateAllCounters('-', '-', '-');
@@ -841,7 +851,7 @@ class Frontend {
                 console.log('File info:', fileInfo);
                 
                 // Update interface to show processing
-                updateFileStatus('Processing file...', 'info');
+                updateFileStatus(b2b_ajax.strings.processing_file, 'info');
                 
                 // Process CSV file
                 processCSVFile(file);
@@ -866,21 +876,21 @@ class Frontend {
                             updateOrderSummary(products);
                             // Enable add to cart button
                             $('.b2b-add-to-cart-btn').prop('disabled', false);
-                            updateFileStatus(`Successfully loaded ${products.length} products!`, 'success');
+                            updateFileStatus(b2b_ajax.strings.successfully_loaded + ' ' + products.length + ' ' + b2b_ajax.strings.products, 'success');
                             console.log('CSV processed successfully');
                         } else {
-                            updateFileStatus('No valid products found in CSV file', 'error');
+                            updateFileStatus(b2b_ajax.strings.no_valid_products, 'error');
                             console.log('No valid products found');
                         }
                     } catch (error) {
                         console.error('CSV processing error:', error);
-                        updateFileStatus('Error processing CSV file: ' + error.message, 'error');
+                        updateFileStatus(b2b_ajax.strings.error_processing_csv + ' ' + error.message, 'error');
                     }
                 };
                 
                 reader.onerror = function() {
                     console.error('File reading error');
-                    updateFileStatus('Error reading CSV file', 'error');
+                    updateFileStatus(b2b_ajax.strings.error_reading_csv, 'error');
                 };
                 
                 reader.readAsText(file);
@@ -959,7 +969,7 @@ class Frontend {
                         <div class="b2b-product-list-item">
                             <span class="b2b-product-sku">${product.sku}</span>
                             <span class="b2b-product-qty">${product.quantity}</span>
-                            <span class="b2b-product-price">${window.b2bCurrencySymbol || '৳'}${(product.quantity * 10).toFixed(2)}</span>
+                            <span class="b2b-product-price">${window.b2bCurrencySymbol || '<?php echo get_woocommerce_currency_symbol(); ?>'}${(product.quantity * 10).toFixed(2)}</span>
                         </div>
                     `;
                     productListItems.append(productRow);
@@ -984,7 +994,7 @@ class Frontend {
             
             // Update counters with proper formatting
             function updateCountersFormatted(products, quantity) {
-                const currencySymbol = window.b2bCurrencySymbol || '৳';
+                const currencySymbol = window.b2bCurrencySymbol || '<?php echo get_woocommerce_currency_symbol(); ?>';
                 const total = products > 0 ? currencySymbol + (quantity * 10).toFixed(2) : '-';
                 
                 updateAllCounters(products, quantity, total);
@@ -998,7 +1008,7 @@ class Frontend {
                 if (window.b2bCSVProducts && window.b2bCSVProducts.length > 0) {
                     addCSVProductsToCart(window.b2bCSVProducts);
                 } else {
-                    alert('No products loaded. Please upload a CSV file first.');
+                    alert(b2b_ajax.strings.no_products_loaded);
                 }
             });
             
@@ -1007,16 +1017,16 @@ class Frontend {
                 console.log('Adding products to cart:', products);
                 
                 // Show loading state
-                $('.b2b-add-to-cart-btn').prop('disabled', true).text('Adding to Cart...');
+                $('.b2b-add-to-cart-btn').prop('disabled', true).text(b2b_ajax.strings.adding_to_cart);
                 
                 // Simulate adding to cart
                 setTimeout(() => {
-                    alert(`Successfully added ${products.length} products to cart!`);
+                    alert(b2b_ajax.strings.successfully_added + ' ' + products.length + ' ' + b2b_ajax.strings.products_to_cart);
                     
                     // Reset interface
-                    $('.b2b-add-to-cart-btn').prop('disabled', false).text('Add All to Cart');
+                    $('.b2b-add-to-cart-btn').prop('disabled', false).text(b2b_ajax.strings.add_all_to_cart);
                     $('#b2b-csv-upload').val('');
-                    $('.b2b-file-label span').text('Choose CSV File');
+                    $('.b2b-file-label span').text(b2b_ajax.strings.choose_csv_file);
                     
                     // Clear summary
                     updateAllCounters('-', '-', '-');
@@ -1037,7 +1047,7 @@ class Frontend {
                 
                 // Clear CSV file
                 $('#b2b-csv-upload').val('');
-                $('.b2b-file-label span').text('Choose CSV File');
+                $('.b2b-file-label span').text(b2b_ajax.strings.choose_csv_file);
                 
                 // Reset all counters
                 updateAllCounters('-', '-', '-');
@@ -1051,7 +1061,7 @@ class Frontend {
                 // Clear stored products
                 window.b2bCSVProducts = [];
                 
-                alert('All products cleared!');
+                alert(b2b_ajax.strings.all_products_cleared);
                 console.log('Clear all completed');
             });
             
@@ -1089,7 +1099,7 @@ class Frontend {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
                 
-                updateFileStatus('CSV template downloaded successfully!', 'success');
+                updateFileStatus(b2b_ajax.strings.csv_template_downloaded, 'success');
                 console.log('CSV template downloaded');
             });
         });
@@ -1116,10 +1126,27 @@ class Frontend {
             true
         );
         
-        // Localize script for AJAX with proper nonce
+        // Localize script for AJAX with proper nonce and strings
         wp_localize_script('b2b-commerce-pro-frontend', 'b2b_ajax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('b2b_ajax_nonce')
+            'nonce' => wp_create_nonce('b2b_ajax_nonce'),
+            'strings' => array(
+                'no_products_loaded' => __('No products loaded. Please upload a CSV file first.', 'b2b-commerce-pro'),
+                'adding_to_cart' => __('Adding to Cart...', 'b2b-commerce-pro'),
+                'successfully_added' => __('Successfully added', 'b2b-commerce-pro'),
+                'products_to_cart' => __('products to cart!', 'b2b-commerce-pro'),
+                'add_all_to_cart' => __('Add All to Cart', 'b2b-commerce-pro'),
+                'choose_csv_file' => __('Choose CSV File', 'b2b-commerce-pro'),
+                'all_products_cleared' => __('All products cleared!', 'b2b-commerce-pro'),
+                'processing_file' => __('Processing file...', 'b2b-commerce-pro'),
+                'successfully_loaded' => __('Successfully loaded', 'b2b-commerce-pro'),
+                'products' => __('products!', 'b2b-commerce-pro'),
+                'no_valid_products' => __('No valid products found in CSV file', 'b2b-commerce-pro'),
+                'error_processing_csv' => __('Error processing CSV file:', 'b2b-commerce-pro'),
+                'error_reading_csv' => __('Error reading CSV file', 'b2b-commerce-pro'),
+                'csv_template_downloaded' => __('CSV template downloaded successfully!', 'b2b-commerce-pro'),
+                'menu' => __('☰ Menu', 'b2b-commerce-pro')
+            )
         ));
         
         // Add mobile-responsive features
@@ -1133,7 +1160,7 @@ class Frontend {
                 });
                 
                 // Mobile menu toggle for B2B dashboard
-                $(".b2b-dashboard-links").prepend("<button class=\'b2b-mobile-toggle\'>☰ Menu</button>");
+                $(".b2b-dashboard-links").prepend("<button class=\'b2b-mobile-toggle\'>" + b2b_ajax.strings.menu + "</button>");
                 $(".b2b-mobile-toggle").click(function() {
                     $(this).siblings("li").toggle();
                 });
